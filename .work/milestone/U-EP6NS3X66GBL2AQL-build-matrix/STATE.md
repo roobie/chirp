@@ -33,15 +33,17 @@ Out: releases and provenance attestation; the embedded CA bundle (D-B2RTYH6CNDO6
 4. macos-arm64: the target plus its native smoke job.
 
 ## Now
-Initializing; slice 1 next.
+Slice 2, ci-workflow (U-Y6FKAFGZIQM237V6).
 
 ## Next
-- Open slice linux-x64-on-zig.
+- linux-arm64, then macos-arm64.
 
 ## Evidence
+- Slice 1 (U-2Z6G6NL44WHG3AE7): linux-x64 and windows-x64 are both built by zig and reproduce locally (`484a2667…`, `78c330ff…`).
 
 ## Harvest
 
 ## Log
 - 2026-10-24 initialized
 - 2026-10-24 phase initialize → execute
+- 2026-10-24 slice linux-x64-on-zig (U-2Z6G6NL44WHG3AE7) delivered; image writing split into image.janet (L-ZI52YKRRPPUHTQEI)
