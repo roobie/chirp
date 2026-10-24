@@ -3,6 +3,8 @@
  :ca-paths ["/etc/ssl/certs/ca-certificates.crt"
             "/etc/pki/tls/certs/ca-bundle.crt"
             "/etc/ssl/cert.pem"]
+ # Bundled module -> chirp module whose public bindings replace the module's own.
+ :overlays {"spork-https" "./overlay-spork-https"}
  # Modules resolvable with nothing on disk. spork/tasker is left out: its peg
  # schema is stringified with a heap address at compile time, so the image
  # differs per run.

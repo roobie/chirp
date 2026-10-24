@@ -36,12 +36,15 @@ Promoted from backlog: B-QCZS5VCEMNVARX34 Fix spork-https documenting :ca for cl
 Smallest repro of the `:ca` problem: about 15 lines of plain jsec. Start `tls/server` on localhost with a self-signed cert written to `ca.pem`, then connect three ways with verification on. `{:trusted-cert pem}` and `{:security {:ca-file "ca.pem"}}` connect; `{:ca "ca.pem"}` fails with `certificate verify failed`. Upstream fixes would be spork-https correcting its docs, and jsec either reading `:ca` on clients or rejecting unknown keys.
 
 ## Now
-Initialized; next is delegating the code.
+Overlay reviewed, built and smoke-tested on linux-x64; pushed for CI.
 
 ## Next
-- Delegate the overlay, the chirp.jdn entry and the smoke checks; review them; build linux-x64 locally; push; get CI green.
+- Get CI green on all four targets, then finalize.
 
 ## Evidence
+- Two local linux-x64 builds, run one after the other, have the same `bin/chirp` sha256 (d12ebbda…71ef6e, 8559752 bytes). After review, a comment in chirp.jdn moved, with no data change.
+- Local smoke passes: `ok https-overlay user-agent chirp/0.1.0, explicit x, :ca trusted`. The untrusted-certificate check still fails as it should.
+- `(doc spork-https/get)` shows the upstream docstring plus the chirp note.
 
 ## Harvest
 - [ ] decision: chirp corrects bundled modules with an overlay of replacement bindings, named in chirp.jdn, not with a fork or a separate module

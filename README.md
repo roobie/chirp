@@ -89,6 +89,15 @@ $env:SSL_CERT_FILE = "C:\Program Files\Git\ucrt64\etc\ssl\certs\ca-bundle.crt"
 
 A later release will embed a pinned CA bundle as a fallback.
 
+## How chirp's spork-https differs
+
+From 0.2.0, chirp layers two fixes over the bundled spork-https client, without forking it:
+
+- A request with no `User-Agent` header sends `User-Agent: chirp/<version>`, because some services, GitHub's API among them, reject requests without one. A `User-Agent` you set is sent unchanged.
+- `:tls-opts {:ca "ca.pem"}` makes the client trust that CA, as the spork-https docs describe. jsec's client otherwise ignores `:ca` and falls back to the system store.
+
+The server is unchanged.
+
 ## Building
 
 The build needs Docker. It runs in a pinned Alpine container, where zig cross-compiles every target from Linux:

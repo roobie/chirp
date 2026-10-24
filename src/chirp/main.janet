@@ -13,6 +13,15 @@
            :let [env (require name)]]
     name (tabseq [[k v] :pairs env :when (symbol? k)] k v)))
 
+# Overlays correct bundled modules without forking them: same-named public
+# bindings replace upstream's. Names the module lacks (the overlay's own imports)
+# stay out.
+(eachp [target overlay] (config :overlays)
+  (def into (bundled target))
+  (eachp [k v] (require overlay)
+    (when (and (symbol? k) (in into k) (not (v :private)))
+      (put into k v))))
+
 (defn- find-ca []
   (or (os/getenv "SSL_CERT_FILE")
       (when-let [p (find os/stat (config :ca-paths))]
