@@ -36,15 +36,18 @@ Out (BR, 2026-10-24): SQLite and TOML (U-OPXF3E6S7PBCFAHC) wait for 0.2.0; embed
 4. cut-0-1-0: the version bump, a green dry run, and the handoff to BR.
 
 ## Now
-Initializing; build-matrix's last run (macos-arm64) is in flight.
+license-notices (U-25DRIWMDCK6XEUI4): an agent is building the notices step.
 
 ## Next
-- Start license-notices.
+- release-workflow: it must publish the asset names README.md promises (`chirp-<version>-<target>[.exe]`, `NOTICES-<target>.txt`, `SHA256SUMS`), and publish only after the double-build compare has passed.
 
 ## Evidence
+- build-matrix delivered: run 40095901156 is green across all four targets.
+- Slice readme (U-7GRJDBWUK55ZT6X5): README.md covers the unofficial notice, the bundled components, the downloads, verification and windows SSL_CERT_FILE.
 
 ## Harvest
 
 ## Log
 - 2026-10-24 initialized
 - 2026-10-24 phase initialize → execute
+- 2026-10-24 slice readme (U-7GRJDBWUK55ZT6X5) delivered
