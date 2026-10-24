@@ -28,14 +28,16 @@ Out: mdz (BR chose plain Markdown, 2026-10-25); bundling spork/mdz for scripts; 
 - Only BR's team uses chirp, so no compatibility concerns.
 
 ## Now
-Delegating the implementation.
+Implemented and reviewed; a local linux-x64 build passes the whole smoke suite, changelog check included. Waiting on CI.
 
 ## Next
-- Review, local build and smoke, push, CI.
+- CI green on all four targets, then a release dry run to prove the notes step.
 
 ## Evidence
+- Local linux-x64 build: `chirp test/smoke/run.janet` prints `ok changelog` and `smoke: all checks passed`.
 
 ## Harvest
+- [ ] decision: release notes take the version's section from the changelog baked into the shipped binary, and a tag without one fails; a release now also renames Unreleased to the version
 
 ## Log
 - 2026-10-25 initialized; BR chose plain CHANGELOG.md over mdz and asked for `chirp --changelog`

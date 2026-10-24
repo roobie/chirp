@@ -12,6 +12,10 @@
  :ca-paths ["/etc/ssl/certs/ca-certificates.crt"
             "/etc/pki/tls/certs/ca-bundle.crt"
             "/etc/ssl/cert.pem"]
+ # Help topics whose text lives outside help/, stem -> path from this directory.
+ # The changelog is a repo-root file people read on GitHub; copying it into
+ # help/ would let the two drift.
+ :help-extra {"changelog" "../../CHANGELOG.md"}
  # Bundled module -> chirp module whose public bindings replace the module's own.
  :overlays {"spork-https" "./overlay-spork-https"}
  # Modules resolvable with nothing on disk. spork/tasker is left out: its peg

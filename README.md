@@ -9,6 +9,7 @@ chirp                    # REPL, like janet
 chirp script.janet       # run a script, like janet
 echo '(print 1)' | chirp # run code from stdin
 chirp --version          # chirp 0.2.0 (unofficial build, not a Janet release) on Janet …
+chirp --changelog        # what changed in each release, offline
 chirp self-update        # replace chirp with the latest signed release (--check only reports)
 ```
 

@@ -37,21 +37,23 @@
   entries)
 
 (defn collect
-  "Sorted help entries: the .md files in dir (stem = topic id, each `##` a
-  section) and the documented public bindings of the modules table and of
-  Janet's core."
-  [dir modules]
+  "Sorted help entries: the .md files in dir and the extra topics (a table of
+  stem -> markdown text), where stem = topic id and each `##` is a section,
+  plus the documented public bindings of the modules table and of Janet's core."
+  [dir modules extra]
   (def out @[])
   (def seen @{})
   (defn add [e]
     (assert (not (seen (e :id))) (string "duplicate help id " (e :id)))
     (put seen (e :id) true)
     (array/push out e))
+  (defn add-topic [stem text]
+    (assert (not (in modules stem)) (string "help topic " stem " shadows a bundled module"))
+    (each e (md-entries stem text) (add e)))
   (each file (sorted (os/dir dir))
     (when (string/has-suffix? ".md" file)
-      (def stem (string/slice file 0 -4))
-      (assert (not (in modules stem)) (string "help topic " stem " shadows a bundled module"))
-      (each e (md-entries stem (slurp (string dir file))) (add e))))
+      (add-topic (string/slice file 0 -4) (slurp (string dir file)))))
+  (each stem (sorted (keys extra)) (add-topic stem (extra stem)))
   # Imports show up in a module's env as `prefix/name` and belong to another
   # module; core's own names legitimately contain a slash.
   (defn add-docs [prefix env imports?]

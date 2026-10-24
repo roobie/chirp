@@ -4,7 +4,7 @@ chirp is an unofficial build of Janet. It is not a Janet release and is not made
 
 ## Version and identity
 
-`chirp -v` (or `--version`) prints the chirp version, the Janet version it is built on, and the CA bundle it found, or `none found`.
+`chirp -v` (or `--version`) prints the chirp version, the Janet version it is built on, and the CA bundle it found, or `none found`. `chirp --changelog` prints what changed in each release; it is also the help topic `changelog`.
 
 ## Certificate authorities
 

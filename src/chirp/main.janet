@@ -24,7 +24,10 @@
 
 # Help files and docstrings are read now, in sorted order, and live in the image.
 (import ./help)
-(def- help-entries (help/collect (string here "help/") bundled))
+(def- extra-topics
+  (tabseq [[stem path] :pairs (config :help-extra)]
+    stem (slurp (string here path))))
+(def- help-entries (help/collect (string here "help/") bundled extra-topics))
 
 # The release key is read now, so the binary trusts the key it was built with
 # and nothing on the machine it runs on.
@@ -75,6 +78,7 @@
     "-" (run-stdin args)
     "-v" (print (identity-line ca))
     "--version" (print (identity-line ca))
+    "--changelog" (prin (extra-topics "changelog"))
     "help" (help/run help-entries (array/slice args 1))
     "self-update" (update/run (array/slice args 1) update-config)
     (cli-main args)))
