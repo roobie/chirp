@@ -40,3 +40,4 @@ The target is one config entry, with no Mach-O steps in `cross-link`. zig's LC_U
 ## Log
 - 2026-10-24 initialized
 - 2026-10-24 phase initialize → execute
+- 2026-10-24 target entry and CI matrix entries committed

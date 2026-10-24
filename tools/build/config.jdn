@@ -23,6 +23,16 @@
                          :cflags ["-std=c99" "-O2" "-fvisibility=hidden"]
                          :lflags ["-static" "-s" "-Wl,--build-id=none"]
                          :libs ["-lm" "-lpthread" "-ldl"]}
+           # libSystem is the only dynamic dependency; macOS has no static libc.
+           # The minimum OS version is pinned so it does not follow zig's default.
+           :macos-arm64 {:triple "aarch64-macos.11.0"
+                         :openssl-target "darwin64-arm64-cc"
+                         :cflags ["-std=c99" "-O2" "-fvisibility=hidden"]
+                         # The Apple random source needs CommonCrypto headers, which
+                         # only an SDK has; OpenSSL then seeds from the OS instead.
+                         :openssl-flags ["-DOPENSSL_NO_APPLE_CRYPTO_RANDOM"]
+                         :lflags ["-s"]
+                         :libs ["-lm" "-lpthread" "-ldl"]}
            :windows-x64 {:triple "x86_64-windows-gnu"
                          :openssl-target "mingw64"
                          :exe-suffix ".exe"
