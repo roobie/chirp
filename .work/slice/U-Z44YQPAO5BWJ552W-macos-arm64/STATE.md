@@ -26,14 +26,16 @@ Out: notarization and Developer ID signing (releases will be ad-hoc signed); x86
 - OpenSSL's built-in cert locations do not include the macOS keychain, so trust may need `SSL_CERT_FILE` (e.g. /etc/ssl/cert.pem) until the embedded CA roots land.
 
 ## Now
-A Sonnet agent is spiking the target entry and the Mach-O steps locally.
+The target is one config entry, with no Mach-O steps in `cross-link`. zig's LC_UUID is deterministic, it ad-hoc signs, and `-s` keeps the signature valid. The CI matrix entries are in, so the push shows whether it runs on macos-15.
 
 ## Next
-- Review the agent's result, build twice locally, enable it in CI.
+- Read the CI run. If TLS fails without `SSL_CERT_FILE`, find where macOS keeps a PEM bundle (the binary's probe list includes /etc/ssl/cert.pem).
 
 ## Evidence
+- Two local builds in different directories: sha256 fd40031b…d670 for both. Mach-O arm64 with minos 11.0, `libSystem.B.dylib` as the only dylib, LC_UUID 51fd8788…2bfe in both, and an ad-hoc linker signature whose 418 page hashes were recomputed and all match.
 
 ## Harvest
+- [ ] learning: OpenSSL for macOS without an Apple SDK fails on CommonCrypto headers; `-DOPENSSL_NO_APPLE_CRYPTO_RANDOM` drops the Apple random source instead of needing an SDK
 
 ## Log
 - 2026-10-24 initialized

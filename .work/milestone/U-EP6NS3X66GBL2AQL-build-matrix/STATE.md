@@ -33,7 +33,7 @@ Out: releases and provenance attestation; the embedded CA bundle (D-B2RTYH6CNDO6
 4. macos-arm64: the target plus its native smoke job.
 
 ## Now
-Slice 3, linux-arm64 (U-GIJTZBBSPJSYPAJE): committed, and its CI run comes with the next push. Slice 4, macos-arm64 (U-Z44YQPAO5BWJ552W): an agent is spiking the target locally.
+Slice 4, macos-arm64 (U-Z44YQPAO5BWJ552W): it builds reproducibly, and the next run is its first on a Mac.
 
 ## Next
 - Once the matrix is green, a release slice for 0.1.0, under a new milestone because releases were out of scope here.
@@ -41,6 +41,7 @@ Slice 3, linux-arm64 (U-GIJTZBBSPJSYPAJE): committed, and its CI run comes with 
 ## Evidence
 - Slice 1 (U-2Z6G6NL44WHG3AE7): linux-x64 and windows-x64 are both built by zig and reproduce locally (`484a2667…`, `78c330ff…`).
 - Slice 2 (U-Y6FKAFGZIQM237V6): run 40093657890 is green for linux-x64 and windows-x64, covering double builds, compare, native smoke and leakcheck. Windows needed a jsec patch (L-ZDKYOLHCJKJJIE3R), so its hash is now `e92c21ff…`.
+- Slice 3 (U-GIJTZBBSPJSYPAJE): run 40094283299 is green with linux-arm64 (`456e7204…`), which took one config entry and no build changes.
 
 ## Harvest
 
@@ -49,3 +50,4 @@ Slice 3, linux-arm64 (U-GIJTZBBSPJSYPAJE): committed, and its CI run comes with 
 - 2026-10-24 phase initialize → execute
 - 2026-10-24 slice linux-x64-on-zig (U-2Z6G6NL44WHG3AE7) delivered; image writing split into image.janet (L-ZI52YKRRPPUHTQEI)
 - 2026-10-24 slice ci-workflow (U-Y6FKAFGZIQM237V6) delivered; jsec patched for windows TLS servers
+- 2026-10-24 slice linux-arm64 (U-GIJTZBBSPJSYPAJE) delivered
