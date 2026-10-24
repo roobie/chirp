@@ -26,10 +26,10 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-Steering slice U-34F3JPNU2EK44A7I (linux-x64-spike), which removes the main risks before the matrix widens. Slice U-OPXF3E6S7PBCFAHC (bundle-sqlite-toml) is queued behind it.
+Steering milestone U-EP6NS3X66GBL2AQL (build-matrix), which gets every target built twice and smoke-run on GitHub. Slice U-OPXF3E6S7PBCFAHC (bundle-sqlite-toml) is queued.
 
 ## Next
-- After the spike: bundle-sqlite-toml, then plan the platform matrix and CI.
+- After build-matrix: bundle-sqlite-toml, then releases with provenance.
 
 ## Evidence
 
@@ -41,3 +41,6 @@ Steering slice U-34F3JPNU2EK44A7I (linux-x64-spike), which removes the main risk
 - 2026-10-24 task leak-check (U-IJTQWFAWHMY3VRSB) delivered: commit hooks block host-specific details (D-54W72MHWZBDDVE4V, D-U5B6PF3E3RVNDWFL)
 - 2026-10-24 public GitHub repo created and pushed by BR
 - 2026-10-24 scope amended by BR: SQLite and compression are in (D-Z7JOCFPGMOANQFY7, D-AD6YBCGFHJTVZ7TZ), then TOML (D-DMR3ULVUY2KA72XN)
+- 2026-10-24 slice linux-x64-spike (U-34F3JPNU2EK44A7I) delivered: static, reproducible linux chirp with TLS client and server
+- 2026-10-24 slice zig-windows-spike (U-XQ7CEDXSOK3XIAZV) delivered: reproducible windows chirp cross-built by zig; D-I6U4X6Q5KJD2Y4SM accepted
+- 2026-10-24 milestone build-matrix (U-EP6NS3X66GBL2AQL) opened
