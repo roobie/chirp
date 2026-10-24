@@ -5,6 +5,10 @@
   [(os/proc-wait p) (string out) (string err)])
 
 (defn main [&]
+  (def [ucode uout _] (help))
+  (assert (and (= 0 ucode) (string/find "NEAR(" uout) (string/find "  sqlite  SQLite" uout))
+          "bare help shows query examples and topics")
+
   (def [qcode qout _] (help "query" "sqlite"))
   (assert (= 0 qcode) "query exits 0")
   (assert (string/find "sqlite/" qout) (string "query hit: " qout))

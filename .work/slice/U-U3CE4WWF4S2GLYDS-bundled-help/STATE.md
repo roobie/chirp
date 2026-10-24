@@ -43,6 +43,8 @@ The help work is built, reviewed and smoke-tested on linux-x64, and pushed for C
 ## Evidence
 - Two linux-x64 builds, run one after the other, have the same `bin/chirp` sha256 (f84b2941…0c085d). The binary is 9045320 bytes, 485568 more than before; FTS5, the baked docs and the help module account for the growth. Review then trimmed the snippet whitespace, a one-line display change, so CI's builds are the evidence for the committed code.
 - The local smoke suite passes, `ok help` included. Query, read, docstring read, malformed query (exit 1, no stack trace), unknown id (exit 1 with suggestions) and the no-match case (exit 0) all behave as specified.
+- CI run 40111460851 (7d849fb) is green on all four targets, with matching double builds and the help smoke check passing on each native runner.
+- BR asked that bare `chirp help` show usage with FTS5 examples. That text is now the `help` topic (help/help.md), so it stays content and is searchable. Every query example ran against a linux-x64 build (566148…4a6c7a) with exit 0, and the smoke suite passed.
 - The agent ran every code example in the help files against the build. The HTTPS server example answered `hello /abc` over TLS.
 
 ## Harvest

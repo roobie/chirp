@@ -66,19 +66,10 @@
 
 (defn- die [& msg] (eprint "chirp help: " ;msg) (os/exit 1))
 
+# The usage text is the `help` topic, so it stays content and is searchable too.
 (defn- usage [entries]
-  (print ``
-usage:
-  chirp help                          this list
-  chirp help query '<fts5 query>' [--limit N]
-                                      search the docs, ranked; up to 10 hits
-  chirp help read <id>                print a topic, a section or a binding's doc
-
-An id is <topic>, <topic>/<section>, <module>/<name> or a core name such as
-os/spawn. Queries use SQLite FTS5 syntax: tls ca, "user agent", cert*,
-title:sqlite.
-
-topics:``)
+  (print ((find |(= "help" ($ :id)) entries) :text))
+  (print "\n## Topics\n")
   (each e entries
     (when (= :topic (e :kind)) (print "  " (e :id) "  " (e :title)))))
 
