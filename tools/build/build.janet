@@ -55,8 +55,7 @@
 (each name [:janet :spork :jsec :spork-https :openssl] (fetch name))
 
 # Patches to a pinned checkout, applied once and failing loudly if they do not
-# apply. spork numbers each native's image prefix from a process-global counter,
-# which makes the image differ between otherwise identical builds.
+# apply.
 (defn- patch [name file]
   (def dir (string "src/" name))
   (def path (string repo "/tools/build/patches/" file))
@@ -68,7 +67,13 @@
     (applies?) (do (run "git" "-C" dir "apply" path) (print "applied " file))
     (applies? "-R") (print "already applied " file)
     (errorf "patch %s fits neither the pinned nor the patched %s" file name)))
+# spork numbers each native's image prefix from a process-global counter, which
+# makes the image differ between otherwise identical builds.
 (patch :spork "spork-deterministic-native-prefixes.patch")
+# On windows, Janet writes a byte count just past the OVERLAPPED in jsec's
+# accept state, wiping the accepted socket, so every TLS server dies on its
+# first connection.
+(patch :jsec "jsec-iocp-accept-state-padding.patch")
 
 # Everything the image build loads is built for the build machine; everything
 # linked into the executable is built again by zig for the target.

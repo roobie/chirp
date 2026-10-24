@@ -1,0 +1,23 @@
+diff --git a/src/jtls/api/server.c b/src/jtls/api/server.c
+index f05557d..e784057 100644
+--- a/src/jtls/api/server.c
++++ b/src/jtls/api/server.c
+@@ -38,6 +38,10 @@ typedef struct {
+ #ifdef JANET_WINDOWS
+     /* Windows IOCP: WSAOVERLAPPED MUST be first field for pointer matching */
+     WSAOVERLAPPED overlapped;
++    /* Janet's completion loop treats ev_state as its JanetOverlapped, which is
++     * the overlapped plus a uint32_t byte count that it writes on every
++     * completion. Keep that slot ours so it cannot clobber the next field. */
++    uint32_t janet_bytes_transferred;
+     SOCKET accept_socket; /* Pre-created socket for AcceptEx */
+     char accept_buf[2 * (sizeof(SOCKADDR_STORAGE) + 16)]; /* Address buffer */
+ #endif
+@@ -545,6 +549,7 @@ typedef struct {
+ #ifdef JANET_WINDOWS
+     /* Windows IOCP: WSAOVERLAPPED MUST be first field for pointer matching */
+     WSAOVERLAPPED overlapped;
++    uint32_t janet_bytes_transferred; /* written by Janet, see above */
+     SOCKET accept_socket; /* Pre-created socket for AcceptEx */
+     char accept_buf[2 * (sizeof(SOCKADDR_STORAGE) + 16)]; /* Address buffer */
+ #endif

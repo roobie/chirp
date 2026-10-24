@@ -34,15 +34,19 @@ Promoted from backlog: B-JSN4UWUJCBBNOWEX Run leakcheck all and its tests in CI
 Hooks can be skipped (`--no-verify`, or a clone without `core.hooksPath`). A CI run of `leakcheck all` plus `tools/leakcheck/test.janet` catches what gets past them, using the generic rules.
 
 ## Now
-The first run (40091651644) passed builds, compare, leakcheck and linux smoke. Windows smoke stopped before running chirp because the Git CA bundle was not at the assumed path, so the step now searches the Git install for it. Run 40092342785 checks the fix. Under Wine, `https-server` fails with "failed to listen for events: Invalid handle" once the TLS server accepts a connection, and an agent is diagnosing jsec's windows server path.
+The first run (40091651644) passed builds, compare, leakcheck and linux smoke. Windows smoke stopped before running chirp because the Git CA bundle was not at the assumed path, so the step now searches the Git install for it. Run 40092342785 checks the fix. The Wine `https-server` failure ("failed to listen for events: Invalid handle") is a jsec bug that also affects real Windows: Janet's completion loop overwrites the accepted socket with a byte count of 0. `tools/build/patches/jsec-iocp-accept-state-padding.patch` reserves that slot. It changes the windows hash only.
 
 ## Next
-- Read run 40092342785; if windows `https-server` fails there too, patch it from the diagnosis.
+- Push the patch and confirm a fully green run. If unpatched windows smoke hangs instead of failing, give the driver a timeout per check.
 
 ## Evidence
 - Run 40091651644: both copies of linux-x64 hash 484a2667…2a15 and both copies of windows-x64 hash 78c330ff…cddf, the same hashes as the local builds. leakcheck and linux smoke passed.
+- With the jsec patch, local builds give linux-x64 484a2667…2a15 (unchanged) and windows-x64 e92c21ff…3d39. Under Wine that windows build passes all four smoke checks, https-server included.
 
 ## Harvest
+- [ ] learning: Janet's IOCP loop treats a fiber's ev_state as JanetOverlapped and writes a uint32 byte count right after the OVERLAPPED, so a native's state struct must reserve that slot (cause of the windows TLS server failure)
+- [ ] backlog: send the jsec accept-state patch upstream, and check jsec's TLSState and DTLS structs, which put wsa_buf in the slot Janet writes
+- [ ] backlog: jsec's `__declspec(thread)` error buffer is ignored by zig, so it is a plain static (harmless while Janet is single-threaded)
 - [ ] process: the dev-proc hooks only warn, so a commit with refs broken by a file move went through. Consider making `tools/hooks` run them strict.
 
 ## Log
