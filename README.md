@@ -8,7 +8,7 @@ Stock Janet has no TLS and no HTTP server. chirp is a single binary that adds bo
 chirp                    # REPL, like janet
 chirp script.janet       # run a script, like janet
 echo '(print 1)' | chirp # run code from stdin
-chirp --version          # chirp 0.1.0 (unofficial build, not a Janet release) on Janet …
+chirp --version          # chirp 0.2.0 (unofficial build, not a Janet release) on Janet …
 chirp self-update        # replace chirp with the latest signed release (--check only reports)
 ```
 

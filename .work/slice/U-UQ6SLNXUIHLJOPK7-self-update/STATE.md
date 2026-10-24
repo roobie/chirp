@@ -11,6 +11,7 @@ success_criteria:
   - A bad signature, a hash mismatch, a missing target file or an unwritable directory leaves the old binary in place, prints why on stderr and exits non-zero
   - A build whose version is a pre-release (`-dev`) refuses to update unless given `--force`
   - The release workflow publishes SHA256SUMS.sig, signed in CI with the release key secret
+  - The installed chirp is the published signed release, and `chirp self-update` run with it against the real GitHub release succeeds, reporting it is up to date (BR, 2026-10-24)
   - The smoke suite checks update, refusal and tamper cases against a local mirror with a test key on all four targets; CI is green with the double build matching
 ---
 
@@ -31,10 +32,12 @@ Out: background or automatic update checks; verifying the GitHub provenance atte
 - The private key is created by BR and goes only into a GitHub secret; it never passes through an agent.
 
 ## Now
-CI green; waiting for BR's manual release dry run.
+Cutting 0.2.0 (BR authorized it): the version drops its `-dev` suffix and the release notes cover the 0.2.0 additions.
 
 ## Next
-- A manual `workflow_dispatch` of release.yml, to prove the secret signs and the signature verifies against `src/chirp/release-key.pem` before any tag.
+- Release dry run 40118134171 passes the sign and verify steps with the real secret.
+- Tag `v0.2.0` once CI is green on the version commit, then install the published linux-x64 binary and run `chirp self-update` with it.
+- Set main to `0.3.0-dev`, then finalize.
 
 ## Evidence
 - BR created the Ed25519 key: the public half is `src/chirp/release-key.pem` (checked by BR: one `BEGIN PUBLIC KEY`); the private half is the secret `CHIRP_RELEASE_SIGNING_KEY`.
