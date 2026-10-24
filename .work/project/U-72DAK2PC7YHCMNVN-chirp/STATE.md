@@ -16,7 +16,7 @@ success_criteria:
 # project/chirp
 
 ## Purpose
-Stock Janet has no TLS and no HTTP server. chirp is one static, reproducible binary that includes both, plus SQLite and compression, so a script can do HTTPS client and server work and keep local data with nothing installed except chirp.
+chirp is a batteries-included scripting runtime in one static, reproducible binary. Scripts often need one more thing (an API call, a config file, local state), and in most languages that means an install step. Stock Janet cannot even do TLS. chirp bundles HTTPS client and server, SQLite, TOML, JSON and compression, so a script runs with nothing installed except chirp.
 
 ## Scope
 In: a Janet executable bundling pinned upstream janet and spork (including its native modules, among them spork/zip for compression, D-AD6YBCGFHJTVZ7TZ), jsec (with static OpenSSL 3), spork-https, janet-lang/sqlite3 (D-Z7JOCFPGMOANQFY7) and pyrmont/tomlin (D-DMR3ULVUY2KA72XN); CA root handling; a reproducible multi-platform CI build; releases with provenance.

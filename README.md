@@ -1,8 +1,26 @@
 # chirp
 
-**chirp is an unofficial build of [Janet](https://janet-lang.org). It is not a Janet release and is not made by Janet's maintainers.** Please report problems with chirp here, not to Janet.
+**A batteries-included scripting runtime in one static binary: download it, run your script.**
 
-Stock Janet has no TLS and no HTTP server. chirp is a single binary that adds both, so a script can act as an HTTPS client or server with nothing installed except chirp.
+chirp is [Janet](https://janet-lang.org), a small, fast Lisp, built together with what real scripts reach for: an HTTPS client and server, JSON, SQLite with full-text search, TOML, compression, subprocesses, argument parsing and regexes. There is one file per platform (Linux x64 and arm64, macOS arm64, Windows x64). It is static, and needs no runtime, package manager or C compiler.
+
+**chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers.** Please report problems with chirp here, not to Janet.
+
+## Why chirp
+
+Scripts tend to start small and then need one more thing: an API call, a config file, somewhere to keep state. In most languages that one thing means an install step. Python wants a matching interpreter, a virtualenv and pip. Shell wants curl, jq and sqlite3 to be present, at versions that agree. Stock Janet has no TLS at all, and adding it means a C toolchain and OpenSSL headers on every machine.
+
+chirp removes that step. The batteries are inside the binary, so a script written on a laptop runs unchanged on a fresh server, in a CI job, in a `FROM scratch` container or on an air-gapped machine. The only setup is copying one file.
+
+- **One file, nothing else.** Every bundled module imports with nothing on disk.
+- **The same everywhere.** Every platform runs the same Janet and the same module versions, so behaviour does not drift between machines.
+- **Verifiable.** Builds are reproducible: CI builds each target twice and ships only when both hashes match. Every release carries SHA256SUMS, an Ed25519 signature and GitHub build provenance.
+- **Works offline.** `chirp help` searches the docs of every bundled module and of Janet's core, and `chirp --changelog` says what changed.
+- **Keeps itself current.** `chirp self-update` installs the latest release only after checking its signature.
+
+chirp does not fork Janet or its libraries. It pins upstream versions and bundles them, so Janet's own docs and community apply as they are.
+
+## Using it
 
 ```sh
 chirp                    # REPL, like janet
