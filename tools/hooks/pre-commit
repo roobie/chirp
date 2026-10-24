@@ -6,4 +6,6 @@ command -v janet >/dev/null 2>&1 || { echo "leakcheck: janet not found; refusing
 janet "$top/tools/leakcheck/leakcheck.janet" staged || exit 1
 
 command -v node >/dev/null 2>&1 || { echo "dev-proc: node not found, skipping checks" >&2; exit 0; }
-exec node "$top/.claude/skills/dev-proc/scripts/dev-proc.mjs" check --staged --hook
+# Warnings alone let a commit with refs broken by a file move through; set
+# DEV_PROC_STRICT=0 for a one-off commit that must go in anyway.
+DEV_PROC_STRICT=${DEV_PROC_STRICT-1} exec node "$top/.claude/skills/dev-proc/scripts/dev-proc.mjs" check --staged --hook
