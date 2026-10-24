@@ -29,13 +29,14 @@ Out: the version bump and the real tag (cut-0-1-0); signing beyond provenance (n
 - Attestations in a dry run are real but name no release; that is the cost of proving the attest step works before the tag.
 
 ## Now
-release.yml, the callable ci.yml and the notes template are written and reviewed; nothing has run yet. Dispatching a dry run on main.
+Dry run 40100593970 is green; it found SHA256SUMS listing itself, now fixed.
 
 ## Next
-- Inspect the dry run: the asset names, SHA256SUMS, the notes, attestations created, and no release created.
 - Prove the version gate: push a scratch tag that mismatches (e.g. `v0.0.0-gate`) and see the run fail in package, then delete the tag.
 
 ## Evidence
+- Dry run 40100593970 (dispatch on 2844b57) is green in all 16 jobs. Compare listed both chirp and NOTICES.txt as identical for all four targets. package wrote the 4 binaries, 4 NOTICES files and SHA256SUMS under the README names, with notes saying unofficial. publish attested 9 subjects (Rekor entry, repo attestation 59415140), and the API shows the linux-x64 binary's attestation naming release.yml at refs/heads/main. No release was created.
+- That run's SHA256SUMS listed itself, so `sha256sum -c` failed on it; fixed by writing it outside the directory first.
 
 ## Harvest
 

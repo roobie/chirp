@@ -63,7 +63,9 @@ jobs:
             fi
             cp "$dir/NOTICES.txt" "out/release/NOTICES-$target.txt"
           done
-          (cd out/release && find . -type f -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS)
+          # Written outside the directory first, so it does not list itself.
+          (cd out/release && find . -type f -printf '%f\n' | sort | xargs sha256sum) > out/SHA256SUMS
+          mv out/SHA256SUMS out/release/SHA256SUMS
           cat out/release/SHA256SUMS
 
           notes=$(< .github/release-notes.md)
