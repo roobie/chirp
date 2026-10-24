@@ -44,8 +44,10 @@ Implementation reviewed and committed; CI on all four targets is the remaining p
 
 ## Harvest
 - [ ] decision: bundle libyaml behind a chirp-owned binding, with Core schema resolution and capped alias expansion
+- [ ] learning: gensym reuses names the collector freed, so GC timing (driven by out-dir path length) moved gensym names in the image; image.janet holds the collector off
 - [ ] decision: natives.jdn `:repo-sources` lets a binding chirp owns build against a pinned library without copying it into the pin
 
 ## Log
+- 2026-10-25 CI 40143523124: all builds and smokes green, compare failed on every target; only gensym names differed. Fixed in image.janet.
 - 2026-10-25 initialized from B-IUK7YUKKWUN5IWUU; BR chose libyaml with a chirp-owned binding
 - 2026-10-24 phase initialize → execute

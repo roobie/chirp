@@ -4,6 +4,12 @@
 # and the names end up in the image, so the image depends only on this file and
 # the pinned spork, never on build.janet. Editing this file changes hashes.
 
+# gensym reuses the name of a gensym the collector has freed, so the names in the
+# image depend on when collections run. That follows how much this process has
+# allocated, which differs with the length of the out dir's path. With the
+# collector held off, every name is fresh and the counter alone decides it.
+(gcsetinterval 0x7fffffff)
+
 (def [_ out repo & ossl-libs] (dyn *args*))
 (os/cd out)
 (def abs-out (os/cwd))
