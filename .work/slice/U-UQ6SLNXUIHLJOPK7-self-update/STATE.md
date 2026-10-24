@@ -31,15 +31,15 @@ Out: background or automatic update checks; verifying the GitHub provenance atte
 - The private key is created by BR and goes only into a GitHub secret; it never passes through an agent.
 
 ## Now
-Implemented and reviewed; pushed for CI.
+CI green; waiting for BR's manual release dry run.
 
 ## Next
-- CI green on all four targets (the Windows rename swap and the macOS and arm64 paths run only there).
 - A manual `workflow_dispatch` of release.yml, to prove the secret signs and the signature verifies against `src/chirp/release-key.pem` before any tag.
 
 ## Evidence
 - BR created the Ed25519 key: the public half is `src/chirp/release-key.pem` (checked by BR: one `BEGIN PUBLIC KEY`); the private half is the secret `CHIRP_RELEASE_SIGNING_KEY`.
 - Two linux-x64 builds from different directories have the same `bin/chirp` sha256 (990918e5…e30787). The smoke suite passes, including `ok self-update linux-x64`: check-only, the pre-release refusal, a signature by another key, a missing signature, a hash mismatch, a replayed older release and a real swap, all on a copy of the binary.
+- Run 40117386812 (2a2a478) builds all four targets twice with matching sha256, and the self-update smoke check passes on each target's native runner, the Windows rename swap included. Its linux-x64 binary matches the local builds (990918e5…e30787).
 - Against the real releases, `--check` fails with `signature missing: … SHA256SUMS.sig: HTTP 404` and exit 1 (0.1.0 has no signature), and a plain update on the `-dev` build refuses with exit 1.
 
 ## Harvest
