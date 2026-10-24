@@ -26,14 +26,15 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.1.0 is published. Slice U-OPXF3E6S7PBCFAHC (bundle-sqlite-toml) is the next work, for 0.2.0.
+0.1.0 is published. SQLite and TOML are bundled on main for 0.2.0. Next is a chirp overlay on spork-https that sends a default User-Agent and honours the client `:ca` option.
 
 ## Next
-- bundle-sqlite-toml for 0.2.0.
+- The spork-https overlay, then cut 0.2.0.
 
 ## Evidence
 - Build-matrix (U-EP6NS3X66GBL2AQL): run 40095901156 builds all four targets twice with matching sha256, and smoke-runs each one on its native runner, HTTPS client and server included.
 - Release-0-1-0 (U-ROTWPYUJJW5Q45E2): https://github.com/roobie/chirp/releases/tag/v0.1.0 (run 40103776646) ships the four binaries, notices and SHA256SUMS with provenance attestation; the binary and README mark chirp unofficial. This meets the release, reproducibility, provenance and unofficial criteria; SQLite and TOML remain.
+- Bundle-sqlite-toml (U-OPXF3E6S7PBCFAHC): run 40107147500 builds all four targets twice with matching sha256, and the new sqlite and toml smoke checks pass on each target's native runner. They are not in a release yet.
 
 ## Harvest
 
@@ -49,3 +50,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-24 milestone build-matrix delivered: full matrix green on GitHub
 - 2026-10-24 milestone release-0-1-0 (U-ROTWPYUJJW5Q45E2) opened; SQLite and TOML moved to 0.2.0 (BR)
 - 2026-10-24 milestone release-0-1-0 delivered: v0.1.0 published
+- 2026-10-24 slice bundle-sqlite-toml delivered (D-G22LKQURNNTN6A2E, D-2V3JOY5TUAMLRJAE)
