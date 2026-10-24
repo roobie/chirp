@@ -1,8 +1,12 @@
 name: ci
 
 on:
+  # Branches only: a tag push is built by the release workflow, which calls
+  # this one, so CI does not run twice for it.
   push:
+    branches: ['**']
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read

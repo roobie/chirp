@@ -1,0 +1,44 @@
+---
+phase: execute
+parent: U-ROTWPYUJJW5Q45E2
+owner:
+  - BR
+  - claude
+created: 2026-10-24
+success_criteria:
+  - A `v*` tag push runs the full CI (double build, compare, smoke, leakcheck) and publishes a GitHub release only if all of it is green
+  - A tag whose version differs from what the built binary reports fails the run before the release step
+  - A manual dispatch on main runs the same path, stops before publishing, and leaves the release assets as a run artifact
+  - Assets are named as README.md promises, SHA256SUMS covers them, and each one has a build-provenance attestation
+  - Release notes say chirp is unofficial (D-J2C4TCJIQLJGENAG)
+  - Only the publish job has write, id-token and attestations permissions, and every action is pinned by sha (D-LI565XWPIYOAVEI6)
+---
+
+# slice/release-workflow
+
+## Purpose
+CI already proves each commit builds reproducibly and runs on every target. A release must ship exactly those bytes, under that proof, without a hand step that could slip a different file in.
+
+## Scope
+In: `ci.yml` made callable; a `release.yml` that calls it and then packages, attests and publishes; release notes as an editable template.
+Out: the version bump and the real tag (cut-0-1-0); signing beyond provenance (notarization, Authenticode).
+
+## Context & constraints
+- Release assets come from copy `a` of each target's CI build; the compare job is what makes copy `a` trustworthy.
+- The version gate reads the version from the built binary's identity line, so the check covers the bytes being shipped, not only the config file.
+- Attestations in a dry run are real but name no release; that is the cost of proving the attest step works before the tag.
+
+## Now
+release.yml, the callable ci.yml and the notes template are written and reviewed; nothing has run yet. Dispatching a dry run on main.
+
+## Next
+- Inspect the dry run: the asset names, SHA256SUMS, the notes, attestations created, and no release created.
+- Prove the version gate: push a scratch tag that mismatches (e.g. `v0.0.0-gate`) and see the run fail in package, then delete the tag.
+
+## Evidence
+
+## Harvest
+
+## Log
+- 2026-10-24 initialized
+- 2026-10-24 phase initialize → execute

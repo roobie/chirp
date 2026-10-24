@@ -1,0 +1,110 @@
+name: release
+
+on:
+  # A tag publishes. A manual run does everything except create the release,
+  # so the packaging and attestation can be proven before a real tag.
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # The release ships the bytes that this run's CI built, compared and ran.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  package:
+    needs: ci
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.layout.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Copy a only; the compare job showed copy b is identical.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: chirp-*-a
+          path: artifacts
+      - name: Lay out the release
+        id: layout
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          # The version comes from the binary being shipped, not from a file.
+          # Artifacts do not keep the executable bit.
+          chmod +x artifacts/chirp-linux-x64-a/chirp
+          identity=$(artifacts/chirp-linux-x64-a/chirp --version | head -n1)
+          echo "$identity"
+          read -r name version _ <<< "$identity"
+          if [ "$name" != chirp ] || [ -z "$version" ]; then
+            echo "::error::cannot read a version from: $identity"
+            exit 1
+          fi
+          if [ "$REF_TYPE" = tag ] && [ "$REF_NAME" != "v$version" ]; then
+            echo "::error::tag $REF_NAME does not match the binary's version v$version"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          mkdir -p out/release
+          for dir in artifacts/chirp-*-a; do
+            target=${dir#artifacts/chirp-}
+            target=${target%-a}
+            if [ -f "$dir/chirp.exe" ]; then
+              cp "$dir/chirp.exe" "out/release/chirp-$version-$target.exe"
+            else
+              cp "$dir/chirp" "out/release/chirp-$version-$target"
+              chmod +x "out/release/chirp-$version-$target"
+            fi
+            cp "$dir/NOTICES.txt" "out/release/NOTICES-$target.txt"
+          done
+          (cd out/release && find . -type f -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS)
+          cat out/release/SHA256SUMS
+
+          notes=$(< .github/release-notes.md)
+          printf '%s\n' "${notes//@VERSION@/$version}" > out/notes.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ steps.layout.outputs.version }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
+
+  # The only job that can write: it attests the files and creates the release.
+  publish:
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-${{ needs.package.outputs.version }}
+          path: dl
+      # Also on a manual run, so the dry run proves attestation works.
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dl/release/*
+      - name: Create the release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          flags=
+          case "$VERSION" in *-*) flags=--prerelease ;; esac
+          # shellcheck disable=SC2086
+          gh release create "$TAG" dl/release/* \
+            --title "chirp $VERSION" \
+            --notes-file dl/notes.md \
+            --verify-tag \
+            $flags
