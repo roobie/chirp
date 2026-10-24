@@ -1,4 +1,4 @@
-{:version "0.0.1-spike"
+{:version "0.1.0"
  # First existing file becomes the TLS trust store unless SSL_CERT_FILE is set.
  :ca-paths ["/etc/ssl/certs/ca-certificates.crt"
             "/etc/pki/tls/certs/ca-bundle.crt"
