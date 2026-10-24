@@ -1,11 +1,29 @@
 {:openssl {:prefix "/opt/chirp-openssl"
            :configure ["no-shared" "no-tests" "no-docs" "no-apps" "no-module"
-                       "no-afalgeng" "--libdir=lib" "--openssldir=/etc/ssl" "-fPIC"]
+                       "no-afalgeng" "--libdir=lib" "--openssldir=/etc/ssl"]
            :make ["build_libs"]
            :install ["install_dev"]
            :libs ["libssl.a" "libcrypto.a"]}
  :exe {:name "chirp"
-       :entry "src/chirp/main.janet"
-       :lflags ["-Wl,-s" "-Wl,--build-id=none"]}
+       :entry "src/chirp/main.janet"}
+ # One entry per build target, picked by CHIRP_TARGET. A target without
+ # :triple is built natively with the container's compiler; one with :triple is
+ # cross-built with the pinned zig, and its natives are built a second time for
+ # it (the image itself is built by the native janet loading the native ones).
+ :host :linux-x64
+ :targets {:linux-x64 {:openssl-flags ["-fPIC"]
+                       :lflags ["-Wl,-s" "-Wl,--build-id=none"]}
+           :windows-x64 {:triple "x86_64-windows-gnu"
+                         :openssl-target "mingw64"
+                         :exe-suffix ".exe"
+                         :cflags ["-std=c99" "-O2"]
+                         # jsec compat.h defines clock_gettime for windows, which
+                         # mingw's time.h also does (pthread_time.h) once jsec
+                         # asks for POSIX features; skip the mingw one.
+                         :defines {"WIN_PTHREADS_TIME_H" true}
+                         :format :pe
+                         :lflags ["-s"]
+                         :libs ["-lws2_32" "-lwsock32" "-lmswsock" "-lpsapi"
+                                "-lcrypt32" "-luser32" "-ladvapi32"]}}
  # Pinned checkouts whose root holds importable Janet modules.
  :janet-sources [:spork :jsec :spork-https]}

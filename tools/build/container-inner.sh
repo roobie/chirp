@@ -6,10 +6,13 @@ set -eu
 src=/chirp-src
 
 if [ "${1:-}" != build ]; then
-  apk add --no-cache -q $(cat "$src/tools/build/linux-packages.txt")
+  # Cross targets fetch and unpack the pinned zig, which needs curl and xz.
+  extra=
+  case "$CHIRP_TARGET" in linux-*) ;; *) extra="curl xz" ;; esac
+  apk add --no-cache -q $(cat "$src/tools/build/packages.txt") $extra
   apk info -v | sort > "$CHIRP_OUT/apk-versions.txt"
   chown "$CHIRP_UID:$CHIRP_GID" "$CHIRP_OUT/apk-versions.txt"
-  exec su-exec "$CHIRP_UID:$CHIRP_GID" sh "$src/tools/build/linux-inner.sh" build
+  exec su-exec "$CHIRP_UID:$CHIRP_GID" sh "$src/tools/build/container-inner.sh" build
 fi
 
 export HOME="$CHIRP_OUT/home" TZ=UTC LC_ALL=C CHIRP_JOBS="$(nproc)"

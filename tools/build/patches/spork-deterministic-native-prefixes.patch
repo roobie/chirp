@@ -1,0 +1,30 @@
+diff --git a/spork/declare-cc.janet b/spork/declare-cc.janet
+index 73aa851..326e4a9 100644
+--- a/spork/declare-cc.janet
++++ b/spork/declare-cc.janet
+@@ -854,10 +854,13 @@ int main(int argc, const char **argv) {
+ 
+         # Load all native modules
+         (def prefixes @{})
+-        (loop [[module-name m] :pairs module-cache
+-               :let [n (m :native)]
++        # Prefixes come from a local counter over sorted names so the image does
++        # not depend on the global gensym counter or on table order.
++        (loop [module-name :in (sorted (keys module-cache))
++               :let [m (module-cache module-name)
++                     n (m :native)]
+                :when n
+-               :let [prefix (gensym)]]
++               :let [prefix (string "_n" (length prefixes) "_")]]
+           (print "found native " module-name " (" n ")...")
+           (flush)
+           (put prefixes prefix n)
+@@ -872,7 +875,7 @@ int main(int argc, const char **argv) {
+         (var has-cpp false)
+         (def declarations @"#include <janet.h>\n")
+         (def lookup-into-invocations @"")
+-        (loop [[prefix module-name] :pairs prefixes]
++        (loop [[prefix module-name] :in (sorted-by first (pairs prefixes))]
+           (def meta (eval-string (slurp (modpath-to-meta toolchain module-name))))
+           (if (meta :cpp) (set has-cpp true))
+           (buffer/push-string lookup-into-invocations

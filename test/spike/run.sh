@@ -9,8 +9,8 @@ work=${1:-$root/build/spike}
 one=$work/one
 two=$work/nested/two
 
-sh "$root/tools/build/linux.sh" "$one"
-sh "$root/tools/build/linux.sh" "$two"
+sh "$root/tools/build/container.sh" linux-x64 "$one"
+sh "$root/tools/build/container.sh" linux-x64 "$two"
 
 a=$(sha256sum "$one/bin/chirp" | cut -d' ' -f1)
 b=$(sha256sum "$two/bin/chirp" | cut -d' ' -f1)
