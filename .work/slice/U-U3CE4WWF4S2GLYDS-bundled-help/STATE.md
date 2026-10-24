@@ -35,12 +35,15 @@ Out: man pages, HTML output, network fetches of docs, and docs for unbundled mod
 - The HTTPS help file describes the overlay's behaviour, so it lands after the overlay too.
 
 ## Now
-Initialized; waiting for the spork-https overlay to land before coding.
+The help work is built, reviewed and smoke-tested on linux-x64, and pushed for CI.
 
 ## Next
-- Delegate: the FTS5 define, the help files, the main.janet dispatch and index, and the smoke checks. Review, build, push, CI.
+- Get CI green on all four targets, then finalize.
 
 ## Evidence
+- Two linux-x64 builds, run one after the other, have the same `bin/chirp` sha256 (f84b2941…0c085d). The binary is 9045320 bytes, 485568 more than before; FTS5, the baked docs and the help module account for the growth. Review then trimmed the snippet whitespace, a one-line display change, so CI's builds are the evidence for the committed code.
+- The local smoke suite passes, `ok help` included. Query, read, docstring read, malformed query (exit 1, no stack trace), unknown id (exit 1 with suggestions) and the no-match case (exit 0) all behave as specified.
+- The agent ran every code example in the help files against the build. The HTTPS server example answered `hello /abc` over TLS.
 
 ## Harvest
 - [ ] decision: the help index is built at runtime in memory from baked-in markdown and docstrings, not shipped as a prebuilt database

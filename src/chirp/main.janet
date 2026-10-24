@@ -22,6 +22,10 @@
     (when (and (symbol? k) (in into k) (not (v :private)))
       (put into k v))))
 
+# Help files and docstrings are read now, in sorted order, and live in the image.
+(import ./help)
+(def- help-entries (help/collect (string here "help/") bundled))
+
 (defn- find-ca []
   (or (os/getenv "SSL_CERT_FILE")
       (when-let [p (find os/stat (config :ca-paths))]
@@ -43,4 +47,5 @@
           (cli-main @["-q"]))
     "-v" (print (identity-line ca))
     "--version" (print (identity-line ca))
+    "help" (help/run help-entries (array/slice args 1))
     (cli-main args)))
