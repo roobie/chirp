@@ -43,6 +43,7 @@ Hooks can be skipped (`--no-verify`, or a clone without `core.hooksPath`). A CI 
 ## Evidence
 
 ## Harvest
+- [ ] process: the dev-proc hooks only warn, so a commit with refs broken by a file move went through. Consider making `tools/hooks` run them strict.
 
 ## Log
 - 2026-10-24 initialized

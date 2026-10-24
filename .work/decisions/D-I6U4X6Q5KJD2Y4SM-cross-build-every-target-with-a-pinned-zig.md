@@ -7,7 +7,8 @@ read_if:
 refs:
   - tools/build/config.jdn
   - tools/build/build.janet#cross-link
-  - test/spike/run-windows.sh
+  - test/smoke/run-windows.sh
+  - .github/workflows/ci.yml
 ---
 
 # D-I6U4X6Q5KJD2Y4SM Cross-build every target with a pinned zig

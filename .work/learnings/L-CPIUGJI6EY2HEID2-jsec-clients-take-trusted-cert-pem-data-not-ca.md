@@ -4,7 +4,7 @@ read_if:
   - configuring TLS client trust
   - using spork-https :tls-opts
 refs:
-  - test/spike/https-server.janet
+  - test/smoke/https-server.janet
 ---
 
 # L-CPIUGJI6EY2HEID2 jsec clients take :trusted-cert or :security {:ca-file}, not :ca
