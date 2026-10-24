@@ -29,10 +29,10 @@ Out: Janet's exit status 0 on an unknown flag. It lives in Janet's private `cli-
 Promoted from backlog: B-WFNM7BIUL5G3FLYG chirp -h and --help point at chirp's own additions (BR, 2026-10-24).
 
 ## Now
-Delegating the implementation.
+Implemented: a `## Usage` section in help/chirp.md, printed without its code fences by `-h`/`--help`, then Janet's list. The local linux-x64 smoke run passed (before the fence filter was added).
 
 ## Next
-- Review, push, CI.
+- Push and watch CI.
 
 ## Evidence
 

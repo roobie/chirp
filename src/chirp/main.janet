@@ -38,6 +38,10 @@
    :targets ((config :update) :targets)
    :key (slurp (string here "release-key.pem"))})
 
+# -h prints this section, so renaming its heading must fail the build.
+(def- usage-entry (find |(= "chirp/usage" ($ :id)) help-entries))
+(assert usage-entry "help/chirp.md needs a `## Usage` section")
+
 (defn- find-ca []
   (or (os/getenv "SSL_CERT_FILE")
       (when-let [p (find os/stat (config :ca-paths))]
@@ -63,6 +67,14 @@
       (when (not= :dead (fiber/status f))
         ((debugger-on-status env) f res)))))
 
+# Janet's list is not copied: its own handler prints it and exits 0.
+# Code fences are markdown for `chirp help read`, noise on a terminal.
+(defn- print-help []
+  (each line (string/split "\n" (string/trim (usage-entry :body)))
+    (unless (string/has-prefix? "```" line) (print line)))
+  (print)
+  (cli-main @["-h"]))
+
 (defn main [& argv]
   (eachp [name env] bundled (put module/cache name env))
   (def ca (find-ca))
@@ -79,6 +91,8 @@
     "-v" (print (identity-line ca))
     "--version" (print (identity-line ca))
     "--changelog" (prin (extra-topics "changelog"))
+    "-h" (print-help)
+    "--help" (print-help)
     "help" (help/run help-entries (array/slice args 1))
     "self-update" (update/run (array/slice args 1) update-config)
     (cli-main args)))

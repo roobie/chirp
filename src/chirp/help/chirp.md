@@ -2,6 +2,23 @@
 
 chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers. It is one static binary that bundles spork, jsec (TLS, with OpenSSL), spork-https, sqlite3 and tomlin, so scripts need nothing installed besides chirp.
 
+## Usage
+
+```sh
+chirp                              # REPL; runs piped stdin as a script
+chirp script.janet arg...          # run a script
+chirp - arg...                     # run stdin as a script
+chirp -v | --version               # version and identity
+chirp --changelog                  # what changed in each release
+chirp help                         # offline docs
+chirp help query '<words>'         # search them
+chirp help read <id>               # print one result
+chirp self-update [--check] [--force]   # replace chirp with the latest release
+chirp -h | --help                  # this text, then Janet's options
+```
+
+All other options (`-e`, `-l` and the rest) are Janet's own and are listed below.
+
 ## Version and identity
 
 `chirp -v` (or `--version`) prints the chirp version, the Janet version it is built on, and the CA bundle it found, or `none found`. `chirp --changelog` prints what changed in each release; it is also the help topic `changelog`.
