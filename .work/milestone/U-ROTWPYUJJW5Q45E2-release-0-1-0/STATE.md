@@ -36,14 +36,15 @@ Out (BR, 2026-10-24): SQLite and TOML (U-OPXF3E6S7PBCFAHC) wait for 0.2.0; embed
 4. cut-0-1-0: the version bump, a green dry run, and the handoff to BR.
 
 ## Now
-release-workflow (U-LXZLE4XHMQ4DGUGT): the dry run is green; proving the version gate with a scratch tag.
+cut-0-1-0 (U-D6IBYYQ7XACTD2MO): the version is 0.1.0; its dry run 40101554570 is in flight.
 
 ## Next
-- release-workflow: it must publish the asset names README.md promises (`chirp-<version>-<target>[.exe]`, `NOTICES-<target>.txt`, `SHA256SUMS`), and publish only after the double-build compare has passed.
+- Hand BR the tag command once the dry run is green.
 
 ## Evidence
 - build-matrix delivered: run 40095901156 is green across all four targets.
 - Slice license-notices (U-25DRIWMDCK6XEUI4): MIT LICENSE; every build writes NOTICES.txt from the pinned sources (D-KPP2PSBZKFSROC44), and in run 40100593970 compare shows it identical across both copies for all four targets.
+- Slice release-workflow (U-LXZLE4XHMQ4DGUGT): dry run 40100593970 is green with the README asset names, SHA256SUMS and 9 attestations, and no release. Gate run 40101447003 on a mismatched scratch tag failed in package and published nothing.
 - Slice readme (U-7GRJDBWUK55ZT6X5): README.md covers the unofficial notice, the bundled components, the downloads, verification and windows SSL_CERT_FILE.
 
 ## Harvest
@@ -53,3 +54,4 @@ release-workflow (U-LXZLE4XHMQ4DGUGT): the dry run is green; proving the version
 - 2026-10-24 phase initialize → execute
 - 2026-10-24 slice readme (U-7GRJDBWUK55ZT6X5) delivered
 - 2026-10-24 slice license-notices (U-25DRIWMDCK6XEUI4) delivered
+- 2026-10-24 slice release-workflow (U-LXZLE4XHMQ4DGUGT) delivered
