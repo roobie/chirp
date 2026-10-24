@@ -6,13 +6,18 @@
            :libs ["libssl.a" "libcrypto.a"]}
  :exe {:name "chirp"
        :entry "src/chirp/main.janet"}
- # One entry per build target, picked by CHIRP_TARGET. A target without
- # :triple is built natively with the container's compiler; one with :triple is
- # cross-built with the pinned zig, and its natives are built a second time for
- # it (the image itself is built by the native janet loading the native ones).
- :host :linux-x64
- :targets {:linux-x64 {:openssl-flags ["-fPIC"]
-                       :lflags ["-Wl,-s" "-Wl,--build-id=none"]}
+ # The build machine only builds the tooling that writes the image (janet,
+ # OpenSSL and the natives it loads) with the container's compiler. Nothing
+ # built here ships; its natives are shared objects, hence -fPIC.
+ :build-machine {:openssl-flags ["-fPIC"]}
+ # One entry per shipped target, picked by CHIRP_TARGET. Every one is built by
+ # the pinned zig, so the compiler is the same whatever the target.
+ :targets {:linux-x64 {:triple "x86_64-linux-musl"
+                       :openssl-target "linux-x86_64"
+                       :cflags ["-std=c99" "-O2" "-fvisibility=hidden"]
+                       # Static and without a build-id, which varies per build.
+                       :lflags ["-static" "-s" "-Wl,--build-id=none"]
+                       :libs ["-lm" "-lpthread" "-ldl"]}
            :windows-x64 {:triple "x86_64-windows-gnu"
                          :openssl-target "mingw64"
                          :exe-suffix ".exe"

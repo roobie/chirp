@@ -6,16 +6,19 @@
 (def janet-exe (os/realpath (dyn *executable*)))
 (os/cd out)
 (def abs-out (os/cwd))
-# The image is written by a second, fresh process (see the end of this file).
-# The first stage runs everything up to the natives; the second re-runs the
-# idempotent steps and then builds only the image and, for cross targets, links.
-(def image-stage? (= "image" (os/getenv "CHIRP_STAGE")))
 (def jobs (scan-number (os/getenv "CHIRP_JOBS" "4")))
 
 (defn- load-data [path] (parse (slurp (string repo "/" path))))
 (def pins (load-data "pins.jdn"))
 (def config (load-data "tools/build/config.jdn"))
 (def natives (load-data "tools/build/natives.jdn"))
+
+(def target-name (keyword (os/getenv "CHIRP_TARGET" "")))
+(def target
+  (or (get-in config [:targets target-name])
+      (errorf "CHIRP_TARGET %q is unset or unknown; valid targets: %s"
+              (os/getenv "CHIRP_TARGET" "")
+              (string/join (map string (sorted (keys (config :targets)))) ", "))))
 
 (defn- mkdirs [path]
   (var acc (if (string/has-prefix? "/" path) "/" ""))
@@ -67,15 +70,9 @@
     (errorf "patch %s fits neither the pinned nor the patched %s" file name)))
 (patch :spork "spork-deterministic-native-prefixes.patch")
 
-# The build machine is the one target built natively. Any other target is
-# cross-built: everything the image build loads is built for the build machine,
-# everything linked into the executable is built again for the target.
-(def host-name (config :host))
-(def target-name (keyword (os/getenv "CHIRP_TARGET" (string host-name))))
-(def host (get-in config [:targets host-name]))
-(def target (or (get-in config [:targets target-name])
-                (errorf "unknown target %v" target-name)))
-(def cross? (not= host-name target-name))
+# Everything the image build loads is built for the build machine; everything
+# linked into the executable is built again by zig for the target.
+(def build-machine (config :build-machine))
 
 # Pinned zig, checked against the tarball hash before it is unpacked. It goes on
 # PATH by name so no build path leaks into flags that get recorded in binaries.
@@ -99,12 +96,11 @@
   (os/setenv "ZIG_LOCAL_CACHE_DIR" (string abs-out "/cache/zig-local"))
   (print "zig " (capture "zig" "version") " (sha256 " sha ")"))
 
-(def zig-cc (when cross? ["zig" "cc" "-target" (target :triple)]))
-(when cross?
-  (setup-zig)
-  # OpenSSL builds in its source tree, so each target gets its own copy.
-  (def dir (string "src/openssl-" target-name))
-  (unless (os/stat dir) (run "cp" "-a" "src/openssl" dir)))
+(def zig-cc ["zig" "cc" "-target" (target :triple)])
+(setup-zig)
+# OpenSSL builds in its source tree, so each target gets its own copy.
+(def- openssl-copy (string "src/openssl-" target-name))
+(unless (os/stat openssl-copy) (run "cp" "-a" "src/openssl" openssl-copy))
 
 # Commit time of the janet pin stands in for every embedded date.
 (os/setenv "SOURCE_DATE_EPOCH" (capture "git" "-C" "src/janet" "log" "-1" "--format=%ct"))
@@ -136,7 +132,7 @@
 
 (def ossl-commit (string/slice (get-in pins [:openssl :commit]) 0 12))
 (def ossl-stage (string abs-out "/cache/openssl-" ossl-commit))
-(def [ossl-root ossl-libs] (build-openssl "src/openssl" ossl-stage host))
+(def [ossl-root ossl-libs] (build-openssl "src/openssl" ossl-stage build-machine))
 
 # Staged janet prefix for spork/cc.
 (def janet-prefix (string abs-out "/prefix"))
@@ -211,11 +207,11 @@
   (sh/copy (targets :static) (string dest ".a"))
   (sh/copy meta (string dest ".meta.janet")))
 
-(unless image-stage? (each n natives (build-native n)))
+(each n natives (build-native n))
 
-# Cross targets: the same natives and janet again, compiled by zig for the
-# target. The static entry point of each native is read from the metadata the
-# native build wrote, so both builds agree on the symbol names.
+# The same natives and janet again, compiled by zig for the target. The static
+# entry point of each native is read from the metadata the native build wrote,
+# so both builds agree on the symbol names.
 (def tgt-root (string abs-out "/obj-" target-name))
 (def tgt-cflags
   [prefix-map ;(get target :cflags []) (string "-I" janet-prefix "/include")])
@@ -274,45 +270,13 @@
   (each f (os/dir "bin") (unless (= f out-exe-name) (os/rm (string "bin/" f))))
   (when (= (target :format) :pe) (zero-pe-timestamp out-exe)))
 
-(defn- build-image []
-  (def exe (config :exe))
-  (def exe-root (string abs-out "/obj/exe"))
-  (def exe-rules @{})
-  # The image reads data files the rules do not track, so always relink.
-  (os/execute ["rm" "-rf" exe-root] :px)
-  (with-dyns [cc/*rules* exe-rules
-              cc/*build-type* :release
-              cc/*janet-prefix* janet-prefix
-              declare-cc/*build-root* exe-root]
-    (sh/create-dirs (string exe-root "/release"))
-    (def built
-      (declare-cc/declare-executable
-        :name (exe :name)
-        :entry (string repo "/" (exe :entry))
-        :static true
-        :use-rdynamic false
-        :use-rpath false
-        # Cross targets stop after writing the image and main as C source.
-        :no-compile cross?
-        :cflags [prefix-map]
-        :lflags (host :lflags)
-        :static-libs @[;ossl-libs]))
-    (build-rules/build-run exe-rules "build")
-    (if cross?
-      (let [tgt-stage (string abs-out "/cache/openssl-" ossl-commit "-" target-name)
-            [tgt-root-dir tgt-libs] (build-openssl (string "src/openssl-" target-name)
-                                                   tgt-stage target)]
-        (cross-link built tgt-libs tgt-root-dir))
-      (do
-        (mkdirs "bin")
-        (sh/copy built (string "bin/" (exe :name)))))))
+# The image is written by a fresh janet, so its gensym names do not depend on
+# this script (see image.janet). It leaves the C source at a fixed path.
+(run janet-exe (string repo "/tools/build/image.janet") abs-out repo ;ossl-libs)
+(def image-c (string abs-out "/obj/exe/release/" ((config :exe) :name) ".c"))
+(assert (os/stat image-c) "image.janet wrote no C source")
 
-# Compiling the entry point calls gensym and the names end up in the image. The
-# counter is process-wide and the first stage advances it by a varying amount
-# (parallel rules, cached or not), so the image is built in a fresh process
-# where it always starts from the same value.
-(if image-stage?
-  (build-image)
-  (do
-    (os/setenv "CHIRP_STAGE" "image")
-    (run janet-exe (string repo "/tools/build/build.janet") out repo)))
+(def tgt-stage (string abs-out "/cache/openssl-" ossl-commit "-" target-name))
+(def [tgt-ossl-root tgt-ossl-libs]
+  (build-openssl (string "src/openssl-" target-name) tgt-stage target))
+(cross-link image-c tgt-ossl-libs tgt-ossl-root)
