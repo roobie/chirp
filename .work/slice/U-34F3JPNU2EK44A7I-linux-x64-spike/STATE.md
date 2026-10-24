@@ -1,5 +1,5 @@
 ---
-phase: initialize
+phase: execute
 parent: U-72DAK2PC7YHCMNVN
 owner:
   - BR
@@ -21,18 +21,24 @@ In: a local linux x64 build of janet, spork, jsec, spork-https and static OpenSS
 Out: CI, other platforms, releases, embedded CA bundle polish, the runtime hash key (D-ZBOSG3RYRJVCOMXZ).
 
 ## Context & constraints
-- Relevant decisions: D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-BPDFOMM2OH7HMPZB, D-2SHG5CGZYE2DZCQG, D-Q23RA2EVVN5LYCX7.
-- Pin every upstream by commit. Pins are content, not logic, so keep them in one place.
+- Relevant decisions: D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-BPDFOMM2OH7HMPZB, D-2SHG5CGZYE2DZCQG, D-Q23RA2EVVN5LYCX7, D-3GLX6D2RADC6IDG7, D-ZOBE3ZBK764B22JY, D-ANH2OMRLGDIIVVZY.
 - The open reproducibility risk is the order of pointer-hashed tables in the marshaled image.
+- Host has docker (with network access) and no musl toolchain.
+
+## Layout (spike)
+- `pins.jdn`: upstream commits and the Alpine image digest.
+- `tools/build/linux.sh`: thin host wrapper that runs the pinned container.
+- `tools/build/build.janet`: build logic (fetch, OpenSSL, janet, jsec, link).
+- `src/chirp/main.janet`: chirp's main.
+- `test/spike/`: the three checks.
+- `build/`: output and source cache, gitignored.
 
 ## Now
-Initializing. Pins and build layout are not chosen yet.
+A Sonnet subagent is implementing the layout above and running the three checks.
 
 ## Next
-- Choose the build driver and the layout for pins.
-- Pin janet, spork, jsec, spork-https and OpenSSL 3.
-- Build static OpenSSL, then jsec, then the chirp executable.
-- Run the three checks and record the results in Evidence.
+- Review the subagent's diff and evidence; commit.
+- Fill in refs on D-3GLX6D2RADC6IDG7, D-ZOBE3ZBK764B22JY and D-ANH2OMRLGDIIVVZY once the files exist.
 
 ## Evidence
 
@@ -40,3 +46,4 @@ Initializing. Pins and build layout are not chosen yet.
 
 ## Log
 - 2026-10-24 initialized
+- 2026-10-24 phase initialize → execute
