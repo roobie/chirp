@@ -34,7 +34,7 @@ Out: CI, other platforms, releases, embedded CA bundle polish, the runtime hash 
 - `build/`: output and source cache, gitignored.
 
 ## Now
-A Sonnet subagent is implementing the layout above and running the three checks. Added mid-flight: native modules are listed as data, and all of spork's native modules (spork/zip included) are linked, with a zip round-trip check. SQLite waits for U-OPXF3E6S7PBCFAHC.
+A Sonnet subagent is implementing the layout above and running the three checks. Added mid-flight: native modules are listed as data, and all of spork's native modules (spork/zip included) are linked, with a zip round-trip check. SQLite and TOML wait for U-OPXF3E6S7PBCFAHC.
 
 ## Next
 - Review the subagent's diff and evidence; commit.
