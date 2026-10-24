@@ -29,7 +29,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 0.2.0 is published: SQLite, TOML, the spork-https overlay (default User-Agent, client `:ca`), `chirp help` with offline FTS5 search, piped stdin or `chirp -` running as a script, and `chirp self-update` against a signed SHA256SUMS. Main carries `0.3.0-dev`, with CHANGELOG.md baked in (`chirp --changelog`); a release renames its Unreleased section to the version (D-DYWSJTLDO6S5DQDR).
 
 ## Next
-- B-WFNM7BIUL5G3FLYG (`-h`/`--help`).
+- Pick from the backlog with BR.
 
 ## Evidence
 - Build-matrix (U-EP6NS3X66GBL2AQL): run 40095901156 builds all four targets twice with matching sha256, and smoke-runs each one on its native runner, HTTPS client and server included.
@@ -63,3 +63,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-24 slice self-update delivered (D-44BH6MURMXC5JTOB, D-2UB7VI5YR6ZBQ4FD, L-OFSXUYK57K7GM4JD); v0.2.0 published (BR authorized)
 - 2026-10-25 task changelog delivered (D-DYWSJTLDO6S5DQDR)
 - 2026-10-25 task readme-pitch delivered: the README leads with the batteries-included pitch; benchmarks filed as B-QCBMFCPRFJGNUXAH
+- 2026-10-25 task cli-help delivered: `-h`/`--help` print chirp's usage, then Janet's options (run 40140931270)
