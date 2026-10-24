@@ -53,23 +53,27 @@ jobs:
         with:
           pattern: chirp-*
           path: artifacts
-      - name: Compare sha256 of both copies
+      - name: Compare sha256 of every file in both copies
         run: |
           status=0
           {
-            echo '| target | copy a | copy b | result |'
-            echo '|---|---|---|---|'
+            echo '| target | file | copy a | copy b | result |'
+            echo '|---|---|---|---|---|'
           } >> "$GITHUB_STEP_SUMMARY"
           for a in artifacts/chirp-*-a; do
             target=${a#artifacts/chirp-}
             target=${target%-a}
-            # Each artifact directory holds the one binary; a missing copy
-            # makes sha256sum fail, which fails the step.
-            ha=$(sha256sum "$a"/* | cut -d' ' -f1)
-            hb=$(sha256sum "artifacts/chirp-$target-b"/* | cut -d' ' -f1)
-            if [ "$ha" = "$hb" ]; then result=identical; else result=DIFFERENT; status=1; fi
-            echo "$target: $result ($ha, $hb)"
-            echo "| $target | \`$ha\` | \`$hb\` | $result |" >> "$GITHUB_STEP_SUMMARY"
+            b=artifacts/chirp-$target-b
+            # The union of both file lists, so a file only one copy has is
+            # reported as missing instead of skipped.
+            for f in $( (ls "$a"; ls "$b" 2>/dev/null) | sort -u); do
+              ha=missing; hb=missing
+              [ -f "$a/$f" ] && ha=$(sha256sum "$a/$f" | cut -d' ' -f1)
+              [ -f "$b/$f" ] && hb=$(sha256sum "$b/$f" | cut -d' ' -f1)
+              if [ "$ha" = "$hb" ] && [ "$ha" != missing ]; then result=identical; else result=DIFFERENT; status=1; fi
+              echo "$target $f: $result ($ha, $hb)"
+              echo "| $target | $f | \`$ha\` | \`$hb\` | $result |" >> "$GITHUB_STEP_SUMMARY"
+            done
           done
           exit $status
 

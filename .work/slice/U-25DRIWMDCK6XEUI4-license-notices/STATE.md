@@ -25,15 +25,20 @@ Out: embedding the notices in the binary (`chirp --licenses`), which can come la
 - Notices are per target, because the runtime pieces differ.
 
 ## Now
-LICENSE written. An agent builds the notices step.
+The notices step is in: `tools/build/notices.jdn` holds the data, and build.janet writes bin/NOTICES.txt. Pushing for CI.
 
 ## Next
-- Review, build locally, push, and check that compare covers NOTICES.txt.
+- Check in CI that compare lists NOTICES.txt as identical for all four targets, then finalize.
 
 ## Evidence
+- LICENSE at the repo root (MIT).
+- Local builds: linux-x64 twice in different directories, with `chirp` unchanged at 484a2667…4a2a15 and NOTICES.txt identical (7a2ad7b1…c3529f). windows-x64 has `chirp.exe` unchanged at e92c21ff…b3d39 and NOTICES.txt at ac039372…e45e6d54. Both NOTICES files have LF line endings only.
+- The sections are chirp, Janet, spork, miniz, jsec, spork-https, OpenSSL and Zig (compiler_rt), plus musl on linux and mingw-w64 on windows. Every text except jsec's is read from the pinned checkout or the pinned zig tarball.
 
 ## Harvest
 - [ ] backlog: ask jsec upstream to add the LICENSE file its README points to
+- [ ] backlog: editing config.jdn moves the binary hash even when no key the image uses changes; find out how its content reaches the image (a reproducibility hazard close to the pointer-hash risk)
+- [ ] decision: notices data lives in its own notices.jdn rather than config.jdn, so editing it never moves the binary
 
 ## Log
 - 2026-10-24 initialized

@@ -1,0 +1,23 @@
+# License texts shipped as bin/NOTICES.txt, in this order. :root is where
+# :path is read from: :repo (this repo), :zig (the unpacked zig) or a pin name
+# (its checkout). :pin supplies the URL shown, defaulting to :root's pin; :url
+# is for components that are not a pin. :targets limits a component to the
+# targets that link it. jsec's checkout has no LICENSE file, so it ships ours.
+# Kept out of config.jdn because the image build reads that file and its
+# content moves the binary.
+[
+ {:title "chirp" :root :repo :path "LICENSE"}
+ {:title "Janet" :root :janet :path "LICENSE"}
+ {:title "spork" :root :spork :path "LICENSE"}
+ {:title "miniz (in spork/zip)" :root :spork :path "deps/miniz/LICENSE"
+  :url "https://github.com/richgel999/miniz"}
+ {:title "jsec" :root :repo :path "tools/build/notices/jsec-LICENSE.txt" :pin :jsec}
+ {:title "spork-https" :root :spork-https :path "LICENSE"}
+ {:title "OpenSSL" :root :openssl :path "LICENSE.txt"}
+ {:title "musl libc" :root :zig :path "lib/libc/musl/COPYRIGHT"
+  :url "https://musl.libc.org" :targets [:linux-x64 :linux-arm64]}
+ {:title "mingw-w64" :root :zig :path "lib/libc/mingw/COPYING"
+  :url "https://www.mingw-w64.org" :targets [:windows-x64]}
+ {:title "Zig (compiler_rt)" :root :zig :path "LICENSE"
+  :url "https://ziglang.org"}
+]

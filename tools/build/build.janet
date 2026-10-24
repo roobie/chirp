@@ -12,6 +12,7 @@
 (def pins (load-data "pins.jdn"))
 (def config (load-data "tools/build/config.jdn"))
 (def natives (load-data "tools/build/natives.jdn"))
+(def notices (load-data "tools/build/notices.jdn"))
 
 (def target-name (keyword (os/getenv "CHIRP_TARGET" "")))
 (def target
@@ -99,10 +100,11 @@
   (os/setenv "PATH" (string dir ":" (os/getenv "PATH")))
   (os/setenv "ZIG_GLOBAL_CACHE_DIR" (string abs-out "/cache/zig-global"))
   (os/setenv "ZIG_LOCAL_CACHE_DIR" (string abs-out "/cache/zig-local"))
-  (print "zig " (capture "zig" "version") " (sha256 " sha ")"))
+  (print "zig " (capture "zig" "version") " (sha256 " sha ")")
+  dir)
 
 (def zig-cc ["zig" "cc" "-target" (target :triple)])
-(setup-zig)
+(def zig-dir (setup-zig))
 # OpenSSL builds in its source tree, so each target gets its own copy.
 (def- openssl-copy (string "src/openssl-" target-name))
 (unless (os/stat openssl-copy) (run "cp" "-a" "src/openssl" openssl-copy))
@@ -285,3 +287,29 @@
 (def [tgt-ossl-root tgt-ossl-libs]
   (build-openssl (string "src/openssl-" target-name) tgt-stage target))
 (cross-link image-c tgt-ossl-libs tgt-ossl-root)
+
+# Everything linked into the executable has to ship its license text. Only
+# file contents and config data go in, so the file is the same in any directory.
+(defn- notice-section [{:title title :root root :path path :pin pin :url url}]
+  (def base (case root
+              :repo repo
+              :zig zig-dir
+              (string "src/" root)))
+  # Some upstream files use CRLF; the output is LF whatever the source was.
+  (def text (string/replace-all "\r\n" "\n" (slurp (string base "/" path))))
+  (def link (or url
+                (when-let [p (pins (or pin root))
+                           u (p :url)]
+                  (if (string/has-suffix? ".git" u)
+                    (string/slice u 0 (- (length u) 4))
+                    u))))
+  (string (string/repeat "=" 78) "\n" title "\n"
+          (if link (string link "\n") "") "\n"
+          text (if (string/has-suffix? "\n" text) "" "\n") "\n"))
+
+(spit "bin/NOTICES.txt"
+      (string/join
+        (seq [n :in notices
+              :when (or (not (n :targets)) (index-of target-name (n :targets)))]
+          (notice-section n))
+        ""))
