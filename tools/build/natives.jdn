@@ -1,5 +1,8 @@
 # Static native modules. :sources are files or directories (scanned for .c)
-# relative to the pinned checkout named by :pin.
+# relative to the pinned checkout named by :pin. :includes are extra include
+# directories, relative to the same checkout. :repo-sources are files relative
+# to this repo, for a binding that chirp owns and that is built against a pinned
+# library; without them such a binding would have to be copied into the pin.
 [
  {:name "spork/json" :pin :spork :sources ["src/json.c"]}
  {:name "spork/rawterm" :pin :spork :sources ["src/rawterm.c"]}
@@ -14,6 +17,14 @@
  # The amalgamation plus the binding; the binding's system-library path is unused.
  {:name "sqlite3" :pin :sqlite3 :sources ["sqlite3.c" "main.c"]
   :defines {"SQLITE_ENABLE_FTS5" true}}
+
+ # libyaml's version macros come from its build system, so they are given here.
+ # _POSIX_C_SOURCE exposes strdup under -std=c99.
+ {:name "yaml" :pin :libyaml :sources ["src"] :includes ["include"]
+  :repo-sources ["src/yaml/yaml.c"]
+  :defines {"YAML_VERSION_MAJOR" "0" "YAML_VERSION_MINOR" "2" "YAML_VERSION_PATCH" "5"
+            "YAML_VERSION_STRING" "\"0.2.5\"" "YAML_DECLARE_STATIC" true
+            "_POSIX_C_SOURCE" "200809L"}}
 
  {:name "jsec/utils" :pin :jsec :openssl true :sources ["src/jutils"]}
  {:name "jsec/tls-stream" :pin :jsec :openssl true :sources ["src/jtls" "src/jutils"] :skip ["src/jutils/module.c"]}

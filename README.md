@@ -2,7 +2,7 @@
 
 **A batteries-included scripting runtime in one static binary: download it, run your script.**
 
-chirp is [Janet](https://janet-lang.org), a small, fast Lisp, built together with what real scripts reach for: an HTTPS client and server, JSON, SQLite with full-text search, TOML, compression, subprocesses, argument parsing and regexes. There is one file per platform (Linux x64 and arm64, macOS arm64, Windows x64). It is static, and needs no runtime, package manager or C compiler.
+chirp is [Janet](https://janet-lang.org), a small, fast Lisp, built together with what real scripts reach for: an HTTPS client and server, JSON, SQLite with full-text search, TOML, YAML, compression, subprocesses, argument parsing and regexes. There is one file per platform (Linux x64 and arm64, macOS arm64, Windows x64). It is static, and needs no runtime, package manager or C compiler.
 
 **chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers.** Please report problems with chirp here, not to Janet.
 
@@ -49,6 +49,15 @@ From 0.2.0, scripts can also keep data in SQLite and read configuration from TOM
 (print ((tomlin/toml->janet (slurp "config.toml")) :title))
 ```
 
+YAML is built in too. `yaml/decode` and `yaml/encode` work like `json/decode` and `json/encode`, and plain scalars follow the YAML 1.2 Core schema, so `no` stays a string:
+
+```janet
+(import yaml)
+(def cfg (yaml/decode (slurp "config.yaml") true))
+(print (cfg :title))
+(print (yaml/encode {:name "chirp" :tags ["a" "b"]}))
+```
+
 ## Help
 
 `chirp help` lists the help topics, `chirp help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp help read <id>` prints a result in full. The text is inside the binary.
@@ -65,6 +74,7 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [spork-https](https://github.com/llmII/spork-https) | an HTTPS client and server on top of `spork/http` | ISC |
 | [janet-lang/sqlite3](https://github.com/janet-lang/sqlite3) | `sqlite3`, Janet bindings to an embedded [SQLite](https://sqlite.org) (the amalgamation, so no system library is needed), with FTS5 full-text search enabled; from 0.2.0 | MIT (binding), public domain (SQLite) |
 | [tomlin](https://github.com/pyrmont/tomlin) | `tomlin`, a TOML parser written in Janet; from 0.2.0 | MIT |
+| [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml 0.2.5, with Core schema scalars, anchors, aliases and merge keys | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |
 
 Every release ships a `NOTICES-<target>.txt` with the full license texts of everything linked into that target's binary.

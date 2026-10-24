@@ -184,7 +184,15 @@
       (unless (or (skip s) (seen s))
         (put seen s true)
         (array/push res s))))
+  # A binding that lives in this repo is compiled from here, beside the pin's sources.
+  (each s (get n :repo-sources []) (array/push res (string repo "/" s)))
   res)
+
+# Flags only some natives need, both relative to the pin's checkout. The repo
+# prefix map keeps the build's repo location out of the binding's recorded paths.
+(defn- native-cflags [n]
+  [;(map |(string "-I" $) (get n :includes []))
+   ;(if (n :repo-sources) [(string "-ffile-prefix-map=" repo "=.")] [])])
 
 (defn- build-native [n]
   (def {:name name} n)
@@ -204,7 +212,8 @@
             :source (native-sources n)
             :defines (get n :defines {})
             :headers (get n :headers [])
-            :cflags [prefix-map ;(if ossl? [(string "-I" ossl-root "/include")] [])]
+            :cflags [prefix-map ;(if ossl? [(string "-I" ossl-root "/include")] [])
+                     ;(native-cflags n)]
             :static-libs (if ossl? ossl-libs)
             :use-rpath false))
         (build-rules/build-run rules "build")
@@ -246,7 +255,7 @@
       (seq [s :in (native-sources n)]
         (def o (string dir "/" (flat s) ".o"))
         (zig ;tgt-cflags ;(if (n :openssl) [(string "-I" tgt-ossl-root "/include")] [])
-             ;defs "-c" s "-o" o)
+             ;(native-cflags n) ;defs "-c" s "-o" o)
         o)))
   (def lib (string dir "/" (flat name) ".a"))
   (when (os/stat lib) (os/rm lib))

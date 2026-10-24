@@ -33,15 +33,18 @@ Out: round-trip editing that keeps comments and layout (B-7H6ASKHIBTAYW7NL); YAM
 Promoted from backlog: B-IUK7YUKKWUN5IWUU Bundle a YAML parser and emitter
 
 ## Now
-Delegating the implementation.
+Implementation reviewed and committed; CI on all four targets is the remaining proof.
 
 ## Next
-- Review, build locally, push, CI.
+- Watch CI: builds a/b, hash compare, leakcheck, yaml smoke on every target.
+- Install the green linux-x64 artifact, harvest, finalize.
 
 ## Evidence
+- Local linux-x64 container build: every smoke check passes, including `ok yaml` (Core schema scalars, merge key, aliases, decode-all, round trip, sorted keys, alias bomb and unknown tag rejected).
 
 ## Harvest
 - [ ] decision: bundle libyaml behind a chirp-owned binding, with Core schema resolution and capped alias expansion
+- [ ] decision: natives.jdn `:repo-sources` lets a binding chirp owns build against a pinned library without copying it into the pin
 
 ## Log
 - 2026-10-25 initialized from B-IUK7YUKKWUN5IWUU; BR chose libyaml with a chirp-owned binding

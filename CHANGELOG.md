@@ -6,6 +6,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Added
 
+- `yaml`, YAML decoding and encoding on libyaml: `yaml/decode`, `yaml/decode-all` and `yaml/encode`, shaped like `spork/json`. Plain scalars follow the YAML 1.2 Core schema, so `no` and `on` stay strings. Anchors, aliases and `<<` merge keys work, and an alias bomb fails with an error instead of exhausting memory.
 - `chirp --changelog` prints this file, and `chirp help read changelog` reads it from the help.
 - Release notes include the release's section of this file.
 

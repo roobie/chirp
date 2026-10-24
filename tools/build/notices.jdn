@@ -18,6 +18,7 @@
  {:title "SQLite (in sqlite3), public domain" :root :repo
   :path "tools/build/notices/sqlite-blessing.txt" :url "https://sqlite.org/copyright.html"}
  {:title "tomlin" :root :tomlin :path "LICENSE"}
+ {:title "libyaml (in yaml)" :root :libyaml :path "License"}
  {:title "OpenSSL" :root :openssl :path "LICENSE.txt"}
  {:title "musl libc" :root :zig :path "lib/libc/musl/COPYRIGHT"
   :url "https://musl.libc.org" :targets [:linux-x64 :linux-arm64]}
