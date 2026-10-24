@@ -26,7 +26,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.2.0 is published: SQLite, TOML, the spork-https overlay (default User-Agent, client `:ca`), `chirp help` with offline FTS5 search, piped stdin or `chirp -` running as a script, and `chirp self-update` against a signed SHA256SUMS. Main carries `0.3.0-dev`.
+0.2.0 is published: SQLite, TOML, the spork-https overlay (default User-Agent, client `:ca`), `chirp help` with offline FTS5 search, piped stdin or `chirp -` running as a script, and `chirp self-update` against a signed SHA256SUMS. Main carries `0.3.0-dev`, with CHANGELOG.md baked in (`chirp --changelog`); a release renames its Unreleased section to the version (D-DYWSJTLDO6S5DQDR).
 
 ## Next
 - B-WFNM7BIUL5G3FLYG (`-h`/`--help`).
@@ -39,6 +39,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Bundled-help (U-U3CE4WWF4S2GLYDS): run 40112713990 (7dd70c7) builds all four targets twice with matching sha256, and the help smoke check passes on each target's native runner.
 - Cli-stdin (U-XFHE3BIPNBP6KNS5): run 40114378370 (5add4ad) builds all four targets twice with matching sha256, and the stdin smoke check passes on each target's native runner.
 - Self-update (U-UQ6SLNXUIHLJOPK7): https://github.com/roobie/chirp/releases/tag/v0.2.0 (run 40119267950) ships SHA256SUMS.sig signed in CI; the installed 0.2.0 release runs `chirp self-update` against it and reports it is up to date.
+- Changelog (U-CU3LV3F4XSBIDE7S): run 40139405385 (2936169) builds all four targets twice with matching sha256, and the changelog smoke check passes on each native runner. The release-notes step, run locally with that run's linux-x64 binary, fills the notes for a tag and for a dry run, and fails a tag with no section.
 
 ## Harvest
 
@@ -60,3 +61,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-24 slice cli-stdin (U-XFHE3BIPNBP6KNS5) opened; `-h`/`--help` split off as B-WFNM7BIUL5G3FLYG (BR)
 - 2026-10-24 slice cli-stdin delivered (L-BU3RJX7SGGPRKTTA)
 - 2026-10-24 slice self-update delivered (D-44BH6MURMXC5JTOB, D-2UB7VI5YR6ZBQ4FD, L-OFSXUYK57K7GM4JD); v0.2.0 published (BR authorized)
+- 2026-10-25 task changelog delivered (D-DYWSJTLDO6S5DQDR)
