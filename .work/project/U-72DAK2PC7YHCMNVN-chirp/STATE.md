@@ -62,3 +62,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-24 slice cli-stdin delivered (L-BU3RJX7SGGPRKTTA)
 - 2026-10-24 slice self-update delivered (D-44BH6MURMXC5JTOB, D-2UB7VI5YR6ZBQ4FD, L-OFSXUYK57K7GM4JD); v0.2.0 published (BR authorized)
 - 2026-10-25 task changelog delivered (D-DYWSJTLDO6S5DQDR)
+- 2026-10-25 task readme-pitch delivered: the README leads with the batteries-included pitch; benchmarks filed as B-QCBMFCPRFJGNUXAH
