@@ -34,13 +34,13 @@ Promoted from backlog: B-JSN4UWUJCBBNOWEX Run leakcheck all and its tests in CI
 Hooks can be skipped (`--no-verify`, or a clone without `core.hooksPath`). A CI run of `leakcheck all` plus `tools/leakcheck/test.janet` catches what gets past them, using the generic rules.
 
 ## Now
-`.github/workflows/ci.yml` and the smoke driver `test/smoke/run.janet` are written. linux passes locally (driver and leakcheck). Under Wine, `https-server` fails with "failed to listen for events: Invalid handle" once the TLS server accepts a connection. The first CI run shows whether real Windows does the same.
+The first run (40091651644) passed builds, compare, leakcheck and linux smoke. Windows smoke stopped before running chirp because the Git CA bundle was not at the assumed path, so the step now searches the Git install for it. Run 40092342785 checks the fix. Under Wine, `https-server` fails with "failed to listen for events: Invalid handle" once the TLS server accepts a connection, and an agent is diagnosing jsec's windows server path.
 
 ## Next
-- Push and watch the first run.
-- If windows `https-server` fails on the runner, debug jsec's windows server path.
+- Read run 40092342785; if windows `https-server` fails there too, patch it from the diagnosis.
 
 ## Evidence
+- Run 40091651644: both copies of linux-x64 hash 484a2667…2a15 and both copies of windows-x64 hash 78c330ff…cddf, the same hashes as the local builds. leakcheck and linux smoke passed.
 
 ## Harvest
 - [ ] process: the dev-proc hooks only warn, so a commit with refs broken by a file move went through. Consider making `tools/hooks` run them strict.
@@ -48,3 +48,4 @@ Hooks can be skipped (`--no-verify`, or a clone without `core.hooksPath`). A CI 
 ## Log
 - 2026-10-24 initialized
 - 2026-10-24 phase initialize → execute
+- 2026-10-24 first CI run: all green except the windows CA bundle lookup
