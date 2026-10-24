@@ -26,16 +26,17 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.1.0 is published. Main carries the following for 0.2.0: SQLite, TOML, and the spork-https overlay (default User-Agent, client `:ca`). Bundled help (slice U-U3CE4WWF4S2GLYDS) is in progress.
+0.1.0 is published. Main carries the following for 0.2.0: SQLite, TOML, and the spork-https overlay (default User-Agent, client `:ca`), and `chirp help` with offline FTS5 search. Piped stdin running as a script (slice U-XFHE3BIPNBP6KNS5) is in progress.
 
 ## Next
-- Bundled help, then cut 0.2.0 (the release and tag are BR's call).
+- Cli-stdin, then cut 0.2.0 (the release and tag are BR's call). Follow-up after that: B-WFNM7BIUL5G3FLYG (`-h`/`--help`).
 
 ## Evidence
 - Build-matrix (U-EP6NS3X66GBL2AQL): run 40095901156 builds all four targets twice with matching sha256, and smoke-runs each one on its native runner, HTTPS client and server included.
 - Release-0-1-0 (U-ROTWPYUJJW5Q45E2): https://github.com/roobie/chirp/releases/tag/v0.1.0 (run 40103776646) ships the four binaries, notices and SHA256SUMS with provenance attestation; the binary and README mark chirp unofficial. This meets the release, reproducibility, provenance and unofficial criteria; SQLite and TOML remain.
 - Bundle-sqlite-toml (U-OPXF3E6S7PBCFAHC): run 40107147500 builds all four targets twice with matching sha256, and the new sqlite and toml smoke checks pass on each target's native runner. They are not in a release yet.
 - Spork-https-overlay (U-O25BRXG46K5BCRAS): run 40109671483 builds all four targets twice with matching sha256. The overlay smoke check (default User-Agent, explicit User-Agent, client `:ca` trusted) passes on each target's native runner.
+- Bundled-help (U-U3CE4WWF4S2GLYDS): run 40112713990 (7dd70c7) builds all four targets twice with matching sha256, and the help smoke check passes on each target's native runner.
 
 ## Harvest
 
@@ -53,3 +54,5 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-24 milestone release-0-1-0 delivered: v0.1.0 published
 - 2026-10-24 slice bundle-sqlite-toml delivered (D-G22LKQURNNTN6A2E, D-2V3JOY5TUAMLRJAE)
 - 2026-10-24 slice spork-https-overlay delivered (D-DBGBXVNNTRBBRHMQ)
+- 2026-10-24 slice bundled-help delivered (D-6MHEZUS5HUJXWV6A)
+- 2026-10-24 slice cli-stdin (U-XFHE3BIPNBP6KNS5) opened; `-h`/`--help` split off as B-WFNM7BIUL5G3FLYG (BR)
