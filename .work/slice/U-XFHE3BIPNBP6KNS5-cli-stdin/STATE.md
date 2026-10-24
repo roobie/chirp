@@ -35,8 +35,12 @@ Initialized. Delegating the implementation.
 - Delegate: the dispatch, the banner, the help text, the smoke checks and the README. Review, build, push, CI.
 
 ## Evidence
+- Two linux-x64 builds, run one after the other, have the same `bin/chirp` sha256 (8cbb73de…f59c3e, 9053512 bytes). The smoke suite passes, `ok stdin` included.
+- Piped `(print "hi")` prints `hi` and exits 0. Piped `(error "boom")` exits 1 with the error on stderr. `chirp - a b` gives main `-,a,b`. `true | chirp` prints nothing and exits 0. Piped `(+ 1 2)` echoes nothing. A piped `main` that errors exits 1.
+- The terminal REPL path was checked only by reading the code: it is the previous `cli-main @["-q"]` call, with the banner suffix changed.
 
 ## Harvest
+- [ ] learning: Janet's run-main is private, so chirp's stdin path mirrors it (main.janet#run-stdin); re-check it on Janet pin bumps
 
 ## Log
 - 2026-10-24 initialized

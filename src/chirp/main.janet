@@ -37,14 +37,33 @@
           " on Janet " janet/version "-" janet/build
           " - ca: " (or ca "none found")))
 
+# Janet's own run-main is private, so this mirrors it: main runs in a fiber that
+# reports errors through the debugger hook, as it does for a script file.
+(defn- run-stdin [subargs]
+  (def env (make-env))
+  (put env *args* subargs)
+  (dofile stdin :source "<stdin>" :exit true :env env)
+  (when-let [m (module/value env 'main true)]
+    (def f (fiber/new (fn [&] (m ;subargs)) :y env))
+    (var res nil)
+    (while (fiber/can-resume? f)
+      (set res (resume f res))
+      (when (not= :dead (fiber/status f))
+        ((debugger-on-status env) f res)))))
+
 (defn main [& argv]
   (eachp [name env] bundled (put module/cache name env))
   (def ca (find-ca))
   (def args (array/slice argv 1))
   (case (first args)
-    nil (do
-          (print (identity-line ca) " - '(doc)' for help")
-          (cli-main @["-q"]))
+    # A pipe is not a person: no banner, prompts or echoed values, and failures
+    # must show in the exit status.
+    nil (if (os/isatty stdin)
+          (do
+            (print (identity-line ca) " - '(doc)' or 'chirp help' for help")
+            (cli-main @["-q"]))
+          (run-stdin @["-"]))
+    "-" (run-stdin args)
     "-v" (print (identity-line ca))
     "--version" (print (identity-line ca))
     "help" (help/run help-entries (array/slice args 1))

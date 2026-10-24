@@ -20,7 +20,24 @@ TLS verifies certificates by default. At startup chirp uses the file named by `S
   (print "arguments: " (string/join (slice args 1) ",")))
 ```
 
-Run as `chirp script.janet a b`, this prints `script: script.janet` and `arguments: a,b`. With no arguments chirp starts a REPL. A script named `help` must be run as `./help`, because `chirp help` is the help command.
+Run as `chirp script.janet a b`, this prints `script: script.janet` and `arguments: a,b`. With no arguments on a terminal chirp starts a REPL. A script named `help` must be run as `./help`, because `chirp help` is the help command.
+
+## Piping code in
+
+When stdin is not a terminal, bare `chirp` runs it as a script instead of starting a REPL. There is no banner, no prompt and no echoed value, and an error goes to stderr with a non-zero exit status:
+
+```sh
+echo '(print "hi")' | chirp
+echo '(error "boom")' | chirp    # boom on stderr, exit status 1
+```
+
+`chirp - arg...` runs stdin as a script whatever stdin is. If the code defines `main`, it receives `-` first, then the arguments, just as `chirp script.janet a b` passes the script path first:
+
+```sh
+echo '(defn main [& args] (print (string/join args ",")))' | chirp - a b
+```
+
+This prints `-,a,b`.
 
 ## One-liners
 
