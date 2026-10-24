@@ -1,0 +1,9 @@
+#!/bin/sh
+# Tracked hooks; enable once per clone: git config core.hooksPath tools/hooks
+top="$(git rev-parse --show-toplevel)"
+
+command -v janet >/dev/null 2>&1 || { echo "leakcheck: janet not found; refusing an unchecked commit" >&2; exit 1; }
+janet "$top/tools/leakcheck/leakcheck.janet" msg "$1" || exit 1
+
+command -v node >/dev/null 2>&1 || { echo "dev-proc: node not found, skipping checks" >&2; exit 0; }
+exec node "$top/.claude/skills/dev-proc/scripts/dev-proc.mjs" check-msg "$1"

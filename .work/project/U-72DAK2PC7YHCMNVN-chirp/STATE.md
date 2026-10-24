@@ -38,3 +38,4 @@ Steering slice U-34F3JPNU2EK44A7I (linux-x64-spike), which removes the main risk
 ## Log
 - 2026-10-24 initialized from the session handoff; decisions and open questions moved into records
 - 2026-10-24 phase initialize → execute
+- 2026-10-24 task leak-check (U-IJTQWFAWHMY3VRSB) delivered: commit hooks block host-specific details (D-54W72MHWZBDDVE4V, D-U5B6PF3E3RVNDWFL)

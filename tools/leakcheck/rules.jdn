@@ -1,0 +1,16 @@
+# Generic patterns for host-specific text. Each :peg is Janet PEG source.
+# This host's own values (home, user, hostname, local secrets) are added at
+# runtime by leakcheck.janet and must never be written here.
+{:rules
+ [{:name "home-path"
+   :peg (* (! (> -1 (+ :w (set "/.-")))) (+ "/home/" "/Users/") (some (+ :w (set "-_."))))}
+  {:name "windows-home"
+   :peg (* :a ":" (set "\\/") "Users" (set "\\/") (some :w))}
+  {:name "tilde-path"
+   :peg (* (! (> -1 (+ :w "/"))) "~/" (some (+ :w (set "-_."))))}]
+
+ # Local env vars whose name contains one of these are treated as secrets:
+ # their names and values are both flagged.
+ :secret-env-name (+ "TOKEN" "SECRET" "PASSWORD" "PASSWD" "API_KEY" "APIKEY"
+                     "PRIVATE_KEY" "CREDENTIAL")
+ :min-secret-length 8}

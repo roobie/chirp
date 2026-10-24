@@ -1,0 +1,8 @@
+# Exemptions. An entry may set :path (exact, or a prefix ending in "/"),
+# :rule and :text; every key it sets must match the finding.
+# Never exempt a real value of this host: that commits the very leak.
+[{:path "tools/leakcheck/test.janet" :rule "home-path"}
+ {:path "tools/leakcheck/test.janet" :rule "tilde-path"}
+ {:path "tools/leakcheck/test.janet" :rule "windows-home"}
+ # Vendored skill text about pi's own layout, not this host.
+ {:path ".claude/skills/asking-astra/SKILL.md" :text "~/.pi"}]
