@@ -1,4 +1,13 @@
-{:version "0.1.0"
+{# A -dev suffix marks builds from main; release.yml requires the tag to equal
+ # this, so a release first drops the suffix.
+ :version "0.2.0-dev"
+ # `chirp self-update` reads <base>/latest/download/ and <base>/download/v<version>/,
+ # a file tree that any mirror can serve.
+ :update {:base "https://github.com/roobie/chirp/releases"
+          # Janet's (os/which) -> (os/arch) -> release target name.
+          :targets {:linux {:x64 "linux-x64" :aarch64 "linux-arm64"}
+                    :macos {:aarch64 "macos-arm64"}
+                    :windows {:x64 "windows-x64"}}}
  # First existing file becomes the TLS trust store unless SSL_CERT_FILE is set.
  :ca-paths ["/etc/ssl/certs/ca-certificates.crt"
             "/etc/pki/tls/certs/ca-bundle.crt"

@@ -70,6 +70,21 @@ jobs:
 
           notes=$(< .github/release-notes.md)
           printf '%s\n' "${notes//@VERSION@/$version}" > out/notes.md
+      # chirp self-update trusts this signature and nothing else in the release.
+      # The shipped linux-x64 binary signs, which also keeps the signing code
+      # exercised by every release.
+      - name: Sign the checksums
+        env:
+          CHIRP_RELEASE_SIGNING_KEY: ${{ secrets.CHIRP_RELEASE_SIGNING_KEY }}
+        run: |
+          artifacts/chirp-linux-x64-a/chirp tools/release/sign.janet sign \
+            out/release/SHA256SUMS out/release/SHA256SUMS.sig
+      # A wrong secret would otherwise publish a release that no chirp accepts.
+      # The key is the one the shipped binaries trust, read from the checkout.
+      - name: Check the signature against the key chirp trusts
+        run: |
+          artifacts/chirp-linux-x64-a/chirp tools/release/sign.janet verify \
+            out/release/SHA256SUMS out/release/SHA256SUMS.sig src/chirp/release-key.pem
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-${{ steps.layout.outputs.version }}

@@ -9,6 +9,7 @@ chirp                    # REPL, like janet
 chirp script.janet       # run a script, like janet
 echo '(print 1)' | chirp # run code from stdin
 chirp --version          # chirp 0.1.0 (unofficial build, not a Janet release) on Janet …
+chirp self-update        # replace chirp with the latest signed release (--check only reports)
 ```
 
 Inside chirp, every bundled module can be imported without anything on disk:
@@ -60,6 +61,7 @@ Releases are on the [releases page](https://github.com/roobie/chirp/releases). E
 | `chirp-<version>-windows-x64.exe` | Windows x64 |
 | `NOTICES-<target>.txt` | third-party license texts for that binary |
 | `SHA256SUMS` | the sha256 of every asset |
+| `SHA256SUMS.sig` | Ed25519 signature of `SHA256SUMS`, checked by `chirp self-update` |
 
 On Linux and macOS, make the binary executable with `chmod +x`. macOS binaries are signed ad hoc, not by an Apple developer ID, so a downloaded one is quarantined. After verifying it, remove the quarantine flag with `xattr -d com.apple.quarantine chirp-<version>-macos-arm64`.
 

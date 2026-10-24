@@ -26,6 +26,15 @@
 (import ./help)
 (def- help-entries (help/collect (string here "help/") bundled))
 
+# The release key is read now, so the binary trusts the key it was built with
+# and nothing on the machine it runs on.
+(import ./update)
+(def- update-config
+  {:version (config :version)
+   :base ((config :update) :base)
+   :targets ((config :update) :targets)
+   :key (slurp (string here "release-key.pem"))})
+
 (defn- find-ca []
   (or (os/getenv "SSL_CERT_FILE")
       (when-let [p (find os/stat (config :ca-paths))]
@@ -67,4 +76,5 @@
     "-v" (print (identity-line ca))
     "--version" (print (identity-line ca))
     "help" (help/run help-entries (array/slice args 1))
+    "self-update" (update/run (array/slice args 1) update-config)
     (cli-main args)))

@@ -31,14 +31,21 @@ Out: background or automatic update checks; verifying the GitHub provenance atte
 - The private key is created by BR and goes only into a GitHub secret; it never passes through an agent.
 
 ## Now
-Initialized.
+Implemented and reviewed; pushed for CI.
 
 ## Next
-- Gate to execute, then delegate the implementation. BR creates the key and secret.
+- CI green on all four targets (the Windows rename swap and the macOS and arm64 paths run only there).
+- A manual `workflow_dispatch` of release.yml, to prove the secret signs and the signature verifies against `src/chirp/release-key.pem` before any tag.
 
 ## Evidence
+- BR created the Ed25519 key: the public half is `src/chirp/release-key.pem` (checked by BR: one `BEGIN PUBLIC KEY`); the private half is the secret `CHIRP_RELEASE_SIGNING_KEY`.
+- Two linux-x64 builds from different directories have the same `bin/chirp` sha256 (990918e5…e30787). The smoke suite passes, including `ok self-update linux-x64`: check-only, the pre-release refusal, a signature by another key, a missing signature, a hash mismatch, a replayed older release and a real swap, all on a copy of the binary.
+- Against the real releases, `--check` fails with `signature missing: … SHA256SUMS.sig: HTTP 404` and exit 1 (0.1.0 has no signature), and a plain update on the `-dev` build refuses with exit 1.
 
 ## Harvest
+- [ ] decision: self-update trusts only an Ed25519-signed SHA256SUMS in a static release file tree, with the version taken from the signed names (update.janet#verified-sums, update.janet#latest-release, release.yml, tools/release/sign.janet#main)
+- [ ] decision: main carries a `-dev` version between releases; a release first drops the suffix (chirp.jdn, update.janet#pre-release?)
+- [ ] learning: the update module sees upstream spork-https, not the overlay, so it sets its own User-Agent (update.janet#fetch); overlays only apply to user code
 
 ## Log
 - 2026-10-24 initialized

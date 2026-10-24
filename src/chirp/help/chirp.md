@@ -58,6 +58,10 @@ chirp -e '(each k (sort (filter string? (keys module/cache))) (print k))'
 
 Read a module's docs with `(doc ...)`, for example `chirp -e '(import spork/sh) (doc sh/exec-slurp)'`.
 
+## Updating chirp
+
+`chirp self-update` replaces the binary with the latest signed release; `--check` only reports. See `chirp help read self-update`.
+
 ## Offline help
 
 `chirp help` lists the help topics. `chirp help query '<words>'` searches them and the docstrings of every bundled module and of Janet's core. `chirp help read <id>` prints one result in full. The text is inside the binary, so it works offline.
