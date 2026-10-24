@@ -20,7 +20,7 @@ jobs:
       matrix:
         # A new target is a new entry here, a key of :targets in
         # tools/build/config.jdn, and an entry in the smoke matrix below.
-        target: [linux-x64, windows-x64]
+        target: [linux-x64, linux-arm64, windows-x64]
         copy: [a, b]
         include:
           - copy: a
@@ -91,15 +91,15 @@ jobs:
           - target: linux-x64
             os: ubuntu-24.04
             exe: chirp
+          - target: linux-arm64
+            os: ubuntu-24.04-arm
+            exe: chirp
           # windows-2025 rather than windows-latest: the image does not change
           # under us, same as the pinned ubuntu runners.
           - target: windows-x64
             os: windows-2025
             exe: chirp.exe
-          # Later slices:
-          # - target: linux-arm64
-          #   os: ubuntu-24.04-arm
-          #   exe: chirp
+          # Later slice:
           # - target: macos-arm64
           #   os: macos-15
           #   exe: chirp

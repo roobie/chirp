@@ -18,6 +18,11 @@
                        # Static and without a build-id, which varies per build.
                        :lflags ["-static" "-s" "-Wl,--build-id=none"]
                        :libs ["-lm" "-lpthread" "-ldl"]}
+           :linux-arm64 {:triple "aarch64-linux-musl"
+                         :openssl-target "linux-aarch64"
+                         :cflags ["-std=c99" "-O2" "-fvisibility=hidden"]
+                         :lflags ["-static" "-s" "-Wl,--build-id=none"]
+                         :libs ["-lm" "-lpthread" "-ldl"]}
            :windows-x64 {:triple "x86_64-windows-gnu"
                          :openssl-target "mingw64"
                          :exe-suffix ".exe"
