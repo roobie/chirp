@@ -1,0 +1,11 @@
+{:openssl {:prefix "/opt/chirp-openssl"
+           :configure ["no-shared" "no-tests" "no-docs" "no-apps" "no-module"
+                       "no-afalgeng" "--libdir=lib" "--openssldir=/etc/ssl" "-fPIC"]
+           :make ["build_libs"]
+           :install ["install_dev"]
+           :libs ["libssl.a" "libcrypto.a"]}
+ :exe {:name "chirp"
+       :entry "src/chirp/main.janet"
+       :lflags ["-Wl,-s" "-Wl,--build-id=none"]}
+ # Pinned checkouts whose root holds importable Janet modules.
+ :janet-sources [:spork :jsec :spork-https]}

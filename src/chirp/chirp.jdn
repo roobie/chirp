@@ -1,0 +1,19 @@
+{:version "0.0.1-spike"
+ # First existing file becomes the TLS trust store unless SSL_CERT_FILE is set.
+ :ca-paths ["/etc/ssl/certs/ca-certificates.crt"
+            "/etc/pki/tls/certs/ca-bundle.crt"
+            "/etc/ssl/cert.pem"]
+ # Modules resolvable with nothing on disk. spork/tasker is left out: its peg
+ # schema is stringified with a heap address at compile time, so the image
+ # differs per run.
+ :modules ["spork/argparse" "spork/base64" "spork/channel" "spork/cmath"
+           "spork/crc" "spork/cron" "spork/data" "spork/date" "spork/ev-utils"
+           "spork/fmt" "spork/generators" "spork/getline" "spork/htmlgen"
+           "spork/http" "spork/httpf" "spork/infix" "spork/json" "spork/math"
+           "spork/misc" "spork/msg" "spork/netrepl" "spork/path" "spork/randgen"
+           "spork/rawterm" "spork/regex" "spork/rpc" "spork/schema" "spork/sh"
+           "spork/sh-dsl" "spork/stream" "spork/tarray"
+           "spork/temple" "spork/test" "spork/utf8" "spork/zip"
+           "jsec/utils" "jsec/tls-stream" "jsec/dtls-stream" "jsec/tls"
+           "jsec/cert" "jsec/bio" "jsec/crypto" "jsec/ca"
+           "spork-https"]}

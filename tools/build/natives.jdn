@@ -1,0 +1,21 @@
+# Static native modules. :sources are files or directories (scanned for .c)
+# relative to the pinned checkout named by :pin.
+[
+ {:name "spork/json" :pin :spork :sources ["src/json.c"]}
+ {:name "spork/rawterm" :pin :spork :sources ["src/rawterm.c"]}
+ {:name "spork/crc" :pin :spork :sources ["src/crc.c"]}
+ {:name "spork/utf8" :pin :spork :sources ["src/utf8.c"]}
+ {:name "spork/tarray" :pin :spork :sources ["src/tarray.c"] :headers ["src/tarray.h"]}
+ {:name "spork/zip" :pin :spork :sources ["src/zip.c" "deps/miniz/miniz.c"]
+  :defines {"_LARGEFILE64_SOURCE" true} :headers ["deps/miniz/miniz.h"]}
+ {:name "spork/cmath" :pin :spork :sources ["src/cmath.c"]}
+ {:name "spork/base64" :pin :spork :sources ["src/base64.c"]}
+
+ {:name "jsec/utils" :pin :jsec :openssl true :sources ["src/jutils"]}
+ {:name "jsec/tls-stream" :pin :jsec :openssl true :sources ["src/jtls" "src/jutils"] :skip ["src/jutils/module.c"]}
+ {:name "jsec/dtls-stream" :pin :jsec :openssl true :sources ["src/jdtls" "src/jutils"] :skip ["src/jutils/module.c"]}
+ {:name "jsec/cert" :pin :jsec :openssl true :sources ["src/jcert" "src/jutils"] :skip ["src/jutils/module.c"]}
+ {:name "jsec/bio" :pin :jsec :openssl true :sources ["src/jbio.c" "src/jutils"] :skip ["src/jutils/module.c"]}
+ {:name "jsec/crypto" :pin :jsec :openssl true :sources ["src/jcrypto" "src/jutils"] :skip ["src/jutils/module.c"]}
+ {:name "jsec/ca" :pin :jsec :openssl true :sources ["src/jca" "src/jutils"] :skip ["src/jutils/module.c"]}
+]

@@ -1,0 +1,6 @@
+{:image "alpine@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f"
+ :janet {:url "https://github.com/janet-lang/janet.git" :commit "dc0f243bb90208c7fdb734ef2c8f789ccf16f076"}
+ :spork {:url "https://github.com/janet-lang/spork.git" :commit "26af769b7fd8f7214ea8f95dad5c2d360a79f6b4"}
+ :jsec {:url "https://github.com/llmII/jsec.git" :commit "08a92f6336f283097298c0f0f917a0fabd2040c8"}
+ :spork-https {:url "https://github.com/llmII/spork-https.git" :commit "910a525a1ca74b6978c4de19af56507e91dfcf52"}
+ :openssl {:url "https://github.com/openssl/openssl.git" :tag "openssl-3.6.5" :commit "c8bd5a57108599ac650bbae77fcabe3109dab2e8"}}

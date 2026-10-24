@@ -34,15 +34,23 @@ Out: CI, other platforms, releases, embedded CA bundle polish, the runtime hash 
 - `build/`: output and source cache, gitignored.
 
 ## Now
-A Sonnet subagent is implementing the layout above and running the three checks. Added mid-flight: native modules are listed as data, and all of spork's native modules (spork/zip included) are linked, with a zip round-trip check. SQLite and TOML wait for U-OPXF3E6S7PBCFAHC.
+All three criteria pass; the build is committed. BR is weighing zig as the toolchain for every target, which a windows cross-build spike will test before this slice's container decision (D-3GLX6D2RADC6IDG7) is finalized.
 
 ## Next
-- Review the subagent's diff and evidence; commit.
-- Fill in refs on D-3GLX6D2RADC6IDG7, D-ZOBE3ZBK764B22JY and D-ANH2OMRLGDIIVVZY once the files exist.
+- Fill in refs on D-3GLX6D2RADC6IDG7, D-ZOBE3ZBK764B22JY and D-ANH2OMRLGDIIVVZY.
+- Finalize once the zig spike says whether the container path stays.
 
 ## Evidence
+- `sh test/spike/run.sh`: builds in `build/spike/one` and `build/spike/nested/two` both hash `c6ac5b4741e8850566d6b41cb089d21ac98e97a0fe411e3b9bc8a7309e660424`.
+- Same run: `ok https-get https://example.com/ status 200` (verification on, host trust store).
+- Same run: `ok https-server https://localhost:27294/spike status 200`, after an untrusted client was rejected.
+- Same run: `ok zip 100000 -> 288 -> 100000`.
+- `file`: static, stripped x86-64 ELF, 7731040 bytes; `ldd`: not a dynamic executable.
 
 ## Harvest
+- Learnings: L-AGD7ZVHWYRGFIEDF (peg address in image), L-CPIUGJI6EY2HEID2 (jsec `:trusted-cert`).
+- Backlog: B-MKHM34WSTBQOE626 (tasker), B-WMHIKUYY6NBOTTVB (REPL line editing), B-QCZS5VCEMNVARX34 (spork-https `:ca` docs).
+- Open: apk packages are not version-pinned (versions are recorded per build). Moot if zig replaces the container.
 
 ## Log
 - 2026-10-24 initialized
