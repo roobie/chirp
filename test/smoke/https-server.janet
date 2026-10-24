@@ -6,10 +6,10 @@
 
 (defn main [&]
   (def certs (cert/generate-self-signed-cert
-               {:common-name "localhost" :organization "chirp spike"
+               {:common-name "localhost" :organization "chirp smoke"
                 :country "US" :days-valid 1 :bits 2048}))
   (def port (string (+ 20000 (math/rng-int (math/rng (os/time)) 20000))))
-  (def url (string "https://localhost:" port "/spike"))
+  (def url (string "https://localhost:" port "/smoke"))
   (def server
     (https/server (fn [req] {:status 200
                              :headers {"Content-Type" "text/plain"}
@@ -22,5 +22,5 @@
     # jsec's client takes the trusted certificate as PEM data, not a path.
     (def res (https/get url :tls-opts {:trusted-cert (certs :cert)}))
     (assert (= 200 (res :status)) (string "status " (res :status)))
-    (assert (= "hello /spike" (string (res :body))) "unexpected body")
+    (assert (= "hello /smoke" (string (res :body))) "unexpected body")
     (print "ok https-server " url " status " (res :status))))

@@ -1,11 +1,11 @@
 #!/bin/sh
 # Build twice in different directories, require identical binaries, then run
-# the spike checks with the result on this host. Usage: run.sh [workdir]
+# the smoke driver with the result on this host. Usage: run.sh [workdir]
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
-work=${1:-$root/build/spike}
+work=${1:-$root/build/smoke}
 one=$work/one
 two=$work/nested/two
 
@@ -19,7 +19,4 @@ echo "build two: $b"
 [ "$a" = "$b" ] || { echo "FAIL: binaries differ" >&2; exit 1; }
 
 cd "$work"
-for t in zip https-get https-server; do
-  "$one/bin/chirp" "$here/$t.janet"
-done
-echo "all spike checks passed"
+"$one/bin/chirp" "$here/run.janet"

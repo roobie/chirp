@@ -34,10 +34,11 @@ Promoted from backlog: B-JSN4UWUJCBBNOWEX Run leakcheck all and its tests in CI
 Hooks can be skipped (`--no-verify`, or a clone without `core.hooksPath`). A CI run of `leakcheck all` plus `tools/leakcheck/test.janet` catches what gets past them, using the generic rules.
 
 ## Now
-Initialized.
+`.github/workflows/ci.yml` and the smoke driver `test/smoke/run.janet` are written. linux passes locally (driver and leakcheck). Under Wine, `https-server` fails with "failed to listen for events: Invalid handle" once the TLS server accepts a connection. The first CI run shows whether real Windows does the same.
 
 ## Next
-- Delegate the workflow and smoke driver, push, then iterate on the run until it's green.
+- Push and watch the first run.
+- If windows `https-server` fails on the runner, debug jsec's windows server path.
 
 ## Evidence
 

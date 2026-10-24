@@ -1,0 +1,149 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Every target is built twice, cold, in different directories on different
+  # runners. The container mounts the output directory at its own host path, so
+  # different directories also prove the path does not leak into the binary.
+  build:
+    name: build ${{ matrix.target }} (${{ matrix.copy }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # A new target is a new entry here, a key of :targets in
+        # tools/build/config.jdn, and an entry in the smoke matrix below.
+        target: [linux-x64, windows-x64]
+        copy: [a, b]
+        include:
+          - copy: a
+            dir: a
+          - copy: b
+            dir: b/nested/deeper
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        env:
+          TARGET: ${{ matrix.target }}
+          OUT: ${{ runner.temp }}/${{ matrix.dir }}
+        run: sh tools/build/container.sh "$TARGET" "$OUT"
+      # Only bin/ is compared and run; the rest of the build tree is scratch.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chirp-${{ matrix.target }}-${{ matrix.copy }}
+          path: ${{ runner.temp }}/${{ matrix.dir }}/bin/
+          if-no-files-found: error
+          retention-days: 7
+
+  # The reproducibility claim: both copies of a target are the same bytes.
+  compare:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: chirp-*
+          path: artifacts
+      - name: Compare sha256 of both copies
+        run: |
+          status=0
+          {
+            echo '| target | copy a | copy b | result |'
+            echo '|---|---|---|---|'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for a in artifacts/chirp-*-a; do
+            target=${a#artifacts/chirp-}
+            target=${target%-a}
+            # Each artifact directory holds the one binary; a missing copy
+            # makes sha256sum fail, which fails the step.
+            ha=$(sha256sum "$a"/* | cut -d' ' -f1)
+            hb=$(sha256sum "artifacts/chirp-$target-b"/* | cut -d' ' -f1)
+            if [ "$ha" = "$hb" ]; then result=identical; else result=DIFFERENT; status=1; fi
+            echo "$target: $result ($ha, $hb)"
+            echo "| $target | \`$ha\` | \`$hb\` | $result |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit $status
+
+  # Run each binary on a native machine of its own platform; the build runners
+  # are all linux x64, so this is the only place the other targets execute.
+  smoke:
+    name: smoke ${{ matrix.target }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        # Git Bash on windows; the driver itself is Janet, run by chirp.
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            os: ubuntu-24.04
+            exe: chirp
+          # windows-2025 rather than windows-latest: the image does not change
+          # under us, same as the pinned ubuntu runners.
+          - target: windows-x64
+            os: windows-2025
+            exe: chirp.exe
+          # Later slices:
+          # - target: linux-arm64
+          #   os: ubuntu-24.04-arm
+          #   exe: chirp
+          # - target: macos-arm64
+          #   os: macos-15
+          #   exe: chirp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: chirp-${{ matrix.target }}-a
+          path: dist
+      # Windows has no OpenSSL cert locations and no embedded roots yet, so
+      # point at the CA bundle that Git for Windows ships. Other runners use
+      # the system store, which chirp finds itself.
+      - name: Use the Git for Windows CA bundle
+        if: runner.os == 'Windows'
+        run: |
+          bundle='C:/Program Files/Git/mingw64/etc/ssl/certs/ca-bundle.crt'
+          test -f "$bundle"
+          echo "SSL_CERT_FILE=$bundle" >> "$GITHUB_ENV"
+      # Artifacts do not keep the executable bit.
+      - name: Smoke checks
+        env:
+          EXE: dist/${{ matrix.exe }}
+        run: |
+          chmod +x "$EXE"
+          "$EXE" test/smoke/run.janet
+
+  # Dogfood: chirp, not a separate janet install, runs the repo checks. The
+  # environment is cleared so only the generic rules apply; leakcheck would
+  # otherwise add the CI runner's own user, home and hostname as host values.
+  leakcheck:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: chirp-linux-x64-a
+          path: dist
+      - name: Leakcheck
+        run: |
+          chmod +x dist/chirp
+          env -i PATH="$PATH" ./dist/chirp tools/leakcheck/leakcheck.janet all
+          env -i PATH="$PATH" ./dist/chirp tools/leakcheck/test.janet
