@@ -6,6 +6,8 @@ read_if:
   - changing the build toolchain
   - a linux build differs between machines
 refs:
+  - tools/build/container.sh
+  - pins.jdn
 ---
 
 # D-3GLX6D2RADC6IDG7 Linux builds run in a pinned Alpine container

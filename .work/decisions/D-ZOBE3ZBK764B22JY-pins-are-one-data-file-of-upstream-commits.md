@@ -5,6 +5,7 @@ read_if:
   - bumping an upstream version
   - adding a bundled dependency
 refs:
+  - pins.jdn
 ---
 
 # D-ZOBE3ZBK764B22JY Pins are one data file of upstream commits

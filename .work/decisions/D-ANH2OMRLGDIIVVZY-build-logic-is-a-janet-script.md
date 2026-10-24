@@ -5,6 +5,8 @@ read_if:
   - changing how chirp is built
   - porting the build to macOS or Windows
 refs:
+  - tools/build/build.janet
+  - tools/build/container-inner.sh
 ---
 
 # D-ANH2OMRLGDIIVVZY Build logic is a Janet script
@@ -19,4 +21,4 @@ A Janet script holds the build logic. It runs on a janet that is first built fro
 Janet is the project's language and runs on every target, including Windows, where make and sh are not native. Building janet itself is the one step that needs something else, and janet's own build already covers that on every platform. jpm/janet-pm project files were rejected because they assume system libraries (D-BPDFOMM2OH7HMPZB). A Makefile was rejected because it doesn't port to Windows.
 
 ## Consequences
-Every build starts by building janet. Wrappers stay thin: the docker invocation on linux, and native equivalents elsewhere.
+Every build starts by building janet. Wrappers stay thin: the docker invocation that hosts every target's cross-build (D-I6U4X6Q5KJD2Y4SM).
