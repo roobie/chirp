@@ -53,7 +53,10 @@
     (run "git" "-C" dir "checkout" "-q" "--force" "--detach" "FETCH_HEAD"))
   (assert (= commit (capture "git" "-C" dir "rev-parse" "HEAD")) "pin mismatch"))
 
-(each name [:janet :spork :jsec :spork-https :openssl] (fetch name))
+# Every pin that names a commit is a git checkout; the rest (image, zig) are not.
+(each name (sorted (keys pins))
+  (def p (pins name))
+  (when (and (dictionary? p) (p :commit)) (fetch name)))
 
 # Patches to a pinned checkout, applied once and failing loudly if they do not
 # apply.

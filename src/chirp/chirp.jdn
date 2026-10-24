@@ -16,4 +16,4 @@
            "spork/temple" "spork/test" "spork/utf8" "spork/zip"
            "jsec/utils" "jsec/tls-stream" "jsec/dtls-stream" "jsec/tls"
            "jsec/cert" "jsec/bio" "jsec/crypto" "jsec/ca"
-           "spork-https"]}
+           "spork-https" "sqlite3" "tomlin"]}

@@ -31,14 +31,19 @@ Out: SQLite compile-time feature tuning beyond upstream defaults; any ORM or hel
 - Every new bundled module can break the double-build check (L-AGD7ZVHWYRGFIEDF). Any config.jdn edit moves the hashes on its own (B-U6C4GF5ICCTMVVBL), so hash changes are expected; only copy a vs copy b agreement counts.
 
 ## Now
-Coding delegated: pins, module entries, notices, README, smoke checks.
+Change reviewed. linux-x64 builds and passes smoke locally; push and watch CI.
 
 ## Next
-- Review the change, build linux-x64 locally with the smoke run, then push and get CI green on all four targets.
+- Get CI green on all four targets, then finalize.
 
 ## Evidence
+- Local linux-x64 build (Docker, 2026-10-24): `test/smoke/run.janet` passes every check, including `ok sqlite3 3.53.3` and `ok toml 5 keys`. The binary is 8555656 bytes; 0.1.0 was 7381448.
+- That build's NOTICES.txt carries the janet-lang/sqlite3 binding, SQLite (the blessing, https://sqlite.org/copyright.html) and tomlin. The README table lists both components.
+- `leakcheck staged` is clean.
 
 ## Harvest
+- [ ] decision: a Janet library whose entry point is not `<name>.janet` gets bundled through a `:janet-modules` data entry in config.jdn, not a special case in image.janet
+- [ ] decision: the build fetches every pin that has a `:commit`, so adding a pin needs no change to build.janet
 
 ## Log
 - 2026-10-24 initialized

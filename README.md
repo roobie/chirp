@@ -17,6 +17,16 @@ Inside chirp, every bundled module can be imported without anything on disk:
 (print ((https/get "https://example.com/") :status))
 ```
 
+From 0.2.0, scripts can also keep data in SQLite and read configuration from TOML:
+
+```janet
+(import sqlite3)
+(import tomlin)
+(def db (sqlite3/open "notes.db"))
+(sqlite3/eval db "CREATE TABLE IF NOT EXISTS notes (body TEXT);")
+(print ((tomlin/toml->janet (slurp "config.toml")) :title))
+```
+
 ## What it bundles
 
 Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). None of them is forked.
@@ -27,6 +37,8 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [spork](https://github.com/janet-lang/spork) | the standard library extras, including `spork/http` and `spork/zip` (zlib and zip, via miniz) | MIT |
 | [jsec](https://github.com/llmII/jsec) | TLS and DTLS streams for `ev`, certificates, crypto | ISC |
 | [spork-https](https://github.com/llmII/spork-https) | an HTTPS client and server on top of `spork/http` | ISC |
+| [janet-lang/sqlite3](https://github.com/janet-lang/sqlite3) | `sqlite3`, Janet bindings to an embedded [SQLite](https://sqlite.org) (the amalgamation, so no system library is needed); from 0.2.0 | MIT (binding), public domain (SQLite) |
+| [tomlin](https://github.com/pyrmont/tomlin) | `tomlin`, a TOML parser written in Janet; from 0.2.0 | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |
 
 Every release ships a `NOTICES-<target>.txt` with the full license texts of everything linked into that target's binary.

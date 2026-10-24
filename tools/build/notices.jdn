@@ -2,7 +2,8 @@
 # :path is read from: :repo (this repo), :zig (the unpacked zig) or a pin name
 # (its checkout). :pin supplies the URL shown, defaulting to :root's pin; :url
 # is for components that are not a pin. :targets limits a component to the
-# targets that link it. jsec's checkout has no LICENSE file, so it ships ours.
+# targets that link it. jsec's checkout has no LICENSE file, so it ships ours;
+# SQLite has none either, only the public-domain blessing from its source.
 # Kept out of config.jdn because the image build reads that file and its
 # content moves the binary.
 [
@@ -13,6 +14,10 @@
   :url "https://github.com/richgel999/miniz"}
  {:title "jsec" :root :repo :path "tools/build/notices/jsec-LICENSE.txt" :pin :jsec}
  {:title "spork-https" :root :spork-https :path "LICENSE"}
+ {:title "janet-lang/sqlite3 (the sqlite3 binding)" :root :sqlite3 :path "LICENSE"}
+ {:title "SQLite (in sqlite3), public domain" :root :repo
+  :path "tools/build/notices/sqlite-blessing.txt" :url "https://sqlite.org/copyright.html"}
+ {:title "tomlin" :root :tomlin :path "LICENSE"}
  {:title "OpenSSL" :root :openssl :path "LICENSE.txt"}
  {:title "musl libc" :root :zig :path "lib/libc/musl/COPYRIGHT"
   :url "https://musl.libc.org" :targets [:linux-x64 :linux-arm64]}

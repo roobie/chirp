@@ -46,4 +46,7 @@
                          :libs ["-lws2_32" "-lwsock32" "-lmswsock" "-lpsapi"
                                 "-lcrypt32" "-luser32" "-ladvapi32"]}}
  # Pinned checkouts whose root holds importable Janet modules.
- :janet-sources [:spork :jsec :spork-https]}
+ :janet-sources [:spork :jsec :spork-https]
+ # Pinned checkouts that are one module whose entry file is not named after it,
+ # so :all: templates cannot find it. Its relative imports resolve from :file.
+ :janet-modules [{:name "tomlin" :pin :tomlin :file "init.janet"}]}

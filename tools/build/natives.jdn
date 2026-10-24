@@ -11,6 +11,9 @@
  {:name "spork/cmath" :pin :spork :sources ["src/cmath.c"]}
  {:name "spork/base64" :pin :spork :sources ["src/base64.c"]}
 
+ # The amalgamation plus the binding; the binding's system-library path is unused.
+ {:name "sqlite3" :pin :sqlite3 :sources ["sqlite3.c" "main.c"]}
+
  {:name "jsec/utils" :pin :jsec :openssl true :sources ["src/jutils"]}
  {:name "jsec/tls-stream" :pin :jsec :openssl true :sources ["src/jtls" "src/jutils"] :skip ["src/jutils/module.c"]}
  {:name "jsec/dtls-stream" :pin :jsec :openssl true :sources ["src/jdtls" "src/jutils"] :skip ["src/jutils/module.c"]}
