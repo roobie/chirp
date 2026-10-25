@@ -26,7 +26,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.2.0 is published: SQLite, TOML, the spork-https overlay (default User-Agent, client `:ca`), `chirp help` with offline FTS5 search, piped stdin or `chirp -` running as a script, and `chirp self-update` against a signed SHA256SUMS. Main carries `0.3.0-dev`, with CHANGELOG.md baked in (`chirp --changelog`); a release renames its Unreleased section to the version (D-DYWSJTLDO6S5DQDR). Unreleased so far: `-h`/`--help`, and the `yaml` module on libyaml.
+0.2.0 is published: SQLite, TOML, the spork-https overlay (default User-Agent, client `:ca`), `chirp help` with offline FTS5 search, piped stdin or `chirp -` running as a script, and `chirp self-update` against a signed SHA256SUMS. Main carries `0.3.0-dev`, with CHANGELOG.md baked in (`chirp --changelog`); a release renames its Unreleased section to the version (D-DYWSJTLDO6S5DQDR). Unreleased so far: `-h`/`--help`, the `yaml` module on libyaml, and `omap` with ordered json and yaml decode and encode.
 
 ## Next
 - Cut 0.3.0: Unreleased still lacks a `-h`/`--help` line.
@@ -68,3 +68,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-25 task cli-help delivered: `-h`/`--help` print chirp's usage, then Janet's options (run 40140931270)
 - 2026-10-25 task yaml delivered: `yaml` module on libyaml (D-VOBKZC6H4OPIMPQE, D-FD4ZWTDKYJBQBFRO); image builds hold the collector off so gensym names stay reproducible (L-2H7SFLEMCU2MPRZN)
 - 2026-10-25 task dev-proc-chirp delivered: dev-proc runs on chirp, Node gone from the repo's workflow (D-VZIDK5O2VNATQDCP, D-4ACDYH2YT7UK3OC4, D-SEP44EOKHRFGMAWT); gaps in B-IRERZRV2753OHW3R
+- 2026-10-25 slice ordered-map delivered: `omap`, an insertion-ordered map, and an ordered flag on json/decode, yaml/decode and yaml/decode-all (D-PYFZFKJPCW3QPOTB, D-ZXXSPKUCZ4IOIQPN, D-YMKKGLNX3IGQPAGJ, L-NYRT2RGVVAXTFIOF)
