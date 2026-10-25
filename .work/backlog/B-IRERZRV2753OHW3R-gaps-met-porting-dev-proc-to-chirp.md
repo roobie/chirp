@@ -10,7 +10,7 @@ Porting dev-proc from Node was meant to find what chirp lacks for everyday scrip
 ## Notes
 - `os/spawn` has no working-directory option, and its env table is also the stdio table, so passing `:e` replaces the whole environment.
 - There is no recursive mkdir and no mktemp.
-- There is no JSON object that keeps key order (see B-JQKB2VOCY6XQW5V6 for YAML).
+- There is no JSON object that keeps key order; slice U-F7D455PIPRC3AXFQ covers JSON and YAML.
 - FTS5 ships no stopword list.
 - Core surprises a helper module or the docs could cover:
   - `sort` is not stable.
