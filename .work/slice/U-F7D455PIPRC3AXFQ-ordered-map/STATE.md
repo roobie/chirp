@@ -1,5 +1,5 @@
 ---
-phase: initialize
+phase: execute
 parent: U-72DAK2PC7YHCMNVN
 owner:
   - BR
@@ -36,10 +36,9 @@ Out: toml and jdn support (backlog if wanted). Changing the default, unordered b
 Promoted from backlog: B-JQKB2VOCY6XQW5V6 Ordered decode in the yaml module
 
 ## Now
-Initializing. Module name to settle: proposing `omap`.
+BR agreed the name `omap` and the API sketch (2026-10-25). The ordered flag is a further optional positional after `nils`, matching spork/json's signature style. The build is delegated.
 
 ## Next
-- Agree the module name and API sketch with BR, then move to execute.
 - The type comes first, then yaml, then the json overlay and its parity corpus, then dev-proc, then docs and CI.
 
 ## Evidence
@@ -50,3 +49,4 @@ Initializing. Module name to settle: proposing `omap`.
 
 ## Log
 - 2026-10-25 initialized from B-JQKB2VOCY6XQW5V6; BR picked an opaque ordered map type after a tech-debt comparison
+- 2026-10-25 phase initialize → execute
