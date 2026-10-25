@@ -36,16 +36,26 @@ Out: toml and jdn support (backlog if wanted). Changing the default, unordered b
 Promoted from backlog: B-JQKB2VOCY6XQW5V6 Ordered decode in the yaml module
 
 ## Now
-BR agreed the name `omap` and the API sketch (2026-10-25). The ordered flag is a further optional positional after `nils`, matching spork/json's signature style. The build is delegated.
+Type, yaml flag, json overlay, parity corpus, dev-proc switch and docs are in. linux-x64 passes locally; CI on every target is next.
 
 ## Next
-- The type comes first, then yaml, then the json overlay and its parity corpus, then dev-proc, then docs and CI.
+- Push, watch CI (all targets plus the twice-built sha256 compare), then finalize.
 
 ## Evidence
+- linux-x64 built twice locally from the same tree gave the same sha256 (before the encode fast path); CI repeats this per target.
+- `test/smoke/omap.janet` passes on linux-x64: table-style access, re-put keeps place, nil removes, yaml and json round trips in order, encode into a given buffer, upstream errors kept.
+- Parity: the ordered decoder and spork's agree on about 120 inputs under all four keywords/nils combinations, buffer sources included, error text and position included (`test/smoke/omap.janet`).
+- dev-proc's tests pass on the branch build with the key-order text scan removed.
 
 ## Harvest
 - [ ] backlog: propose insertion-ordered tables to Janet upstream (#925), using chirp's type as the evidence
 - [ ] backlog: ordered decode and encode for toml and jdn
+- [ ] decision: an opaque abstract type, each native carrying its own copy and sharing the type registered by name, so no native depends on another being loaded
+- [ ] decision: the ordered JSON decoder is a copy of spork's held to it by the parity corpus, because the overlay must not fork spork
+- [ ] decision: json/encode tries spork's encoder first and walks for an omap only when it fails, so plain values pay nothing
+- [ ] backlog: offer spork/json an ordered-object hook, so chirp's decoder copy can go
+- [ ] backlog: omap has no marshal and no deep= by content; the print-depth guard is a process-wide static
+- [ ] learning: dev-proc imports omap, so its hooks need a chirp with omap (0.3.0 on); an older chirp fails at import
 
 ## Log
 - 2026-10-25 initialized from B-JQKB2VOCY6XQW5V6; BR picked an opaque ordered map type after a tech-debt comparison

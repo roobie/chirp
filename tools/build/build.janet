@@ -200,7 +200,7 @@
   (def rules @{})
   (def ossl? (n :openssl))
   (def targets
-    (in-dir (string abs-out "/src/" (string (n :pin)))
+    (in-dir (string abs-out "/src/" (string (get n :pin :janet)))
       (with-dyns [cc/*rules* rules
                   cc/*build-type* :release
                   cc/*janet-prefix* janet-prefix
@@ -251,7 +251,7 @@
                                     (get n :defines {}))]
             (if (= v true) (string "-D" k) (string "-D" k "=" v)))))
   (def objs
-    (in-dir (string abs-out "/src/" (string (n :pin)))
+    (in-dir (string abs-out "/src/" (string (get n :pin :janet)))
       (seq [s :in (native-sources n)]
         (def o (string dir "/" (flat s) ".o"))
         (zig ;tgt-cflags ;(if (n :openssl) [(string "-I" tgt-ossl-root "/include")] [])

@@ -17,7 +17,8 @@
  # help/ would let the two drift.
  :help-extra {"changelog" "../../CHANGELOG.md"}
  # Bundled module -> chirp module whose public bindings replace the module's own.
- :overlays {"spork-https" "./overlay-spork-https"}
+ :overlays {"spork-https" "./overlay-spork-https"
+            "spork/json" "./overlay-spork-json"}
  # Modules resolvable with nothing on disk. spork/tasker is left out: its peg
  # schema is stringified with a heap address at compile time, so the image
  # differs per run.
@@ -31,4 +32,4 @@
            "spork/temple" "spork/test" "spork/utf8" "spork/zip"
            "jsec/utils" "jsec/tls-stream" "jsec/dtls-stream" "jsec/tls"
            "jsec/cert" "jsec/bio" "jsec/crypto" "jsec/ca"
-           "spork-https" "sqlite3" "tomlin" "yaml"]}
+           "spork-https" "sqlite3" "tomlin" "yaml" "omap" "json-omap"]}

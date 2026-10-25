@@ -26,6 +26,12 @@
             "YAML_VERSION_STRING" "\"0.2.5\"" "YAML_DECLARE_STATIC" true
             "_POSIX_C_SOURCE" "200809L"}}
 
+ # Natives that are wholly chirp's own have no :pin and build from Janet's checkout.
+ # omap.h is shared by all three below; each carries its own copy and they find
+ # one another's type by name, so none needs another to be linked or loaded.
+ {:name "omap" :sources [] :repo-sources ["src/omap/omap.c"]}
+ {:name "json-omap" :sources [] :repo-sources ["src/omap/json.c"]}
+
  {:name "jsec/utils" :pin :jsec :openssl true :sources ["src/jutils"]}
  {:name "jsec/tls-stream" :pin :jsec :openssl true :sources ["src/jtls" "src/jutils"] :skip ["src/jutils/module.c"]}
  {:name "jsec/dtls-stream" :pin :jsec :openssl true :sources ["src/jdtls" "src/jutils"] :skip ["src/jutils/module.c"]}

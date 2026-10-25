@@ -2,10 +2,11 @@
 # The block is split off with the same rule as frontmatter.mjs and decoded by the bundled yaml module.
 # A value must be a string or a list of strings; an empty value (`owner:`) is an empty list.
 #
-# A front matter is an ordered array of @[key value] pairs (key order is the emitted order, and a
-# decoded mapping has none, so it is recovered from the text); a value is a string or an array of strings.
+# A front matter is an ordered array of @[key value] pairs (key order is the emitted order, which the
+# ordered yaml decode keeps); a value is a string or an array of strings.
 # Only ASCII whitespace counts as whitespace, where the Node original also trimmed Unicode spaces.
 (import yaml)
+(import omap)
 
 (defn ws? [c] (or (= c 32) (and (>= c 9) (<= c 13))))
 
@@ -53,42 +54,21 @@
   (cond
     (number? v) "a number"
     (boolean? v) "a boolean"
-    (dictionary? v) "a mapping"
+    (omap/omap? v) "a mapping"
     (= v :null) "an empty item"
     (indexed? v) "a nested list"
     (type v)))
 
-# A mapping has no order, so keys are ordered by where they start a line in the text.
-(defn- key-order [text known]
-  (def seen @{})
-  (def out @[])
-  (each raw (string/split "\n" text)
-    (def line (if (string/has-suffix? "\r" raw) (string/slice raw 0 -2) raw))
-    (def c (get line 0))
-    (when (and c (not (sp? c)) (not= c 35) (not= c 45))
-      (when-let [i (string/find ":" line)]
-        (var k (string/slice line 0 i))
-        (when (and (>= (length k) 2) (or (= (k 0) 34) (= (k 0) 39)) (= (k 0) (last k)))
-          (set k (string/slice k 1 -2)))
-        (when (and (known k) (not (seen k)))
-          (put seen k true)
-          (array/push out k)))))
-  (array/concat out (sort (filter |(not (seen $)) (keys known)))))
-
 (defn- decode-fm [text]
-  (def [ok v] (protect (yaml/decode text)))
+  (def [ok v] (protect (yaml/decode text false false true)))
   (unless ok (error (string "invalid front matter: " v)))
   (cond
     (= v :null) @[]
-    (not (dictionary? v)) (error "invalid front matter: expected a mapping of keys to strings or lists of strings")
+    (not (omap/omap? v)) (error "invalid front matter: expected a mapping of keys to strings or lists of strings")
     (do
-      (def keys @{})
-      (eachk k v
-        (unless (string? k) (error (string "invalid front matter: key " (string/format "%q" k) " is not a string")))
-        (put keys k true))
       (def out @[])
-      (each k (key-order text keys)
-        (def val (v k))
+      (each [k val] (omap/pairs v)
+        (unless (string? k) (error (string "invalid front matter: key " (string/format "%q" k) " is not a string")))
         (def parsed
           (cond
             (string? val) val

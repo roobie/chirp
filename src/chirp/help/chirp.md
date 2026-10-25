@@ -1,6 +1,6 @@
 # chirp
 
-chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers. It is one static binary that bundles spork, jsec (TLS, with OpenSSL), spork-https, sqlite3, tomlin and yaml, so scripts need nothing installed besides chirp.
+chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers. It is one static binary that bundles spork, jsec (TLS, with OpenSSL), spork-https, sqlite3, tomlin, yaml and omap (an insertion-ordered map that json and yaml can decode to and encode from), so scripts need nothing installed besides chirp.
 
 ## Usage
 

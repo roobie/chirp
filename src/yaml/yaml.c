@@ -8,6 +8,8 @@
 #include <janet.h>
 #include <yaml.h>
 
+#include "../omap/omap.h"
+
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -128,7 +130,7 @@ static Kind classify(const uint8_t *s, size_t n, double *num) {
 typedef struct {
     yaml_parser_t parser;
     JanetTable *anchors; /* name -> 1-tuple holding the value, as a value may be nil */
-    int keywords, nils;
+    int keywords, nils, ordered;
     long alias_nodes;
     char err[ERR_LEN];
 } Dec;
@@ -198,6 +200,22 @@ static int copy_value(Dec *d, Janet v, int depth, yaml_mark_t m, Janet *out) {
                 janet_table_put(c, kv->key, e);
             }
             *out = janet_wrap_table(c);
+            return 1;
+        }
+        case JANET_ABSTRACT: {
+            if (!omap_is(v)) {
+                *out = v;
+                return 1;
+            }
+            Omap *o = janet_unwrap_abstract(v);
+            Omap *c = omap_create(o->live);
+            for (int32_t i = 0; i < o->used; i++) {
+                if (!omap_live(&o->entries[i])) continue;
+                Janet e;
+                if (!copy_value(d, o->entries[i].value, depth + 1, m, &e)) return 0;
+                omap_put(c, o->entries[i].key, e);
+            }
+            *out = janet_wrap_abstract(c);
             return 1;
         }
         default:
@@ -299,8 +317,25 @@ static int is_merge_key(const yaml_event_t *ev) {
            memcmp(ev->data.scalar.value, "<<", 2) == 0;
 }
 
+static int is_mapping(Janet v) {
+    return janet_checktype(v, JANET_TABLE) || omap_is(v);
+}
+
+/* Where a mapping's entries go: a table, or an omap that keeps their order. */
+typedef struct {
+    JanetTable *table;
+    Omap *omap;
+} Sink;
+
+static void sink_put(Sink *s, Janet key, Janet val) {
+    if (s->omap) omap_put(s->omap, key, val);
+    else janet_table_put(s->table, key, val);
+}
+
 static int mapping_value(Dec *d, int depth, Janet *out) {
-    JanetTable *t = janet_table(0);
+    Sink t = {0};
+    if (d->ordered) t.omap = omap_create(0);
+    else t.table = janet_table(0);
     JanetTable *seen = janet_table(0); /* keys, so duplicates are found even when the value is nil */
     JanetArray *merges = janet_array(0);
     for (;;) {
@@ -315,12 +350,12 @@ static int mapping_value(Dec *d, int depth, Janet *out) {
             yaml_event_delete(&ev);
             Janet mv;
             if (!next_event(d, &ev) || !node(d, &ev, depth + 1, &mv)) return 0;
-            if (janet_checktype(mv, JANET_TABLE)) {
+            if (is_mapping(mv)) {
                 janet_array_push(merges, mv);
             } else if (janet_checktype(mv, JANET_ARRAY)) {
                 JanetArray *list = janet_unwrap_array(mv);
                 for (int32_t i = 0; i < list->count; i++) {
-                    if (!janet_checktype(list->data[i], JANET_TABLE))
+                    if (!is_mapping(list->data[i]))
                         return dec_fail(d, km, "merge key needs a mapping or a sequence of mappings");
                     janet_array_push(merges, list->data[i]);
                 }
@@ -331,7 +366,7 @@ static int mapping_value(Dec *d, int depth, Janet *out) {
         }
         Janet key;
         if (!node(d, &ev, depth + 1, &key)) return 0;
-        if (janet_checktypes(key, JANET_TFLAG_ARRAY | JANET_TFLAG_TABLE))
+        if (janet_checktypes(key, JANET_TFLAG_ARRAY | JANET_TFLAG_TABLE) || omap_is(key))
             return dec_fail(d, km, "mapping keys must be scalars");
         if (janet_checktype(key, JANET_NIL) ||
             (janet_checktype(key, JANET_NUMBER) && isnan(janet_unwrap_number(key))))
@@ -346,20 +381,34 @@ static int mapping_value(Dec *d, int depth, Janet *out) {
             return dec_fail(d, km, "duplicate mapping key %s",
                             (const char *) janet_description(key));
         janet_table_put(seen, key, janet_wrap_true());
-        janet_table_put(t, key, val);
+        sink_put(&t, key, val);
     }
-    /* Merged entries fill only keys the mapping and earlier sources lack. */
+    /* Merged entries fill only keys the mapping and earlier sources lack, and
+     * follow the mapping's own keys in an ordered map. */
     for (int32_t i = 0; i < merges->count; i++) {
-        JanetTable *src = janet_unwrap_table(merges->data[i]);
-        for (int32_t j = 0; j < src->capacity; j++) {
-            JanetKV *kv = src->data + j;
-            if (janet_checktype(kv->key, JANET_NIL)) continue;
-            if (!janet_checktype(janet_table_get(seen, kv->key), JANET_NIL)) continue;
-            janet_table_put(seen, kv->key, janet_wrap_true());
-            janet_table_put(t, kv->key, kv->value);
+        Janet src = merges->data[i];
+        const JanetKV *kvs = NULL;
+        const OmapEntry *entries = NULL;
+        int32_t n;
+        if (omap_is(src)) {
+            Omap *so = janet_unwrap_abstract(src);
+            entries = so->entries;
+            n = so->used;
+        } else {
+            JanetTable *st = janet_unwrap_table(src);
+            kvs = st->data;
+            n = st->capacity;
+        }
+        for (int32_t j = 0; j < n; j++) {
+            Janet k = kvs ? kvs[j].key : entries[j].key;
+            Janet v = kvs ? kvs[j].value : entries[j].value;
+            if (janet_checktype(k, JANET_NIL) || janet_checktype(v, JANET_NIL)) continue;
+            if (!janet_checktype(janet_table_get(seen, k), JANET_NIL)) continue;
+            janet_table_put(seen, k, janet_wrap_true());
+            sink_put(&t, k, v);
         }
     }
-    *out = janet_wrap_table(t);
+    *out = t.omap ? janet_wrap_abstract(t.omap) : janet_wrap_table(t.table);
     return 1;
 }
 
@@ -443,12 +492,13 @@ static int read_stream(Dec *d, int all, JanetArray *docs, Janet *single) {
 }
 
 static Janet decode_impl(int32_t argc, Janet *argv, int all) {
-    janet_arity(argc, 1, 3);
+    janet_arity(argc, 1, 4);
     JanetByteView src = janet_getbytes(argv, 0);
     Dec d;
     memset(&d, 0, sizeof d);
     d.keywords = argc > 1 && janet_truthy(argv[1]);
     d.nils = argc > 2 && janet_truthy(argv[2]);
+    d.ordered = argc > 3 && janet_truthy(argv[3]);
     d.anchors = janet_table(0);
     if (!yaml_parser_initialize(&d.parser)) janet_panic("yaml: out of memory");
     yaml_parser_set_input_string(&d.parser, src.bytes, (size_t) src.len);
@@ -464,13 +514,16 @@ static Janet decode_impl(int32_t argc, Janet *argv, int all) {
     return all ? janet_wrap_array(docs) : single;
 }
 
-JANET_FN(cfun_decode, "(yaml/decode src &opt keywords nils)",
+JANET_FN(cfun_decode, "(yaml/decode src &opt keywords nils ordered)",
          "Returns a Janet value after parsing one YAML document. Mappings become "
          "tables and sequences become arrays. If keywords is truthy, string keys "
          "will be converted to keywords. Null becomes the keyword :null, as in "
          "spork/json; if nils is truthy it becomes nil instead, and a mapping "
          "entry whose value is null is then left out, because a table cannot "
-         "hold nil.\n\n"
+         "hold nil. If ordered is truthy, mappings become ordered maps (see the "
+         "omap module) that hold their keys in the order written, so that "
+         "yaml/encode writes them back in that order; merged keys follow the "
+         "mapping's own.\n\n"
          "Plain scalars follow the YAML 1.2 Core schema: null (~, null, Null, "
          "NULL, or empty), true and false in three spellings (so yes, no, on and "
          "off stay strings), integers (decimal, 0o octal, 0x hex) and floats "
@@ -489,9 +542,10 @@ JANET_FN(cfun_decode, "(yaml/decode src &opt keywords nils)",
     return decode_impl(argc, argv, 0);
 }
 
-JANET_FN(cfun_decode_all, "(yaml/decode-all src &opt keywords nils)",
+JANET_FN(cfun_decode_all, "(yaml/decode-all src &opt keywords nils ordered)",
          "Returns an array with every document in the YAML stream src, each "
-         "decoded as by yaml/decode, which also describes keywords and nils. "
+         "decoded as by yaml/decode, which also describes keywords, nils and "
+         "ordered. "
          "Aliases are cut off at the same total of 1,000,000 expanded nodes for "
          "the whole stream. An empty stream gives an empty array.") {
     return decode_impl(argc, argv, 1);
@@ -631,17 +685,26 @@ static int encode_sequence(Enc *e, Janet v, int depth) {
 }
 
 static int encode_mapping(Enc *e, Janet v, int depth) {
-    const JanetKV *kvs;
+    const JanetKV *kvs = NULL;
+    const Omap *om = NULL;
     int32_t len, cap;
-    janet_dictionary_view(v, &kvs, &len, &cap);
+    if (omap_is(v)) {
+        om = janet_unwrap_abstract(v);
+        len = om->live;
+        cap = om->used;
+    } else {
+        janet_dictionary_view(v, &kvs, &len, &cap);
+    }
     Pair *pairs = janet_smalloc(sizeof(Pair) * (size_t) (len + 1));
     Pair **order = janet_smalloc(sizeof(Pair *) * (size_t) (len + 1));
     int32_t n = 0, ok = 1;
     for (int32_t i = 0; i < cap && ok; i++) {
-        if (janet_checktype(kvs[i].key, JANET_NIL)) continue;
+        Janet k = om ? om->entries[i].key : kvs[i].key;
+        Janet val = om ? om->entries[i].value : kvs[i].value;
+        if (om ? !omap_live(&om->entries[i]) : janet_checktype(k, JANET_NIL)) continue;
         Pair *p = &pairs[n];
-        p->key = kvs[i].key;
-        p->value = kvs[i].value;
+        p->key = k;
+        p->value = val;
         if (!describe(p->key, 1, &p->sc)) {
             ok = enc_fail(e, "cannot use a %s as a mapping key",
                           janet_type_names[janet_type(p->key)]);
@@ -660,8 +723,10 @@ static int encode_mapping(Enc *e, Janet v, int depth) {
     yaml_event_t ev;
     ok = ok && yaml_mapping_start_event_initialize(&ev, NULL, NULL, 1, YAML_BLOCK_MAPPING_STYLE) &&
          emit(e, &ev);
+    /* The sort above only finds duplicates; an omap is written in its own order. */
     for (int32_t i = 0; i < n && ok; i++) {
-        ok = emit_scalar(e, &order[i]->sc) && encode_value(e, order[i]->value, depth + 1);
+        const Pair *p = om ? &pairs[i] : order[i];
+        ok = emit_scalar(e, &p->sc) && encode_value(e, p->value, depth + 1);
     }
     if (ok) ok = yaml_mapping_end_event_initialize(&ev) ? emit(e, &ev) : enc_fail(e, "out of memory");
     janet_sfree(order);
@@ -680,6 +745,7 @@ static int encode_value(Enc *e, Janet v, int depth) {
             return encode_mapping(e, v, depth);
         default: {
             Sc sc;
+            if (omap_is(v)) return encode_mapping(e, v, depth);
             if (!describe(v, 0, &sc))
                 return enc_fail(e, "cannot encode a %s", janet_type_names[janet_type(v)]);
             return emit_scalar(e, &sc);
@@ -705,7 +771,8 @@ static int write_stream(Enc *e, Janet v) {
 JANET_FN(cfun_encode, "(yaml/encode x &opt opts)",
          "Encodes a Janet value as a YAML document (utf-8) and returns it in a "
          "new buffer. Tables and structs become block mappings with their keys "
-         "sorted, so the same value always gives the same text. Arrays and "
+         "sorted, so the same value always gives the same text. Ordered maps "
+         "(see the omap module) become block mappings in their own order. Arrays and "
          "tuples become block sequences. Strings, buffers, keywords and symbols "
          "become strings, quoted when a reader would take them for something "
          "else (true, null, 1.5, ~, the empty string, and yes and no, which "

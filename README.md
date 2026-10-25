@@ -58,6 +58,20 @@ YAML is built in too. `yaml/decode` and `yaml/encode` work like `json/decode` an
 (print (yaml/encode {:name "chirp" :tags ["a" "b"]}))
 ```
 
+A table has no order, so a script that rewrites a JSON or YAML file loses the author's key order. Pass a fourth argument, `ordered`, to `json/decode` or `yaml/decode` (or `yaml/decode-all`) and every object comes back as an `omap`, a map that keeps its keys in insertion order. `json/encode` and `yaml/encode` write an `omap` in that order, and a plain table as before:
+
+```janet
+(import omap)
+(import yaml)
+(def doc (yaml/decode (slurp "config.yaml") false false true))
+(put doc "version" 2)                  # an existing key keeps its place, a new one goes last
+(put doc "obsolete" nil)               # nil removes a key
+(spit "config.yaml" (yaml/encode doc))
+(print (omap/omap? doc) (keys doc))    # keys, get, put, in, pairs, eachp and length work as on a table
+```
+
+An `omap` is not a table, so `table?` and `dictionary?` are false for it and `deep=` does not compare it; a function that does not know the type fails loudly instead of dropping the order.
+
 ## Help
 
 `chirp help` lists the help topics, `chirp help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp help read <id>` prints a result in full. The text is inside the binary.
@@ -75,6 +89,7 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [janet-lang/sqlite3](https://github.com/janet-lang/sqlite3) | `sqlite3`, Janet bindings to an embedded [SQLite](https://sqlite.org) (the amalgamation, so no system library is needed), with FTS5 full-text search enabled; from 0.2.0 | MIT (binding), public domain (SQLite) |
 | [tomlin](https://github.com/pyrmont/tomlin) | `tomlin`, a TOML parser written in Janet; from 0.2.0 | MIT |
 | [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml 0.2.5, with Core schema scalars, anchors, aliases and merge keys | MIT |
+| chirp itself | `omap`, an insertion-ordered map that `yaml` and `json` can decode to and encode from; written in C for chirp, with `json-omap`, a copy of spork's JSON decoder that builds it | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |
 
 Every release ships a `NOTICES-<target>.txt` with the full license texts of everything linked into that target's binary.
