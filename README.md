@@ -26,7 +26,7 @@ chirp does not fork Janet or its libraries. It pins upstream versions and bundle
 chirp                    # REPL, like janet
 chirp script.janet       # run a script, like janet
 echo '(print 1)' | chirp # run code from stdin
-chirp --version          # chirp 0.2.0 (unofficial build, not a Janet release) on Janet …
+chirp --version          # chirp 0.3.0 (unofficial build, not a Janet release) on Janet …
 chirp --help             # chirp's entry points, then Janet's options
 chirp --changelog        # what changed in each release, offline
 chirp self-update        # replace chirp with the latest signed release (--check only reports)
@@ -88,8 +88,8 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [spork-https](https://github.com/llmII/spork-https) | an HTTPS client and server on top of `spork/http` | ISC |
 | [janet-lang/sqlite3](https://github.com/janet-lang/sqlite3) | `sqlite3`, Janet bindings to an embedded [SQLite](https://sqlite.org) (the amalgamation, so no system library is needed), with FTS5 full-text search enabled; from 0.2.0 | MIT (binding), public domain (SQLite) |
 | [tomlin](https://github.com/pyrmont/tomlin) | `tomlin`, a TOML parser written in Janet; from 0.2.0 | MIT |
-| [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml 0.2.5, with Core schema scalars, anchors, aliases and merge keys | MIT |
-| chirp itself | `omap`, an insertion-ordered map that `yaml` and `json` can decode to and encode from; written in C for chirp, with `json-omap`, a copy of spork's JSON decoder that builds it | MIT |
+| [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml 0.2.5, with Core schema scalars, anchors, aliases and merge keys; from 0.3.0 | MIT |
+| chirp itself | `omap`, an insertion-ordered map that `yaml` and `json` can decode to and encode from; written in C for chirp, with `json-omap`, a copy of spork's JSON decoder that builds it; from 0.3.0 | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |
 
 Every release ships a `NOTICES-<target>.txt` with the full license texts of everything linked into that target's binary.

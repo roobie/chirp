@@ -2,10 +2,13 @@
 
 What changed for people who use chirp, newest first; the binary carries this file so it can be read offline.
 
-## Unreleased
+## 0.3.0
+
+Released 2026-10-25.
 
 ### Added
 
+- `chirp -h` and `chirp --help` print chirp's own entry points (scripts, stdin, `help`, `self-update`, `--changelog`), then Janet's options.
 - `yaml`, YAML decoding and encoding on libyaml: `yaml/decode`, `yaml/decode-all` and `yaml/encode`, shaped like `spork/json`. Plain scalars follow the YAML 1.2 Core schema, so `no` and `on` stay strings. Anchors, aliases and `<<` merge keys work, and an alias bomb fails with an error instead of exhausting memory.
 - `omap`, an insertion-ordered map: `omap/new`, `omap/from-pairs`, `omap/pairs` and `omap/omap?`. `get`, `put`, `in`, `keys`, `values`, `pairs`, `eachp`, `length` and printing work as on a table; putting a key again keeps its place and putting nil removes it. It is not a table, so `table?` is false for it.
 - `json/decode`, `yaml/decode` and `yaml/decode-all` take an optional `ordered` argument after `nils`; when truthy, objects and mappings come back as `omap`s in the order written. `json/encode` and `yaml/encode` write an `omap` in its own order, so a decode and encode round trip keeps the author's key order. Without the argument both behave as before: `json/decode` and `json/encode` still run spork's own code for anything that holds no `omap`.
