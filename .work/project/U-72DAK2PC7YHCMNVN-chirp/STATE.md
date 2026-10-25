@@ -26,10 +26,9 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.2.0 is published. Main carries `0.3.0`, ready to tag: CHANGELOG.md's Unreleased section became `## 0.3.0` (D-DYWSJTLDO6S5DQDR), covering `-h`/`--help`, the `yaml` module on libyaml, and `omap` with ordered json and yaml decode and encode.
+0.3.0 is published: `-h`/`--help`, the `yaml` module on libyaml, and `omap` with ordered json and yaml decode and encode. Main carries `0.4.0-dev` with an empty Unreleased section (D-DYWSJTLDO6S5DQDR).
 
 ## Next
-- BR tags `v0.3.0` once main CI is green; then main moves to `0.4.0-dev` with a fresh Unreleased section.
 - Pick from the backlog with BR.
 
 ## Evidence
@@ -42,6 +41,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Self-update (U-UQ6SLNXUIHLJOPK7): https://github.com/roobie/chirp/releases/tag/v0.2.0 (run 40119267950) ships SHA256SUMS.sig signed in CI; the installed 0.2.0 release runs `chirp self-update` against it and reports it is up to date.
 - Changelog (U-CU3LV3F4XSBIDE7S): run 40139405385 (2936169) builds all four targets twice with matching sha256, and the changelog smoke check passes on each native runner. The release-notes step, run locally with that run's linux-x64 binary, fills the notes for a tag and for a dry run, and fails a tag with no section.
 - Yaml (U-QTXSX4JL72LYHWD2): run 40144444462 (7544abd) builds all four targets twice with matching sha256, and the yaml smoke check passes on each native runner.
+- Release 0.3.0: https://github.com/roobie/chirp/releases/tag/v0.3.0 (run 40199982635) ships the four binaries, notices, SHA256SUMS and SHA256SUMS.sig; the installed 0.3.0 reports it is up to date.
 
 ## Harvest
 
