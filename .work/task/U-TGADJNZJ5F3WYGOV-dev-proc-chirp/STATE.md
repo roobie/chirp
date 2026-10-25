@@ -7,7 +7,8 @@ owner:
 created: 2026-10-25
 success_criteria:
   - The dev-proc CLI runs as `chirp .claude/skills/dev-proc/scripts/dev-proc.janet`, and no Node file remains under .claude/skills/dev-proc
-  - Every command gives the same stdout, stderr, exit code and file changes as the Node version, checked side by side on a copy of this repo's .work before the Node files are removed
+  - Every command except find gives the same stdout, stderr, exit code and file changes as the Node version, checked side by side on a copy of this repo's .work before the Node files are removed
+  - find keeps its output format and ranks with SQLite FTS5; its tests show the right records found, cue hits ranked above title-only hits, and query text that cannot inject FTS syntax
   - The tests are ported to Janet, run by chirp, and pass
   - The tracked commit hooks, SKILL.md and every `DP=` line call the chirp entry point, and a commit through the hooks still gets checked
   - Each chirp gap met along the way is filed as a usage-feedback issue or recorded with the reason it was not
@@ -34,15 +35,24 @@ Promoted from backlog: B-GFASGZA3FO4XHJAV Port the dev-proc CLI from Node to chi
 The repo exists to make chirp the default scripting runtime. Yet its own process tool runs on Node, the very kind of extra install chirp argues against (BR, 2026-10-25). Porting it is dogfooding: every gap it hits is feedback on what chirp lacks.
 
 ## Now
-Delegating the port.
+Port landed; Node files removed; hooks and SKILL.md call chirp.
 
 ## Next
-- Review the port, run the side-by-side comparison, switch hooks and SKILL.md, remove Node files, commit.
+- Finalize: harvest, close.
 
 ## Evidence
+- Side-by-side harness (scratchpad, not committed) on clones of this repo's .work: readonly 63, mutating 91, records 24, history 25, messages 31, hooks 8, nested 23 steps, 0 differing. Normalised: `node`/`.mjs` in hook text, Node's quoting of template items that are not valid YAML, Node's stack trace on an unhandled error (chirp prints one line).
+- `chirp frontmatter.test.janet`, `find.test.janet`, `dev-proc.test.janet`: all pass. `$DP check` ok on all 65 front matters.
+- find on this repo: same top hits as Node for hooks, dev-proc port, xxhash, release version; FTS5 differs (by design) on "optimising the build" and "random rng".
+- Malformed front matter now reports libyaml's error, not the old wording; `__proto__` and an orphan `- item` are accepted, a list item starting `[` is rejected.
+- This commit went through the chirp hooks.
 
 ## Harvest
 - [ ] decision: chirp's dev-proc is a fork of spartan's, ported to chirp
+- [ ] decision: front matter is real YAML read by chirp's yaml module; values must be strings or lists of strings, and dev-proc quotes what it writes (BR, 2026-10-25). Other repos' files show why the type check matters: twc criteria with `: ` decode as mappings
+- [ ] decision: find ranks with SQLite FTS5 instead of its own stemmer and scoring (BR, 2026-10-25)
+- [ ] backlog: yaml/decode loses key order; frontmatter.janet recovers it by scanning the text. An ordered decode would remove that
+- [ ] backlog: chirp gaps met in the port, not filed (BR: no issues for now): os/spawn has no cwd and its env table doubles as stdio; no recursive mkdir or mktemp; no ordered JSON object; FTS5 ships no stopword list
 
 ## Log
 - 2026-10-25 initialized from B-GFASGZA3FO4XHJAV; BR chose to fork chirp's copy

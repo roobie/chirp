@@ -5,7 +5,8 @@ top="$(git rev-parse --show-toplevel)"
 command -v janet >/dev/null 2>&1 || { echo "leakcheck: janet not found; refusing an unchecked commit" >&2; exit 1; }
 janet "$top/tools/leakcheck/leakcheck.janet" staged || exit 1
 
-command -v node >/dev/null 2>&1 || { echo "dev-proc: node not found, skipping checks" >&2; exit 0; }
+# dev-proc needs chirp's bundled yaml and sqlite3, which plain janet lacks.
+command -v chirp >/dev/null 2>&1 || { echo "dev-proc: chirp not found, skipping checks" >&2; exit 0; }
 # Warnings alone let a commit with refs broken by a file move through; set
 # DEV_PROC_STRICT=0 for a one-off commit that must go in anyway.
-DEV_PROC_STRICT=${DEV_PROC_STRICT-1} exec node "$top/.claude/skills/dev-proc/scripts/dev-proc.mjs" check --staged --hook
+DEV_PROC_STRICT=${DEV_PROC_STRICT-1} exec chirp "$top/.claude/skills/dev-proc/scripts/dev-proc.janet" check --staged --hook

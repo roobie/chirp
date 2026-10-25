@@ -8,7 +8,7 @@ description: How work is run in this repo. Work is organised into units (task, s
 This skill is the process for working in this repo. It is **modal**: the current mode comes from the `.work/` files on disk, never from memory or chat. Always start by asking the CLI:
 
 ```sh
-DP="node .claude/skills/dev-proc/scripts/dev-proc.mjs"   # path from the repo root
+DP="chirp .claude/skills/dev-proc/scripts/dev-proc.janet"   # path from the repo root
 $DP status                 # tree of active units with their phases
 $DP status slice/foo       # one unit (by id U-… or type/name): its mode, success criteria, and the gate to the next phase
 ```
@@ -45,7 +45,7 @@ Then follow the section for that unit's mode below. `$DP help` lists every comma
 
 **Ephemeral** (units and backlog) may hold *what*, *how* and *why*. **Durable** (decisions and learnings) may hold **only why plus cues** (`refs: path#symbol`). Code rarely lies about what it does and how; prose copied from code drifts. `check` verifies every ref still resolves and flags code blocks and step-by-step lists in durable docs.
 
-Front matter (restricted YAML: scalars, `[a, b]`, and `- item` lists):
+Front matter (YAML whose values are strings or lists of strings; an empty value is an empty list):
 - **Unit `STATE.md`:** `phase`, `parent?` (a unit id), `owner`, `created`, `success_criteria`. The id, type and name come from the path, so they are never repeated.
 - **Decision:** `status` (`accepted`/`proposed`), `date`, `read_if`, `refs`, `supersedes?`.
 - **Learning:** `date`, `read_if`, `refs`.

@@ -5,6 +5,6 @@ top="$(git rev-parse --show-toplevel)"
 command -v janet >/dev/null 2>&1 || { echo "leakcheck: janet not found; refusing an unchecked commit" >&2; exit 1; }
 janet "$top/tools/leakcheck/leakcheck.janet" msg "$1" || exit 1
 
-command -v node >/dev/null 2>&1 || { echo "dev-proc: node not found, skipping checks" >&2; exit 0; }
+command -v chirp >/dev/null 2>&1 || { echo "dev-proc: chirp not found, skipping checks" >&2; exit 0; }
 # Strict by default, as in pre-commit.
-DEV_PROC_STRICT=${DEV_PROC_STRICT-1} exec node "$top/.claude/skills/dev-proc/scripts/dev-proc.mjs" check-msg "$1"
+DEV_PROC_STRICT=${DEV_PROC_STRICT-1} exec chirp "$top/.claude/skills/dev-proc/scripts/dev-proc.janet" check-msg "$1"
