@@ -29,6 +29,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 0.2.0 is published: SQLite, TOML, the spork-https overlay (default User-Agent, client `:ca`), `chirp help` with offline FTS5 search, piped stdin or `chirp -` running as a script, and `chirp self-update` against a signed SHA256SUMS. Main carries `0.3.0-dev`, with CHANGELOG.md baked in (`chirp --changelog`); a release renames its Unreleased section to the version (D-DYWSJTLDO6S5DQDR). Unreleased so far: `-h`/`--help`, and the `yaml` module on libyaml.
 
 ## Next
+- Cut 0.3.0: Unreleased still lacks a `-h`/`--help` line.
 - Pick from the backlog with BR.
 
 ## Evidence
@@ -66,3 +67,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-25 task readme-pitch delivered: the README leads with the batteries-included pitch; benchmarks filed as B-QCBMFCPRFJGNUXAH
 - 2026-10-25 task cli-help delivered: `-h`/`--help` print chirp's usage, then Janet's options (run 40140931270)
 - 2026-10-25 task yaml delivered: `yaml` module on libyaml (D-VOBKZC6H4OPIMPQE, D-FD4ZWTDKYJBQBFRO); image builds hold the collector off so gensym names stay reproducible (L-2H7SFLEMCU2MPRZN)
+- 2026-10-25 task dev-proc-chirp delivered: dev-proc runs on chirp, Node gone from the repo's workflow (D-VZIDK5O2VNATQDCP, D-4ACDYH2YT7UK3OC4, D-SEP44EOKHRFGMAWT); gaps in B-IRERZRV2753OHW3R
