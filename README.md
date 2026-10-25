@@ -6,6 +6,8 @@ chirp is [Janet](https://janet-lang.org), a small, fast Lisp, built together wit
 
 **chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers.** Please report problems with chirp here, not to Janet.
 
+**chirp is young and not yet stable.** It is used daily by its authors, but every 0.x release may still change chirp's own interfaces (its command line, `yaml`, `omap`) and move the pinned versions of what it bundles. Pin a release if a script must keep working, and read `chirp --changelog` before updating.
+
 ## Why chirp
 
 Scripts tend to start small and then need one more thing: an API call, a config file, somewhere to keep state. In most languages that one thing means an install step. Python wants a matching interpreter, a virtualenv and pip. Shell wants curl, jq and sqlite3 to be present, at versions that agree. Stock Janet has no TLS at all, and adding it means a C toolchain and OpenSSL headers on every machine.

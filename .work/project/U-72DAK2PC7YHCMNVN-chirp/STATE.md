@@ -69,3 +69,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-25 task yaml delivered: `yaml` module on libyaml (D-VOBKZC6H4OPIMPQE, D-FD4ZWTDKYJBQBFRO); image builds hold the collector off so gensym names stay reproducible (L-2H7SFLEMCU2MPRZN)
 - 2026-10-25 task dev-proc-chirp delivered: dev-proc runs on chirp, Node gone from the repo's workflow (D-VZIDK5O2VNATQDCP, D-4ACDYH2YT7UK3OC4, D-SEP44EOKHRFGMAWT); gaps in B-IRERZRV2753OHW3R
 - 2026-10-25 slice ordered-map delivered: `omap`, an insertion-ordered map, and an ordered flag on json/decode, yaml/decode and yaml/decode-all (D-PYFZFKJPCW3QPOTB, D-ZXXSPKUCZ4IOIQPN, D-YMKKGLNX3IGQPAGJ, L-NYRT2RGVVAXTFIOF)
+- 2026-10-25 v0.3.0 tagged (BR authorized); the README says chirp is not stable yet (BR)
