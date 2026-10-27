@@ -192,7 +192,8 @@
 # prefix map keeps the build's repo location out of the binding's recorded paths.
 (defn- native-cflags [n]
   [;(map |(string "-I" $) (get n :includes []))
-   ;(if (n :repo-sources) [(string "-ffile-prefix-map=" repo "=.")] [])])
+   ;(map |(string "-I" repo "/" $) (get n :repo-includes []))
+   ;(if (or (n :repo-sources) (n :repo-includes)) [(string "-ffile-prefix-map=" repo "=.")] [])])
 
 (defn- build-native [n]
   (def {:name name} n)

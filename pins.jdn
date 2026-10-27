@@ -8,4 +8,5 @@
  :sqlite3 {:url "https://github.com/janet-lang/sqlite3.git" :commit "9126fe46ff1c7e42ca3d7bb9c8aed95a8236a32c"}
  :tomlin {:url "https://github.com/pyrmont/tomlin.git" :commit "3ed6587e8460af4d2e7fcc2a40dd7591e07a953d"}
  :libyaml {:url "https://github.com/yaml/libyaml.git" :tag "0.2.5" :commit "2c891fc7a770e8ba2fec34fc6b545c672beb37e6"}
+ :pcre2 {:url "https://github.com/PCRE2Project/pcre2.git" :tag "pcre2-10.49" :commit "6f9d7c1373262c541324a16a358785b33ef116cf"}
  :openssl {:url "https://github.com/openssl/openssl.git" :tag "openssl-3.6.5" :commit "c8bd5a57108599ac650bbae77fcabe3109dab2e8"}}

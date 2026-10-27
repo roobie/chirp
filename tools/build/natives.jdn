@@ -3,6 +3,8 @@
 # directories, relative to the same checkout. :repo-sources are files relative
 # to this repo, for a binding that chirp owns and that is built against a pinned
 # library; without them such a binding would have to be copied into the pin.
+# :repo-includes are include directories in this repo, for headers that stand in
+# for files the library's own build system would generate.
 [
  {:name "spork/json" :pin :spork :sources ["src/json.c"]}
  {:name "spork/rawterm" :pin :spork :sources ["src/rawterm.c"]}
@@ -25,6 +27,22 @@
   :defines {"YAML_VERSION_MAJOR" "0" "YAML_VERSION_MINOR" "2" "YAML_VERSION_PATCH" "5"
             "YAML_VERSION_STRING" "\"0.2.5\"" "YAML_DECLARE_STATIC" true
             "_POSIX_C_SOURCE" "200809L"}}
+
+ # PCRE2 without its JIT, built from the pin's sources. Its generated files are
+ # replaced by shims in src/pcre2/include (:repo-includes) and chartables.c.
+ {:name "pcre2" :pin :pcre2 :includes ["src"] :repo-includes ["src/pcre2/include"]
+  :sources ["src/pcre2_auto_possess.c" "src/pcre2_chkdint.c" "src/pcre2_compile.c"
+            "src/pcre2_compile_cgroup.c" "src/pcre2_compile_class.c" "src/pcre2_config.c"
+            "src/pcre2_context.c" "src/pcre2_convert.c" "src/pcre2_dfa_match.c"
+            "src/pcre2_error.c" "src/pcre2_extuni.c" "src/pcre2_find_bracket.c"
+            "src/pcre2_maketables.c" "src/pcre2_match.c" "src/pcre2_match_data.c"
+            "src/pcre2_match_next.c" "src/pcre2_newline.c" "src/pcre2_ord2utf.c"
+            "src/pcre2_pattern_info.c" "src/pcre2_script_run.c" "src/pcre2_serialize.c"
+            "src/pcre2_string_utils.c" "src/pcre2_study.c" "src/pcre2_substitute.c"
+            "src/pcre2_substring.c" "src/pcre2_tables.c" "src/pcre2_ucd.c"
+            "src/pcre2_valid_utf.c" "src/pcre2_xclass.c"]
+  :repo-sources ["src/pcre2/chartables.c" "src/pcre2/pcre2.c"]
+  :defines {"HAVE_CONFIG_H" true "PCRE2_CODE_UNIT_WIDTH" "8" "PCRE2_STATIC" true}}
 
  # Natives that are wholly chirp's own have no :pin and build from Janet's checkout.
  # omap.h is shared by all three below; each carries its own copy and they find

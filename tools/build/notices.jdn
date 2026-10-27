@@ -19,6 +19,7 @@
   :path "tools/build/notices/sqlite-blessing.txt" :url "https://sqlite.org/copyright.html"}
  {:title "tomlin" :root :tomlin :path "LICENSE"}
  {:title "libyaml (in yaml)" :root :libyaml :path "License"}
+ {:title "PCRE2 (in pcre2)" :root :pcre2 :path "LICENCE.md"}
  {:title "OpenSSL" :root :openssl :path "LICENSE.txt"}
  {:title "musl libc" :root :zig :path "lib/libc/musl/COPYRIGHT"
   :url "https://musl.libc.org" :targets [:linux-x64 :linux-arm64]}

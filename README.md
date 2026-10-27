@@ -74,6 +74,18 @@ A table has no order, so a script that rewrites a JSON or YAML file loses the au
 
 An `omap` is not a table, so `table?` and `dictionary?` are false for it and `deep=` does not compare it; a function that does not know the type fails loudly instead of dropping the order.
 
+From 0.4.0, `pcre2` brings Perl-style regular expressions, the syntax that grep, sed and Python documentation use. A pattern is a string, or compiled once with `pcre2/compile`:
+
+```janet
+(import pcre2)
+(pcre2/match "(?<year>\\d{4})-(?<mon>\\d\\d)" "on 2026-10-27")   # {0 "2026-10" 1 "2026" 2 "10" :mon "10" :year "2026"}
+(pcre2/replace-all "(\\w+)@(\\w+)" "a@b c@d" "$2:$1")              # "b:a d:c"
+(pcre2/split ",\\s*" "a, b,c")                                      # @["a" "b" "c"]
+(pcre2/find-all "\\d+" "1 22 333")                                  # an array of matches
+```
+
+Matching is bounded by counts instead of time (`:match-limit`, `:depth-limit` and `:heap-limit`, all with defaults), so a pattern that backtracks without end stops with an error that names the limit, the same way on every machine. `chirp help query pcre2` lists the functions and their options.
+
 ## Help
 
 `chirp help` lists the help topics, `chirp help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp help read <id>` prints a result in full. The text is inside the binary.
@@ -91,6 +103,7 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [janet-lang/sqlite3](https://github.com/janet-lang/sqlite3) | `sqlite3`, Janet bindings to an embedded [SQLite](https://sqlite.org) (the amalgamation, so no system library is needed), with FTS5 full-text search enabled; from 0.2.0 | MIT (binding), public domain (SQLite) |
 | [tomlin](https://github.com/pyrmont/tomlin) | `tomlin`, a TOML parser written in Janet; from 0.2.0 | MIT |
 | [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml 0.2.5, with Core schema scalars, anchors, aliases and merge keys; from 0.3.0 | MIT |
+| [PCRE2](https://github.com/PCRE2Project/pcre2) | `pcre2`, Perl-style regular expressions: chirp's own small binding over PCRE2 10.49 (interpreter only, no JIT), with named groups, replacement with group references and split; from 0.4.0 | BSD-3-Clause with the PCRE2 exception |
 | chirp itself | `omap`, an insertion-ordered map that `yaml` and `json` can decode to and encode from; written in C for chirp, with `json-omap`, a copy of spork's JSON decoder that builds it; from 0.3.0 | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |
 
