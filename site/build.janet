@@ -139,6 +139,10 @@
               (escape (p :nav)) "</a>"))
     "\n"))
 
+# The version word of `chirp --version`'s first line, "chirp 0.4.0 (…) on Janet …".
+(def- chirp-version
+  (get (string/split " " (sh/exec-slurp (dyn :executable) "--version")) 1 "unknown"))
+
 (defn- render [page]
   (def url (page :url))
   (def body
@@ -155,7 +159,7 @@
     "<header><nav>\n" (nav url) "\n<a href=\"" repo-url "\">GitHub</a>\n</nav></header>\n"
     "<main>\n" (add-ids body) "</main>\n"
     "<footer>Built from <a href=\"" repo-url "/commit/" sha "\"><code>" (string/slice sha 0 7)
-    "</code></a> with chirp " (escape (string/trim ((string/split "\n" (sh/exec-slurp (dyn :executable) "--version")) 0)))
+    "</code></a> with chirp " (escape chirp-version)
     ". chirp is an unofficial build of Janet.</footer>\n</body>\n</html>\n"))
 
 (each p pages

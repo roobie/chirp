@@ -43,10 +43,10 @@ A reader deciding whether to use chirp should not have to read a GitHub repo fir
 Generator, pages and workflow written; waiting on md4c's CI (run 40588497160), then commit and push.
 
 ## Next
-- BR: Settings → Pages → Source: GitHub Actions.
-- A manual run of `pages` on main deploys before 0.4.0 exists; check the live site.
+- Redeploy with the footer fix, then finalize.
 
 ## Evidence
+- Pages run 40589901747 (manual, 3c2a8ce) built chirp, then the site, and deployed: https://roobie.github.io/chirp/ and its dev-proc, examples, help and changelog pages all return 200. The footer pasted the whole `--version` line; fixed to the version word.
 - Local: `out/bin/chirp site/build.janet` (1d4ad8c's linux-x64) writes 11 pages; every relative link becomes a site page or a GitHub blob at the built sha; a link to a missing file and a commit link to `deadbeef1` each fail the build with a message naming the source.
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 
