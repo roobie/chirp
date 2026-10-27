@@ -27,12 +27,17 @@ jobs:
           base=$(sed -n 's/^{\{0,1\} *:image "\([^"]*\)".*/\1/p' pins.jdn)
           name=ghcr.io/$(echo "$OWNER" | tr A-Z a-z)/chirp-build
           echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
-          docker build --build-arg "BASE=$base" -t "$name:latest" tools/build
+          # The dated tag is never moved or deleted: the pin in pins.jdn is a
+          # digest, and this keeps the image it names reachable.
+          tag=$(date -u +%Y-%m-%d)-$GITHUB_RUN_NUMBER
+          docker build --build-arg "BASE=$base" -t "$name:latest" -t "$name:$tag" tools/build
+          docker push "$name:$tag"
           docker push "$name:latest"
           digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$name:latest")
           echo "pin: $digest"
           {
             echo "### build image"
+            echo "Tag: \`$tag\`"
             echo "Pin in pins.jdn: \`:build-image \"$digest\"\`"
             echo '```'
             docker run --rm "$name:latest" cat /etc/chirp-apk-versions.txt
