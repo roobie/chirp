@@ -2,8 +2,9 @@
 # Tracked hooks; enable once per clone: git config core.hooksPath tools/hooks
 top="$(git rev-parse --show-toplevel)"
 
-command -v janet >/dev/null 2>&1 || { echo "leakcheck: janet not found; refusing an unchecked commit" >&2; exit 1; }
-janet "$top/tools/leakcheck/leakcheck.janet" msg "$1" || exit 1
+# leakcheck is plain Janet, so chirp runs it too where janet is not installed.
+runner=$(command -v janet || command -v chirp) || { echo "leakcheck: neither janet nor chirp found; refusing an unchecked commit" >&2; exit 1; }
+"$runner" "$top/tools/leakcheck/leakcheck.janet" msg "$1" || exit 1
 
 command -v chirp >/dev/null 2>&1 || { echo "dev-proc: chirp not found, skipping checks" >&2; exit 0; }
 # Strict by default, as in pre-commit.
