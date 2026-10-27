@@ -10,7 +10,8 @@ target=$1
 root=$(cd "$(dirname "$0")/../.." && pwd)
 mkdir -p "$2"
 out=$(cd "$2" && pwd)
-image=$(sed -n 's/^{\{0,1\} *:image "\([^"]*\)".*/\1/p' "$root/pins.jdn")
+# The derived image (alpine plus packages.txt), built by the build-image workflow.
+image=$(sed -n 's/^ *:build-image "\([^"]*\)".*/\1/p' "$root/pins.jdn")
 
 exec docker run --rm \
   -v "$root:/chirp-src:ro" -v "$out:$out" \

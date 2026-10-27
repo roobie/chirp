@@ -35,16 +35,16 @@ The options are a derived image built once and pinned by its own digest, or vers
 
 
 ## Now
-`tools/build/Dockerfile` and `.github/workflows/build-image.yml` are written but not committed or run. The workflow is manual (`workflow_dispatch`) and prints the digest to pin.
+Pin and scripts switched to the derived image; waiting for CI's double build.
 
 ## Next
-- Commit and push the workflow, run it once, and make the GHCR package public (first push creates it private)
-- Add `:build-image` to `pins.jdn` with the printed digest
-- Switch `container.sh` to `:build-image` and drop `apk add` from `container-inner.sh`
-- Run CI and check the double build hashes
+- Check the CI double build on the pushed commit
+- Finalize: harvest the decision (derived image, immutable tags) and close the slice
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- Workflow run 40424979766 pushed ghcr.io/roobie/chirp-build with 51 packages, package made public, unauthenticated pull works.
+- Local linux-x64 build with the derived image (no apk add) gave sha256 4a712ff6f70b14b8549a89225ffd932878342246b695561fc372711e00d08a6b, identical to the earlier build that ran apk add at build time; its package list equals tools/build/apk-versions.txt.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -58,3 +58,4 @@ The options are a derived image built once and pinned by its own digest, or vers
 - 2026-10-26 initialized
 - 2026-10-26 phase initialize → execute
 - 2026-10-26 wrote Dockerfile and build-image workflow; waiting for the first run
+- 2026-10-27 pinned :build-image, switched container.sh and container-inner.sh, local hash unchanged

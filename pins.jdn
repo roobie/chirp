@@ -1,4 +1,5 @@
 {:image "alpine@sha256:2e0b81d60597f449baa56dc25d355367869d2dca4cd57e866f1e2b52af3eb55f"
+ :build-image "ghcr.io/roobie/chirp-build@sha256:68e187d7f849398649a0e5686ac383758aeaa9021dccc0ef98ed05911f56706a"
  :zig {:version "0.15.2" :url "https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz" :sha256 "02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239"}
  :janet {:url "https://github.com/janet-lang/janet.git" :commit "dc0f243bb90208c7fdb734ef2c8f789ccf16f076"}
  :spork {:url "https://github.com/janet-lang/spork.git" :commit "26af769b7fd8f7214ea8f95dad5c2d360a79f6b4"}

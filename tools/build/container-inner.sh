@@ -1,12 +1,12 @@
 #!/bin/sh
-# Runs inside the container: installs packages as root, then re-runs itself as
-# the host uid to build janet and hand over to build.janet.
+# Runs inside the container (packages are already in the image): records them
+# as root, then re-runs itself as the host uid to build janet and hand over to
+# build.janet.
 set -eu
 
 src=/chirp-src
 
 if [ "${1:-}" != build ]; then
-  apk add --no-cache -q $(cat "$src/tools/build/packages.txt")
   apk info -v | sort > "$CHIRP_OUT/apk-versions.txt"
   chown "$CHIRP_UID:$CHIRP_GID" "$CHIRP_OUT/apk-versions.txt"
   exec su-exec "$CHIRP_UID:$CHIRP_GID" sh "$src/tools/build/container-inner.sh" build
