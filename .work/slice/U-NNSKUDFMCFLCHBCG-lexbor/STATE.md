@@ -29,15 +29,19 @@ Out: DOM mutation; serialising edited documents; the site's integration tests th
 - Node lifetime: Janet values that wrap nodes must keep their document alive (GC), and freeing the document must not leave dangling nodes.
 
 ## Now
-Surveying lexbor v3.0.1 sources for the module list.
+Binding, build wiring and docs done; linux-x64 builds and passes smoke locally. Next is CI on all four targets.
 
 ## Next
-- Survey lexbor v3.0.1's source tree: which directories the chosen modules need, and their cross-dependencies.
-- Binding: nodes are abstract handles that keep their document alive; `select` works on a document or a node.
-- Pin, build locally in the linux-x64 container, measure size.
+- Push; CI on all four targets (double build identical, smoke on native runners). Record each target's size delta in Evidence.
+- If green, finalize.
 
 ## Evidence
-<!-- Proof against success_criteria: test runs, commits, measurements. -->
+- Modules: core, tag, ns, dom, html, css, selectors plus the ports allocator (188 C files). They compile clean under `-std=c99 -Wall -pedantic`; html needs no encoding module.
+- `nm`: all 1671 lexbor globals already carry `lexbor_`/`lxb_`, so no `:defines` renames; the binding exports only `chirp_lexbor_fn_*` and `janet_module_entry_lexbor`.
+- Binding plus smoke test run clean under ASan+UBSan against a local janet, with no leaks reported (bad selectors included; lexbor state is freed before raising).
+- Local linux-x64 container build: every smoke check passes, lexbor included; `chirp help query lexbor` lists all ten functions; NOTICES.txt carries lexbor's LICENSE and NOTICE.
+- Size, linux-x64: 9,767,304 → 10,862,136 bytes (+1,094,832, +11.2%) for lexbor alone; 10,866,232 with the docs embedded.
+- Real pages: the generated `out/site` pages (nav present, ids unique) and the live https://roobie.github.io/chirp/ over spork-https parse and select as expected.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -46,8 +50,10 @@ Surveying lexbor v3.0.1 sources for the module list.
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
-- [ ] decision: lexbor nodes are abstract handles holding their document (BR, 2026-10-28), not copied plain data
+- [ ] decision: lexbor is a chirp-owned binding over html, dom and selectors only; nodes are abstract handles holding their document (BR, 2026-10-28), not copied plain data; matches come once each in document order (MATCH_FIRST); a bad selector is an error carrying lexbor's log
+- [ ] backlog: integration tests for the Pages site with lexbor, on out/site and on the live site after deploy (the first user named in the slice's origin)
 
 ## Log
 - 2026-10-27 initialized
 - 2026-10-27 phase initialize → execute
+- 2026-10-28 binding, wiring and docs; linux-x64 local build green

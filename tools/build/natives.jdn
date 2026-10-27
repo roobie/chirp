@@ -52,6 +52,17 @@
   :defines {"CHIRP_MD4C_VERSION" "\"0.6.0\"" "md_parse" "chirp_md4c_md_parse"
             "md_html" "chirp_md4c_md_html" "entity_lookup" "chirp_md4c_entity_lookup"}}
 
+ # lexbor's HTML parser, DOM and CSS selectors, without its other modules
+ # (encoding, url, style and the rest). Every lexbor global already carries a
+ # lexbor_ or lxb_ prefix. Of its ports only the allocator is needed, and the
+ # posix and windows copies of it are the same file.
+ {:name "lexbor" :pin :lexbor :includes ["source"]
+  :sources ["source/lexbor/core" "source/lexbor/tag" "source/lexbor/ns"
+            "source/lexbor/dom" "source/lexbor/html" "source/lexbor/css"
+            "source/lexbor/selectors" "source/lexbor/ports/posix/lexbor/core/memory.c"]
+  :repo-sources ["src/lexbor/lexbor.c"]
+  :defines {"CHIRP_LEXBOR_VERSION" "\"3.0.1\"" "LEXBOR_STATIC" true}}
+
  # Natives that are wholly chirp's own have no :pin and build from Janet's checkout.
  # omap.h is shared by all three below; each carries its own copy and they find
  # one another's type by name, so none needs another to be linked or loaded.

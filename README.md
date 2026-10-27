@@ -96,6 +96,17 @@ From 0.4.0, `md4c` renders Markdown to HTML. The default is plain CommonMark; `:
 
 Raw HTML in the input is passed through, as CommonMark says, so pass `:no-html true` for text you do not trust. `chirp help query md4c` lists the options.
 
+From 0.4.0, `lexbor` parses HTML the way a browser does and finds elements with CSS selectors, for example to check what a deployed site serves:
+
+```janet
+(import lexbor)
+(def page (lexbor/parse (slurp "out/site/index.html")))
+(map |(lexbor/attr $ "href") (lexbor/select page "nav a[href]"))  # in document order
+(lexbor/text (lexbor/select-first page "h1"))                     # nil when nothing matches
+```
+
+A node is a handle into its document, so it can be searched in turn (`(lexbor/select node "li")`), and `lexbor/html` gives its markup back. `chirp help query lexbor` lists the functions.
+
 ## Help
 
 `chirp help` lists the help topics, `chirp help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp help read <id>` prints a result in full. The text is inside the binary.
@@ -115,6 +126,7 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml 0.2.5, with Core schema scalars, anchors, aliases and merge keys; from 0.3.0 | MIT |
 | [PCRE2](https://github.com/PCRE2Project/pcre2) | `pcre2`, Perl-style regular expressions: chirp's own small binding over PCRE2 10.49 (interpreter only, no JIT), with named groups, replacement with group references and split; from 0.4.0 | BSD-3-Clause with the PCRE2 exception |
 | [md4c](https://github.com/mity/md4c) | `md4c`, Markdown to HTML: chirp's own small binding over md4c 0.6.0's renderer, CommonMark by default with GitHub's extensions on request; from 0.4.0 | MIT |
+| [lexbor](https://github.com/lexbor/lexbor) | `lexbor`, HTML parsing and CSS selectors: chirp's own small binding over lexbor 3.0.1's HTML, DOM and selectors modules; from 0.4.0 | Apache-2.0 |
 | chirp itself | `omap`, an insertion-ordered map that `yaml` and `json` can decode to and encode from; written in C for chirp, with `json-omap`, a copy of spork's JSON decoder that builds it; from 0.3.0 | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |
 

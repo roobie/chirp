@@ -21,6 +21,8 @@
  {:title "libyaml (in yaml)" :root :libyaml :path "License"}
  {:title "PCRE2 (in pcre2)" :root :pcre2 :path "LICENCE.md"}
  {:title "md4c" :root :md4c :path "LICENSE.md"}
+ {:title "lexbor" :root :lexbor :path "LICENSE"}
+ {:title "lexbor NOTICE" :root :lexbor :path "NOTICE"}
  {:title "OpenSSL" :root :openssl :path "LICENSE.txt"}
  {:title "musl libc" :root :zig :path "lib/libc/musl/COPYRIGHT"
   :url "https://musl.libc.org" :targets [:linux-x64 :linux-arm64]}

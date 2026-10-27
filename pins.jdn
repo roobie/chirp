@@ -10,4 +10,5 @@
  :libyaml {:url "https://github.com/yaml/libyaml.git" :tag "0.2.5" :commit "2c891fc7a770e8ba2fec34fc6b545c672beb37e6"}
  :pcre2 {:url "https://github.com/PCRE2Project/pcre2.git" :tag "pcre2-10.49" :commit "6f9d7c1373262c541324a16a358785b33ef116cf"}
  :md4c {:url "https://github.com/mity/md4c.git" :tag "v0.6.0" :commit "7fc1815a5eeba2af7d6120a76202bf59f3b6e6e4"}
+ :lexbor {:url "https://github.com/lexbor/lexbor.git" :tag "v3.0.1" :commit "7e278c0188489bfce6b71ced0cc900cbb31e6244"}
  :openssl {:url "https://github.com/openssl/openssl.git" :tag "openssl-3.6.5" :commit "c8bd5a57108599ac650bbae77fcabe3109dab2e8"}}
