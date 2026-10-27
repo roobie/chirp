@@ -42,6 +42,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Changelog (U-CU3LV3F4XSBIDE7S): run 40139405385 (2936169) builds all four targets twice with matching sha256, and the changelog smoke check passes on each native runner. The release-notes step, run locally with that run's linux-x64 binary, fills the notes for a tag and for a dry run, and fails a tag with no section.
 - Yaml (U-QTXSX4JL72LYHWD2): run 40144444462 (7544abd) builds all four targets twice with matching sha256, and the yaml smoke check passes on each native runner.
 - Release 0.3.0: https://github.com/roobie/chirp/releases/tag/v0.3.0 (run 40199982635) ships the four binaries, notices, SHA256SUMS and SHA256SUMS.sig; the installed 0.3.0 reports it is up to date.
+- Md4c (U-XHNWANHLCDSBMPPJ): run 40588497160 (1d4ad8c) builds all four targets twice with matching sha256, and the md4c smoke check passes on each native runner. Not in a release yet.
 
 ## Harvest
 
@@ -70,3 +71,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-25 task dev-proc-chirp delivered: dev-proc runs on chirp, Node gone from the repo's workflow (D-VZIDK5O2VNATQDCP, D-4ACDYH2YT7UK3OC4, D-SEP44EOKHRFGMAWT); gaps in B-IRERZRV2753OHW3R
 - 2026-10-25 slice ordered-map delivered: `omap`, an insertion-ordered map, and an ordered flag on json/decode, yaml/decode and yaml/decode-all (D-PYFZFKJPCW3QPOTB, D-ZXXSPKUCZ4IOIQPN, D-YMKKGLNX3IGQPAGJ, L-NYRT2RGVVAXTFIOF)
 - 2026-10-25 v0.3.0 tagged (BR authorized); the README says chirp is not stable yet (BR)
+- 2026-10-27 slice md4c delivered: `md4c` module, Markdown to HTML (D-UCQGXYU3CLHRAYIT)

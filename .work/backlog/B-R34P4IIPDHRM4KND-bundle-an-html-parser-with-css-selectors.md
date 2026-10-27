@@ -12,3 +12,4 @@ BR often writes online checks after a deploy (for example to Cloudflare) to conf
 - It is large; build only the modules needed (core, html, dom, css, selectors) and check the binary-size cost.
 - API to settle: parse, select (all and first), text content, attributes, and maybe outer HTML.
 - The smoke check should cover a selector over a parsed document on every target.
+- First user (BR, 2026-10-27): integration tests for the GitHub Pages site, both on the generated `out/site` (every page has the nav, ids are unique, `a[href]` resolve) and on the live https://roobie.github.io/chirp/ after a deploy, over spork-https. Today the site build checks only links, by matching text.
