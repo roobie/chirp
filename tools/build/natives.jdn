@@ -44,6 +44,14 @@
   :repo-sources ["src/pcre2/chartables.c" "src/pcre2/pcre2.c"]
   :defines {"HAVE_CONFIG_H" true "PCRE2_CODE_UNIT_WIDTH" "8" "PCRE2_STATIC" true}}
 
+ # md4c's HTML renderer. Its three global symbols are renamed, so no other
+ # bundled library can clash with them in the one binary.
+ {:name "md4c" :pin :md4c :includes ["src"]
+  :sources ["src/md4c.c" "src/md4c-html.c" "src/entity.c"]
+  :repo-sources ["src/md4c/md4c.c"]
+  :defines {"CHIRP_MD4C_VERSION" "\"0.6.0\"" "md_parse" "chirp_md4c_md_parse"
+            "md_html" "chirp_md4c_md_html" "entity_lookup" "chirp_md4c_entity_lookup"}}
+
  # Natives that are wholly chirp's own have no :pin and build from Janet's checkout.
  # omap.h is shared by all three below; each carries its own copy and they find
  # one another's type by name, so none needs another to be linked or loaded.

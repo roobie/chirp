@@ -2,7 +2,7 @@
 
 **A batteries-included scripting runtime in one static binary: download it, run your script.**
 
-chirp is [Janet](https://janet-lang.org), a small, fast Lisp, built together with what real scripts reach for: an HTTPS client and server, JSON, SQLite with full-text search, TOML, YAML, compression, subprocesses, argument parsing and regexes. There is one file per platform (Linux x64 and arm64, macOS arm64, Windows x64). It is static, and needs no runtime, package manager or C compiler.
+chirp is [Janet](https://janet-lang.org), a small, fast Lisp, built together with what real scripts reach for: an HTTPS client and server, JSON, SQLite with full-text search, TOML, YAML, compression, subprocesses, argument parsing, regexes and Markdown. There is one file per platform (Linux x64 and arm64, macOS arm64, Windows x64). It is static, and needs no runtime, package manager or C compiler.
 
 **chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers.** Please report problems with chirp here, not to Janet.
 
@@ -86,6 +86,16 @@ From 0.4.0, `pcre2` brings Perl-style regular expressions, the syntax that grep,
 
 Matching is bounded by counts instead of time (`:match-limit`, `:depth-limit` and `:heap-limit`, all with defaults), so a pattern that backtracks without end stops with an error that names the limit, the same way on every machine. `chirp help query pcre2` lists the functions and their options.
 
+From 0.4.0, `md4c` renders Markdown to HTML. The default is plain CommonMark; `:github` adds tables, strikethrough, task lists, autolinks, admonitions and footnotes, and each extension can also be set on its own:
+
+```janet
+(import md4c)
+(md4c/to-html "# Hi\n\n*a* `b`")                 # "<h1>Hi</h1>\n<p><em>a</em> <code>b</code></p>\n"
+(md4c/to-html (slurp "README.md") {:github true})  # the body only, without <html> or <head>
+```
+
+Raw HTML in the input is passed through, as CommonMark says, so pass `:no-html true` for text you do not trust. `chirp help query md4c` lists the options.
+
 ## Help
 
 `chirp help` lists the help topics, `chirp help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp help read <id>` prints a result in full. The text is inside the binary.
@@ -104,6 +114,7 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [tomlin](https://github.com/pyrmont/tomlin) | `tomlin`, a TOML parser written in Janet; from 0.2.0 | MIT |
 | [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml 0.2.5, with Core schema scalars, anchors, aliases and merge keys; from 0.3.0 | MIT |
 | [PCRE2](https://github.com/PCRE2Project/pcre2) | `pcre2`, Perl-style regular expressions: chirp's own small binding over PCRE2 10.49 (interpreter only, no JIT), with named groups, replacement with group references and split; from 0.4.0 | BSD-3-Clause with the PCRE2 exception |
+| [md4c](https://github.com/mity/md4c) | `md4c`, Markdown to HTML: chirp's own small binding over md4c 0.6.0's renderer, CommonMark by default with GitHub's extensions on request; from 0.4.0 | MIT |
 | chirp itself | `omap`, an insertion-ordered map that `yaml` and `json` can decode to and encode from; written in C for chirp, with `json-omap`, a copy of spork's JSON decoder that builds it; from 0.3.0 | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |
 

@@ -7,6 +7,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 ### Added
 
 - `pcre2`, Perl-style regular expressions on PCRE2 10.49: `pcre2/compile`, `pcre2/match`, `pcre2/find-all`, `pcre2/replace`, `pcre2/replace-all`, `pcre2/split` and `pcre2/version`. Patterns are UTF-8 by default and support named groups; replacements take `$1`, `${name}` and `$$`. Matching is bounded by `:match-limit`, `:depth-limit` and `:heap-limit`, all with defaults, so a runaway pattern fails with an error naming the limit instead of hanging.
+- `md4c`, Markdown to HTML on md4c 0.6.0: `md4c/to-html` and `md4c/version`. The default is plain CommonMark; `:github` turns on GitHub's dialect, and each extension (tables, footnotes, task lists and others) can be set on its own. `:no-html` drops raw HTML from the input.
 
 ## 0.3.0
 
