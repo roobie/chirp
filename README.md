@@ -154,7 +154,7 @@ The server is unchanged.
 
 ## Building
 
-The build needs Docker. It runs in a pinned Alpine container, where zig cross-compiles every target from Linux:
+The build needs Docker. It runs in a container image pinned by digest in [`pins.jdn`](pins.jdn) (Alpine plus the packages in [`tools/build/packages.txt`](tools/build/packages.txt)), which Docker pulls from a public registry. zig cross-compiles every target from Linux:
 
 ```sh
 sh tools/build/container.sh linux-x64 out/      # or linux-arm64, macos-arm64, windows-x64
