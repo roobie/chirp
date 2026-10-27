@@ -1,0 +1,40 @@
+name: build-image
+
+# Builds the derived build container and pushes it to GHCR. Run it by hand
+# after changing the :image pin or tools/build/packages.txt, then put the
+# digest it prints into pins.jdn as :build-image.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          base=$(sed -n 's/^{\{0,1\} *:image "\([^"]*\)".*/\1/p' pins.jdn)
+          name=ghcr.io/$(echo "$OWNER" | tr A-Z a-z)/chirp-build
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker build --build-arg "BASE=$base" -t "$name:latest" tools/build
+          docker push "$name:latest"
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$name:latest")
+          echo "pin: $digest"
+          {
+            echo "### build image"
+            echo "Pin in pins.jdn: \`:build-image \"$digest\"\`"
+            echo '```'
+            docker run --rm "$name:latest" cat /etc/chirp-apk-versions.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
