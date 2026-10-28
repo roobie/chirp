@@ -51,6 +51,12 @@ jobs:
           # Artifacts do not keep the executable bit.
           chmod +x bin/chirp
           bin/chirp site/build.janet out/site
+      - name: Check the site
+        env:
+          COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          bin/chirp site/check.janet out/site --commit "$COMMIT" \
+            --chirp-version "$(bin/chirp --version | cut -d' ' -f2)"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: out/site
@@ -63,9 +69,40 @@ jobs:
     permissions:
       pages: write
       id-token: write
+    outputs:
+      page_url: ${{ steps.deploy.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - id: deploy
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  # The deployed site, checked by the same rules. Pages can serve the previous
+  # deploy for a while, so the check waits until the footer names this commit.
+  verify:
+    needs: deploy
+    if: always() && needs.deploy.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: chirp-linux-x64-a
+          path: bin
+          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Check the live site
+        env:
+          COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          chmod +x bin/chirp
+          bin/chirp site/check.janet "$URL" --commit "$COMMIT" --wait 600 \
+            --chirp-version "$(bin/chirp --version | cut -d' ' -f2)"
