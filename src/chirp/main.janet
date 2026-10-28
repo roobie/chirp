@@ -29,6 +29,14 @@
     stem (slurp (string here path))))
 (def- help-entries (help/collect (string here "help/") bundled extra-topics))
 
+# Skill files are read now, in sorted order, like the help topics.
+(import ./skills)
+(def- skills-config
+  {:skills (tabseq [[name path] :pairs (config :skills)]
+             name (skills/collect (string here path) (config :skill-exclude)))
+   :canonical (config :skill-canonical)
+   :links (config :skill-links)})
+
 # The release key is read now, so the binary trusts the key it was built with
 # and nothing on the machine it runs on.
 (import ./update)
@@ -95,4 +103,8 @@
     "--help" (print-help)
     "help" (help/run help-entries (array/slice args 1))
     "self-update" (update/run (array/slice args 1) update-config)
-    (cli-main args)))
+    (if-let [flag (first args)
+             name (and (string/has-prefix? "--" flag) (string/slice flag 2))
+             _ ((skills-config :skills) name)]
+      (skills/run name (array/slice args 1) skills-config)
+      (cli-main args))))

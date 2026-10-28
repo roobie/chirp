@@ -8,7 +8,7 @@ description: How work is run in this repo. Work is organised into units (task, s
 This skill is the process for working in this repo. It is **modal**: the current mode comes from the `.work/` files on disk, never from memory or chat. Always start by asking the CLI:
 
 ```sh
-DP="chirp .claude/skills/dev-proc/scripts/dev-proc.janet"   # path from the repo root
+DP="chirp .claude/skills/dev-proc/scripts/dev-proc.janet"   # the scripts sit in this skill's directory; in a project install that is .claude/skills/dev-proc
 $DP status                 # tree of active units with their phases
 $DP status slice/foo       # one unit (by id U-… or type/name): its mode, success criteria, and the gate to the next phase
 ```

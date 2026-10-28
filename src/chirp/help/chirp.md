@@ -14,6 +14,8 @@ chirp help                         # offline docs
 chirp help query '<words>'         # search them
 chirp help read <id>               # print one result
 chirp self-update [--check] [--force]   # replace chirp with the latest release
+chirp --dev-proc                   # the dev-proc agent skill: options
+chirp --dev-proc --install [-g] [--copy] [--force]   # write it into this project, or ~ with -g
 chirp -h | --help                  # this text, then Janet's options
 ```
 

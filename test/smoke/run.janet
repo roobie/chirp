@@ -1,7 +1,7 @@
 # Smoke driver: runs the checks with the very binary that runs this script, so
 # the same code path works on every OS (Windows runners have no usable sh).
 # Usage: chirp test/smoke/run.janet
-(def- checks ["zip" "sqlite" "toml" "yaml" "pcre2" "md4c" "lexbor" "omap" "https-get" "https-server" "help" "changelog" "cli-help" "stdin" "self-update"])
+(def- checks ["zip" "sqlite" "toml" "yaml" "pcre2" "md4c" "lexbor" "omap" "https-get" "https-server" "help" "changelog" "cli-help" "stdin" "self-update" "dev-proc-install"])
 # A check that hangs (as https-server did on windows) fails on its own line in
 # seconds, instead of the CI job timing out with no hint of which check hung.
 (def- timeout-seconds 60)

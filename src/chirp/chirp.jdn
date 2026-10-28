@@ -16,6 +16,15 @@
  # The changelog is a repo-root file people read on GitHub; copying it into
  # help/ would let the two drift.
  :help-extra {"changelog" "../../CHANGELOG.md"}
+ # Agent skills that `chirp --<name> --install` can write, name -> directory from
+ # this directory. The repo's own copy stays the source of truth.
+ :skills {"dev-proc" "../../.claude/skills/dev-proc"}
+ # Files ending so are not shipped: the skill's own dev tests.
+ :skill-exclude [".test.janet"]
+ # Where the canonical copy goes, and the agent directories that link to it,
+ # both relative to the install base.
+ :skill-canonical ".agents/skills"
+ :skill-links [".claude/skills"]
  # Bundled module -> chirp module whose public bindings replace the module's own.
  :overlays {"spork-https" "./overlay-spork-https"
             "spork/json" "./overlay-spork-json"}
