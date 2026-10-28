@@ -26,9 +26,10 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.3.0 is published: `-h`/`--help`, the `yaml` module on libyaml, and `omap` with ordered json and yaml decode and encode. Main carries `0.4.0-dev` with an empty Unreleased section (D-DYWSJTLDO6S5DQDR).
+0.3.0 is published. Main carries `0.4.0`, ready to tag: CHANGELOG.md's Unreleased section became `## 0.4.0` (D-DYWSJTLDO6S5DQDR), covering `pcre2` on PCRE2, `md4c` (Markdown to HTML) and `lexbor` (HTML parsing and CSS selectors).
 
 ## Next
+- Tag `v0.4.0` once main CI is green (BR asked for the release, 2026-10-28); then main moves to `0.5.0-dev` with a fresh Unreleased section.
 - At the 0.4.0 tag, confirm `pages` runs after `release` and the site's footer names the tag's commit (U-F35YV2DPMJION4EG left the tag path untested).
 - Pick from the backlog with BR.
 
