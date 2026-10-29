@@ -121,6 +121,10 @@
     (assert (not (os/stat (string copy "/.agents"))) "--copy made a canonical dir")
     (assert (= :directory (os/lstat (string copy "/.claude/skills/" skill) :mode)) "--copy made no real dir")
     (assert (same-as-source? (string copy "/.claude/skills/" skill)) "--copy files differ")
+    # A matching copy where the link would go is what an install that could not
+    # link leaves behind (Windows), so installing again accepts it.
+    (def over-copy (exits "install over a copy" 0 (run copy no-env "--dev-proc" "--install")))
+    (assert (string/find "a copy, not a link" over-copy) over-copy)
 
     # -g goes under HOME (USERPROFILE on Windows).
     (def home (string tmp "/home"))

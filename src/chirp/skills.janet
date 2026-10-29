@@ -115,6 +115,11 @@
     (and mode (= canon-real (real path)))
     (do (print "up to date " shown) true)
 
+    # The copy an earlier install made where it could not link. Only a copy
+    # that still matches is known to be ours; anything else is left alone.
+    (and (= :directory mode) (empty? (first (differences path files))))
+    (do (print "up to date " shown " (a copy, not a link)") true)
+
     mode (skip shown path mode)
 
     (do
