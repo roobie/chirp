@@ -49,19 +49,18 @@
 # Copies ----------------------------------------------------------------------
 
 (defn- differences
-  "Relative paths under dest that differ from files: changed, missing, extra."
+  "[changed extra]: shipped paths that are missing or differ under dest, and
+  paths under dest that are not shipped."
   [dest files]
   (def shipped @{})
-  (def out @[])
+  (def changed @[])
   (each [rel content] files
     (put shipped rel true)
     (def [ok have] (protect (slurp (string dest "/" rel))))
     (cond
-      (not ok) (array/push out (string rel " (missing)"))
-      (not= (string have) content) (array/push out (string rel " (changed)"))))
-  (each rel (walk dest)
-    (unless (shipped rel) (array/push out (string rel " (extra)"))))
-  (sorted out))
+      (not ok) (array/push changed (string rel " (missing)"))
+      (not= (string have) content) (array/push changed (string rel " (changed)"))))
+  [changed (filter |(not (shipped $)) (walk dest))])
 
 (defn- dirname [path] (string/slice path 0 (last (string/find-all "/" path))))
 
@@ -71,28 +70,28 @@
     (sh/create-dirs (dirname path))
     (spit path content)))
 
-# Nothing under a directory the user may have edited is overwritten or deleted
-# unless --force names it, and --force still writes only the shipped files.
+# A shipped file the user may have edited is overwritten only with --force.
+# Files the skill does not ship are never touched, so they refuse nothing.
 (defn- put-copy
   "Make dest (shown as shown) hold files. Returns false when it was refused."
   [dest shown files force]
   (case (os/stat dest :mode)
     nil (do (write-files dest files)
-          (print"wrote " shown " (" (length files) " files)")
+          (print "wrote " shown " (" (length files) " files)")
           true)
     :directory
-    (let [diff (differences dest files)
-          extra (filter |(string/has-suffix? " (extra)" $) diff)]
-      (cond
-        (empty? diff) (do (print"up to date " shown) true)
-        force (do (write-files dest files)
-                (print"rewrote " shown " (" (length files) " files)")
-                (unless (empty? extra)
-                  (print"left in place: " (string/join extra ", ")))
-                true)
-        (do (eprint "refused: " shown " differs from the shipped files; --force rewrites them")
-          (each d diff (eprint "  " d))
-          false)))
+    (let [[changed extra] (differences dest files)
+          ok (cond
+               (empty? changed) (do (print "up to date " shown) true)
+               force (do (write-files dest files)
+                       (print "rewrote " shown " (" (length files) " files)")
+                       true)
+               (do (eprint "refused: " shown " differs from the shipped files; --force rewrites them")
+                 (each d changed (eprint "  " d))
+                 false))]
+      (unless (empty? extra)
+        (print "left in place, not shipped: " (string/join extra ", ")))
+      ok)
     (do (eprint "skipped: " shown " exists and is not a directory")
       false)))
 
@@ -114,7 +113,7 @@
   (cond
     # Also the case when the agent dir is itself a link to the canonical parent.
     (and mode (= canon-real (real path)))
-    (do (print"up to date " shown) true)
+    (do (print "up to date " shown) true)
 
     mode (skip shown path mode)
 
@@ -124,10 +123,10 @@
       (def target (relative (or (real parent) parent) canon-real))
       (def [ok err] (protect (os/symlink target path)))
       (cond
-        ok (do (print"linked " shown " -> " target) true)
+        ok (do (print "linked " shown " -> " target) true)
         # Windows without the privilege to make links, among others. Upstream
         # uses a junction there; Janet has no way to make one.
-        (do (print"cannot link " shown " (" err "); copying instead")
+        (do (print "cannot link " shown " (" err "); copying instead")
           (put-copy path shown files force))))))
 
 (defn- install-skill [opts name files conf]
@@ -191,6 +190,6 @@
               (or (home) (do (eprint "chirp --" name ": no HOME to install into") (os/exit 2)))
               (os/cwd)))
   (put opts :base base)
-  (print"installing " name " into " base)
+  (print "installing " name " into " base)
   (unless (install-skill opts name ((conf :skills) name) conf)
     (os/exit 1)))

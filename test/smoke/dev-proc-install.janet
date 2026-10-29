@@ -45,7 +45,7 @@
 (defn main [&]
   (def here (let [f (dyn *current-file*)]
               (string/slice f 0 (+ 1 (last (string/find-all "/" f))))))
-  (def source (string here "../../.claude/skills/" skill))
+  (def source (string here "../../.agents/skills/" skill))
   (def shipped (filter |(not (string/has-suffix? ".test.janet" $)) (walk source)))
   (assert (not (empty? shipped)) "no skill files found in the repo")
 
@@ -100,6 +100,8 @@
     (exits "force" 0 (run proj no-env "--dev-proc" "--install" "--force"))
     (assert (= (string original) (string (slurp edited))) "--force did not restore the file")
     (assert (os/stat (string canon "/notes.md")) "--force removed an extra file")
+    (def extra-only (exits "extra file only" 0 (run proj no-env "--dev-proc" "--install")))
+    (assert (and (string/find "up to date" extra-only) (string/find "notes.md" extra-only)) extra-only)
 
     # A foreign directory in the agent location is never replaced.
     (def foreign (string tmp "/foreign"))

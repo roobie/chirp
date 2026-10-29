@@ -2,7 +2,7 @@
 
 dev-proc is how work on chirp is run. People and coding agents work on this repo across many sessions, and neither can rely on remembering the last one. So the state of every piece of work lives in files in the repo, a small CLI reads and checks those files, and every commit says which piece of work it advances.
 
-It is a convention plus a script, not a service. The script is [`dev-proc.janet`](../.claude/skills/dev-proc/scripts/dev-proc.janet), and it runs on chirp. The rules an agent follows are in [`SKILL.md`](../.claude/skills/dev-proc/SKILL.md), reproduced below the line on this page. [Examples](dev-proc-examples.md) shows units from chirp's own history, with links to their commits.
+It is a convention plus a script, not a service. The script is [`dev-proc.janet`](../.agents/skills/dev-proc/scripts/dev-proc.janet), and it runs on chirp. The rules an agent follows are in [`SKILL.md`](../.agents/skills/dev-proc/SKILL.md), reproduced below the line on this page. chirp carries the skill, so `chirp --dev-proc --install` puts it in another project. [Examples](dev-proc-examples.md) shows units from chirp's own history, with links to their commits.
 
 ## The ideas
 

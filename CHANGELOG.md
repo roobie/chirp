@@ -6,7 +6,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Added
 
-- `chirp --dev-proc --install` writes the dev-proc agent skill (how work is run in a repo with a `.work/` directory) from the binary alone, so no checkout is needed. The files go to `.agents/skills/dev-proc` and `.claude/skills/dev-proc` is a relative link to them, the layout the npm `skills` package uses; `-g` installs under the home directory instead and `--copy` writes a real copy in place of the link. Installing again changes nothing when the copy is identical; a copy you have edited is refused unless you pass `--force`, which rewrites only the shipped files, and a `.claude/skills/dev-proc` that is not this link is never replaced. The installed skill runs with `chirp .claude/skills/dev-proc/scripts/dev-proc.janet`.
+- `chirp --dev-proc --install` writes the dev-proc agent skill (how work is run in a repo with a `.work/` directory) from the binary alone, so no checkout is needed. The files go to `.agents/skills/dev-proc` and `.claude/skills/dev-proc` is a relative link to them, the layout the npm `skills` package uses; `-g` installs under the home directory instead and `--copy` writes a real copy in place of the link. Installing again changes nothing when the copy is identical; a copy you have edited is refused unless you pass `--force`, which rewrites only the shipped files; files you added are left alone; and a `.claude/skills/dev-proc` that is not this link is never replaced. The installed skill runs with `chirp .claude/skills/dev-proc/scripts/dev-proc.janet`.
 
 ## 0.4.0
 

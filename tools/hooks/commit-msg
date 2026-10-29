@@ -8,4 +8,4 @@ runner=$(command -v janet || command -v chirp) || { echo "leakcheck: neither jan
 
 command -v chirp >/dev/null 2>&1 || { echo "dev-proc: chirp not found, skipping checks" >&2; exit 0; }
 # Strict by default, as in pre-commit.
-DEV_PROC_STRICT=${DEV_PROC_STRICT-1} exec chirp "$top/.claude/skills/dev-proc/scripts/dev-proc.janet" check-msg "$1"
+DEV_PROC_STRICT=${DEV_PROC_STRICT-1} exec chirp "$top/.agents/skills/dev-proc/scripts/dev-proc.janet" check-msg "$1"

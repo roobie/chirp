@@ -3,7 +3,7 @@ date: 2026-10-25
 read_if:
   - dev-proc or its commit hooks fail at import
 refs:
-  - .claude/skills/dev-proc/scripts/frontmatter.janet#decode-fm
+  - .agents/skills/dev-proc/scripts/frontmatter.janet#decode-fm
 ---
 
 # L-NYRT2RGVVAXTFIOF dev-proc needs a chirp that bundles omap

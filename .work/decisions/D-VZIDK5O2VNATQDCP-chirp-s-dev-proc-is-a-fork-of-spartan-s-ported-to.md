@@ -5,7 +5,7 @@ read_if:
   - changing the dev-proc CLI
   - syncing dev-proc with other repos
 refs:
-  - .claude/skills/dev-proc/scripts/dev-proc.janet
+  - .agents/skills/dev-proc/scripts/dev-proc.janet
 ---
 
 # D-VZIDK5O2VNATQDCP chirp's dev-proc is a fork of spartan's, ported to chirp

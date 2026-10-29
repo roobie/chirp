@@ -31,17 +31,18 @@ Out: running dev-proc from the binary itself (BR chose a full editable copy); ag
 - The installed skill needs chirp's bundled yaml/omap/sqlite3 (L-NYRT2RGVVAXTFIOF) — fine, chirp runs it.
 
 ## Now
-Implementation committed; waiting on CI for the other targets (windows takes the copy fallback; untested so far).
+Dogfooded: the skill's source of truth is now `.agents/skills/dev-proc`, and `.claude/skills/dev-proc` is the link `chirp --dev-proc --install` made. Waiting on CI (run 40791461184 for 2ec89fb, then the dogfood commit).
 
 ## Next
-- CI build green on every target, then check criteria
-- dogfood (BR, 2026-10-28): install into this repo, so the skill's source of truth moves to `.agents/skills/dev-proc` with `.claude/skills/dev-proc` as the link; then repoint chirp.jdn's `:skills`, tools/hooks/*, and anything else naming the old path
+- CI green on every target (windows takes the copy fallback; untested so far), then check criteria and finalize
 
 ## Evidence
 - 2026-10-28 local linux-x64 container build: smoke suite all 17 checks pass, dev-proc-install included (layout, relative link, installed copy runs init+status, up-to-date, refuse, --force, foreign dir, --copy, -g). CI not yet run.
+- 2026-10-28 dogfood: git mv to .agents/skills/dev-proc, rebuilt, `chirp --dev-proc --install` in the repo → "up to date" (3 test files left in place, not shipped) + "linked .claude/skills/dev-proc -> ../../.agents/skills/dev-proc". Then smoke (all pass), the 3 dev-proc test files (pass), dev-proc check (ok), site build + site check (11 pages ok).
 
 ## Harvest
-- [ ] decision: --install refuses to overwrite a modified copy or replace a foreign .claude/skills/dev-proc, unlike npm skills which overwrites — content is moddable, so user edits are not clobbered silently
+- [ ] decision: --install refuses to overwrite a modified copy or replace a foreign .claude/skills/dev-proc, unlike npm skills which overwrites — content is moddable, so user edits are not clobbered silently; files it does not ship never refuse an install (they are never touched, and the source repo keeps its tests beside the shipped files)
+- [ ] decision: this repo's skill lives in .agents/skills/dev-proc, the same layout the installer makes, with .claude/skills/dev-proc a committed link
 - [ ] decision: install mirrors npm skills' .agents/skills canonical dir + per-agent links
 - [ ] learning: os/spawn with :e replaces the whole environment (no PATH/HOME); merge (os/environ) to override a few vars
 

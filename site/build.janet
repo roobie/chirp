@@ -41,7 +41,7 @@
        {:url (string "help/" (string/slice f 0 -4) ".html")
         :sources [(src (string "src/chirp/help/" f))]})
     {:url "dev-proc/index.html" :nav "dev-proc"
-     :sources [(src "site/dev-proc.md") (src ".claude/skills/dev-proc/SKILL.md" true)]}
+     :sources [(src "site/dev-proc.md") (src ".agents/skills/dev-proc/SKILL.md" true)]}
     {:url "dev-proc/examples.html" :sources [(src "site/dev-proc-examples.md")]}])
 
 # The help index is generated, so it lists exactly the topics the binary has.

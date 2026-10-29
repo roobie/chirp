@@ -5,8 +5,8 @@ read_if:
   - changing how front matter is parsed or written
   - a .work document fails to parse
 refs:
-  - .claude/skills/dev-proc/scripts/frontmatter.janet#decode-fm
-  - .claude/skills/dev-proc/scripts/frontmatter.janet#yaml-scalar
+  - .agents/skills/dev-proc/scripts/frontmatter.janet#decode-fm
+  - .agents/skills/dev-proc/scripts/frontmatter.janet#yaml-scalar
 ---
 
 # D-4ACDYH2YT7UK3OC4 Front matter is YAML read by chirp's yaml module, held to strings and lists of strings

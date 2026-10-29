@@ -4,7 +4,7 @@ date: 2026-10-25
 read_if:
   - changing how find matches or ranks records
 refs:
-  - .claude/skills/dev-proc/scripts/find.janet#find-records
+  - .agents/skills/dev-proc/scripts/find.janet#find-records
 ---
 
 # D-SEP44EOKHRFGMAWT find ranks records with SQLite FTS5
