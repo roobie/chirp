@@ -7,6 +7,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 ### Added
 
 - `chirp --help serve [--host H] [--port N]` serves the offline help as a local web page at `http://127.0.0.1:3111/`: the topic list, search as you type, and every topic, section and docstring on its own page. It listens on localhost only unless `--host` says otherwise, uses the project site's look, and needs no network.
+- `chirp --help read <id> --source` prints a binding's definition after its docstring, and the `chirp --help serve` page of a binding shows it under the docstring, each with its `file:line`. It covers the Janet code of core, the bundled modules and chirp's overlays, and the C of Janet's core functions; it is inside the binary, so it works offline, and it is not searched.
 - `chirp --dev-proc --install` writes the dev-proc agent skill (how work is run in a repo with a `.work/` directory) from the binary alone, so no checkout is needed. The files go to `.agents/skills/dev-proc` and `.claude/skills/dev-proc` is a relative link to them, the layout the npm `skills` package uses; `-g` installs under the home directory instead and `--copy` writes a real copy in place of the link. Installing again changes nothing when the copy is identical; a copy you have edited is refused unless you pass `--force`, which rewrites only the shipped files; files you added are left alone; and a `.claude/skills/dev-proc` that is not this link is never replaced. The installed skill runs with `chirp .claude/skills/dev-proc/scripts/dev-proc.janet`.
 
 ### Changed

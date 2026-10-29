@@ -40,8 +40,10 @@
 (defn collect
   "Sorted help entries: the .md files in dir and the extra topics (a table of
   stem -> markdown text), where stem = topic id and each `##` is a section,
-  plus the documented public bindings of the modules table and of Janet's core."
-  [dir modules extra]
+  plus the documented public bindings of the modules table and of Janet's core.
+  `locate` (optional) maps a binding's :source-map to [source source-at]; the
+  entry then carries them as :source and :source-at."
+  [dir modules extra &opt locate]
   (def out @[])
   (def seen @{})
   (defn add [e]
@@ -61,8 +63,10 @@
     (eachp [k b] env
       (when (and (symbol? k) (table? b) (string? (b :doc)) (not (b :private))
                  (or (not imports?) (not (string/find "/" k))))
-        (add {:id (string prefix k) :kind :doc :text (b :doc)
-              :title (first (string/split "\n" (b :doc))) :body (b :doc)}))))
+        (def [source source-at] (or (and locate (locate (b :source-map))) []))
+        (add (struct :id (string prefix k) :kind :doc :text (b :doc)
+                     :title (first (string/split "\n" (b :doc))) :body (b :doc)
+                     ;(if source [:source source :source-at source-at] []))))))
   (each name (sorted (keys modules)) (add-docs (string name "/") (modules name) true))
   (add-docs "" root-env false)
   (sort-by |($ :id) out))
@@ -123,10 +127,15 @@
       (print "    " (one-line s)))))
 
 (defn- cmd-read [entries args]
+  (def source? (truthy? (index-of "--source" args)))
+  (def args (filter |(not= "--source" $) args))
   (unless (= 1 (length args)) (die "read needs exactly one id, e.g. chirp --help read https"))
   (def id (first args))
   (if-let [e (find |(= id ($ :id)) entries)]
-    (print (e :text))
+    (do (print (e :text))
+        (when (and source? (e :source))
+          (print "\n" (e :source-at))
+          (print (e :source))))
     (let [near (take 5 (filter |(string/find id ($ :id)) entries))]
       (die "no entry " id
            (if (empty? near) ". Try: chirp --help query <words>"

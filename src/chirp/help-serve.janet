@@ -115,7 +115,10 @@
     (if-let [e (by-id id)]
       (page config 200 (if (= :doc (e :kind)) id (e :title))
             (case (e :kind)
-              :doc (string "<h1><code>" (escape id) "</code></h1>\n<pre>" (escape (e :text)) "</pre>\n")
+              :doc (string "<h1><code>" (escape id) "</code></h1>\n<pre>" (escape (e :text)) "</pre>\n"
+                           (when (e :source)
+                             (string "<h2>Source</h2>\n<p><code>" (escape (e :source-at)) "</code></p>\n"
+                                     "<pre><code>" (escape (e :source)) "</code></pre>\n")))
               (string
                 (when (= :section (e :kind))
                   (def stem (string/slice id 0 (string/find "/" id)))

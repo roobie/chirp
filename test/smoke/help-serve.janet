@@ -56,6 +56,18 @@
 
     (def [os_ ob] (get* "/read/os/spawn"))
     (assert (= 200 os_) "core docstring page")
+    (assert (and (string/find "<h2>Source</h2>" ob) (string/find "os.c:" ob)
+                 (string/find "<pre><code>JANET_CORE_FN(os_spawn" ob))
+            "C source under the docstring")
+
+    (def [gs gb] (get* "/read/default-peg-grammar"))
+    (assert (and (= 200 gs) (string/find "<h2>Source</h2>" gb) (string/find "boot.janet:" gb)
+                 (string/find "(def default-peg-grammar" gb)
+                 (string/find "(range &quot;az&quot;" gb) (not (string/find "(range \"az\"" gb)))
+            "Janet source is shown, escaped")
+    (assert (and (string/find "<h2>Source</h2>" db) (string/find "overlay-spork-https.janet:" db))
+            "overlay source is shown")
+    (assert (not (string/find "<h2>Source</h2>" (get (get* "/read/chirp") 1))) "a topic has no source")
     (def [ps _] (get* "/read/%3E"))
     (assert (= 200 ps) "percent-encoded core name decodes")
 

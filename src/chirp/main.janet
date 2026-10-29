@@ -24,10 +24,16 @@
 
 # Help files and docstrings are read now, in sorted order, and live in the image.
 (import ./help)
+(import ./source)
 (def- extra-topics
   (tabseq [[stem path] :pairs (config :help-extra)]
     stem (slurp (string here path))))
-(def- help-entries (help/collect (string here "help/") bundled extra-topics))
+# The locator holds every source file it read, so it stays inside this
+# expression and out of the image.
+(def- help-entries
+  (help/collect (string here "help/") bundled extra-topics
+                (source/locator (config :help-source)
+                                {:out "" :repo (string here "../../")})))
 # `--help serve` pages use the project site's stylesheet, baked in like the topics.
 (def- serve-config
   (let [c (config :help-serve)]

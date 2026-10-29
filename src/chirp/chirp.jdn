@@ -19,6 +19,24 @@
  # `chirp --help serve`: where it listens unless --host or --port say otherwise, and the
  # stylesheet its pages use (the project site's, so the two look alike).
  :help-serve {:host "127.0.0.1" :port 3111 :style "../../site/style.css"}
+ # Where a binding's definition is read from while the image is built, to show it in
+ # `chirp --help read --source`. A :source-map file starting with :prefix is found at
+ # :dir plus the rest of its name, under the build's out dir (or the repo, :base :repo),
+ # and shown as :show plus the rest: the display never holds a host path. Janet's
+ # own boot.janet is the whole name, so its rule has no rest. A file no rule
+ # matches simply has no source.
+ :help-source [{:prefix "boot.janet" :dir "src/janet/src/boot/boot.janet"
+                :show "janet/src/boot/boot.janet"}
+               {:prefix "src/core/" :dir "src/janet/src/core/" :show "janet/src/core/"}
+               {:prefix "src/spork/" :dir "src/spork/" :show "spork/"}
+               {:prefix "src/spork-https/" :dir "src/spork-https/" :show "spork-https/"}
+               {:prefix "src/zip.c" :dir "src/spork/src/zip.c" :show "spork/src/zip.c"}
+               {:prefix "src/jsec/" :dir "src/jsec/" :show "jsec/"}
+               {:prefix "src/tomlin/" :dir "src/tomlin/" :show "tomlin/"}
+               # chirp-owned natives (md4c, pcre2, lexbor, omap, yaml) compile from the repo.
+               {:prefix "./src/" :base :repo :dir "src/" :show "chirp/"}
+               # The container mounts the repo at /chirp-src.
+               {:prefix "/chirp-src/src/chirp/" :base :repo :dir "src/chirp/" :show "chirp/"}]
  # Agent skills that `chirp --<name> --install` can write, name -> directory from
  # this directory. The repo's own copy stays the source of truth.
  :skills {"dev-proc" "../../.agents/skills/dev-proc"}

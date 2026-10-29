@@ -12,7 +12,7 @@ chirp -v | --version               # version and identity
 chirp --changelog                  # what changed in each release
 chirp -h | --help                  # this text, the help topics, then Janet's options
 chirp --help query '<words>'       # search the offline docs
-chirp --help read <id>             # print one result
+chirp --help read <id> [--source]  # print one result, with a binding's source
 chirp --help serve [--host H] [--port N]   # browse the help at http://127.0.0.1:3111/
 chirp --self-update [--check] [--force]   # replace chirp with the latest release
 chirp --dev-proc                   # the dev-proc agent skill: options

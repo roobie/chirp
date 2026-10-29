@@ -7,6 +7,7 @@ chirp -h                                # usage, the topic list, then Janet's op
 chirp --help query '<fts5 query>'       # ranked search, up to 10 hits
 chirp --help query '<fts5 query>' --limit 3
 chirp --help read <id>                  # print one hit in full
+chirp --help read <id> --source         # a binding's docstring, then its definition
 chirp --help serve [--host H] [--port N]   # browse the help at http://127.0.0.1:3111/
 ```
 
@@ -15,6 +16,10 @@ chirp --help serve [--host H] [--port N]   # browse the help at http://127.0.0.1
 ## Browsing
 
 `serve` is for reading and searching in a browser instead of a terminal. It shows the same entries as `query` and `read`, with the same search syntax, and links each topic to its sections and back. By default it listens on localhost only, so nothing else on the network can reach it. `--host 0.0.0.0` binds all interfaces, which exposes the help to the network; the pages themselves need no network. If the port is taken it says so and exits 1; pick another with `--port`. Ctrl-C stops it.
+
+## Source
+
+A docstring leaves out how a binding works, so the definition is in the binary too: the Janet code of core, the bundled modules and chirp's own changes to them, and the C of Janet's core functions. `read <id> --source` prints it after the docstring, behind a `file:line` line that names where it came from; without `--source` the output is only the docstring. The `serve` pages show it under the docstring. A binding whose source is not in the binary, such as most native modules, just has none. The source is not searched.
 
 ## Query examples
 
