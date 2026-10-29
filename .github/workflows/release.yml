@@ -74,16 +74,16 @@ jobs:
           # The changelog is the single source of what changed. A dry run has a
           # -dev version with no section of its own, so it shows Unreleased.
           slug=changelog/${version//./-}
-          if ! section=$(artifacts/chirp-linux-x64-a/chirp help read "$slug" 2>/dev/null); then
+          if ! section=$(artifacts/chirp-linux-x64-a/chirp --help read "$slug" 2>/dev/null); then
             if [ "$REF_TYPE" = tag ]; then
               echo "::error::CHANGELOG.md has no '## $version' section"
               exit 1
             fi
-            section=$(artifacts/chirp-linux-x64-a/chirp help read changelog/unreleased)
+            section=$(artifacts/chirp-linux-x64-a/chirp --help read changelog/unreleased)
           fi
           # The heading is replaced so the notes read as one page under the release title.
           printf '\n## Changes\n%s\n' "$(tail -n +2 <<< "$section")" >> out/notes.md
-      # chirp self-update trusts this signature and nothing else in the release.
+      # chirp --self-update trusts this signature and nothing else in the release.
       # The shipped linux-x64 binary signs, which also keeps the signing code
       # exercised by every release.
       - name: Sign the checksums

@@ -48,8 +48,8 @@
 (array/insert pages 2
   {:url "help/index.html" :nav "Help"
    :sources [["site/help-index.md"
-              (string "# Help topics\n\nThe same text is inside the binary: `chirp help` lists it, "
-                      "`chirp help query '<words>'` searches it with every bundled module's docstrings.\n\n"
+              (string "# Help topics\n\nThe same text is inside the binary: `chirp -h` lists it, "
+                      "`chirp --help query '<words>'` searches it with every bundled module's docstrings.\n\n"
                       ;(seq [p :in pages :when (string/has-prefix? "help/" (p :url))]
                          (def [path text] ((p :sources) 0))
                          (string "- [" (first-heading text) "](../" path ")\n")))]]})

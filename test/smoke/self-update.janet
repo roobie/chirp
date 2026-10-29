@@ -71,7 +71,7 @@
                    "127.0.0.1" port))
     (defer (:close server)
       (ev/sleep 0.2)
-      (defn update [& flags] (run-copy exe "self-update" "--base" base "--key" key-file ;flags))
+      (defn update [& flags] (run-copy exe "--self-update" "--base" base "--key" key-file ;flags))
       (defn fails [what [code _ err] needle]
         (assert (and (not= 0 code) (string/find needle err))
                 (string what ": exit " code ", stderr " (string/format "%q" err)))

@@ -1,12 +1,12 @@
 # self-update
 
-`chirp self-update` replaces the running chirp with the latest release for its own platform, after checking that the release was signed with the key built into this binary.
+`chirp --self-update` replaces the running chirp with the latest release for its own platform, after checking that the release was signed with the key built into this binary.
 
 ```sh
-chirp self-update --check     # show current and latest version; change nothing
-chirp self-update             # update if the latest release is newer
-chirp self-update --force     # also allow a pre-release build to update
-chirp self-update --base URL --key release-key.pem   # a mirror
+chirp --self-update --check     # show current and latest version; change nothing
+chirp --self-update             # update if the latest release is newer
+chirp --self-update --force     # also allow a pre-release build to update
+chirp --self-update --base URL --key release-key.pem   # a mirror
 ```
 
 ## What is trusted
@@ -36,5 +36,3 @@ download/v<version>/chirp-<version>-<target>
 ```
 
 `SHA256SUMS` is in `sha256sum` format and lists `chirp-<version>-<target>` for every target; the Windows binary ends in `.exe`. The targets are `linux-x64`, `linux-arm64`, `macos-arm64` and `windows-x64`. `SHA256SUMS.sig` is the raw 64-byte Ed25519 signature over the exact bytes of `SHA256SUMS`. `--key` names a PEM file with the matching public key; without it chirp uses the key it was built with.
-
-A script named `self-update` must be run as `./self-update`, because `chirp self-update` is this command.

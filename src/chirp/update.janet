@@ -1,4 +1,4 @@
-# `chirp self-update`. The release is a static file tree: a signed SHA256SUMS
+# `chirp --self-update`. The release is a static file tree: a signed SHA256SUMS
 # names the binary for each target, so the signature, not the transport, is
 # what is trusted, and any mirror can serve the tree.
 (import spork-https :as https)
@@ -187,7 +187,7 @@
       "--force" (put opts :force true)
       "--base" (put opts :base (value a))
       "--key" (put opts :key (value a))
-      (die "unknown argument " a ". Usage: chirp self-update [--check] [--force] [--base URL] [--key PEM]"))
+      (die "unknown argument " a ". Usage: chirp --self-update [--check] [--force] [--base URL] [--key PEM]"))
     (++ i))
   opts)
 
@@ -202,7 +202,7 @@
   (def target (target-name targets))
   (when (and (not (opts :check)) (pre-release? version) (not (opts :force)))
     (die "this is chirp " version ", a pre-release build from main, not a release. "
-         "Releases are what self-update installs; use --force to replace it anyway"))
+         "Releases are what --self-update installs; use --force to replace it anyway"))
   (def sums-text (verified-sums base key user-agent))
   (def [latest name sha] (latest-release (parse-sums sums-text) target))
   (def newer? (pos? (compare-versions latest version)))
@@ -228,11 +228,11 @@
       (print "updated chirp " version " -> " latest " at " exe))))
 
 (defn run
-  "Run `chirp self-update`. args are the words after it; config has :version,
+  "Run `chirp --self-update`. args are the words after it; config has :version,
   :base, :targets and :key (the public key as PEM). Failures print to stderr and
   exit 1, leaving the running binary as it was."
   [args config]
   (def [ok err] (protect (self-update args config)))
   (unless ok
-    (eprint "chirp self-update: " err)
+    (eprint "chirp --self-update: " err)
     (os/exit 1)))

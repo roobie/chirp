@@ -17,8 +17,8 @@ chirp removes that step. The batteries are inside the binary, so a script writte
 - **One file, nothing else.** Every bundled module imports with nothing on disk.
 - **The same everywhere.** Every platform runs the same Janet and the same module versions, so behaviour does not drift between machines.
 - **Verifiable.** Builds are reproducible: CI builds each target twice and ships only when both hashes match. Every release carries SHA256SUMS, an Ed25519 signature and GitHub build provenance.
-- **Works offline.** `chirp help` searches the docs of every bundled module and of Janet's core, and `chirp --changelog` says what changed.
-- **Keeps itself current.** `chirp self-update` installs the latest release only after checking its signature.
+- **Works offline.** `chirp --help query` searches the docs of every bundled module and of Janet's core, and `chirp --changelog` says what changed.
+- **Keeps itself current.** `chirp --self-update` installs the latest release only after checking its signature.
 
 chirp does not fork Janet or its libraries. It pins upstream versions and bundles them, so Janet's own docs and community apply as they are.
 
@@ -29,9 +29,9 @@ chirp                    # REPL, like janet
 chirp script.janet       # run a script, like janet
 echo '(print 1)' | chirp # run code from stdin
 chirp --version          # chirp 0.4.0 (unofficial build, not a Janet release) on Janet …
-chirp --help             # chirp's entry points, then Janet's options
+chirp --help             # chirp's entry points, the help topics, then Janet's options
 chirp --changelog        # what changed in each release, offline
-chirp self-update        # replace chirp with the latest signed release (--check only reports)
+chirp --self-update      # replace chirp with the latest signed release (--check only reports)
 ```
 
 Inside chirp, every bundled module can be imported without anything on disk:
@@ -84,7 +84,7 @@ From 0.4.0, `pcre2` brings Perl-style regular expressions, the syntax that grep,
 (pcre2/find-all "\\d+" "1 22 333")                                  # an array of matches
 ```
 
-Matching is bounded by counts instead of time (`:match-limit`, `:depth-limit` and `:heap-limit`, all with defaults), so a pattern that backtracks without end stops with an error that names the limit, the same way on every machine. `chirp help query pcre2` lists the functions and their options.
+Matching is bounded by counts instead of time (`:match-limit`, `:depth-limit` and `:heap-limit`, all with defaults), so a pattern that backtracks without end stops with an error that names the limit, the same way on every machine. `chirp --help query pcre2` lists the functions and their options.
 
 From 0.4.0, `md4c` renders Markdown to HTML. The default is plain CommonMark; `:github` adds tables, strikethrough, task lists, autolinks, admonitions and footnotes, and each extension can also be set on its own:
 
@@ -94,7 +94,7 @@ From 0.4.0, `md4c` renders Markdown to HTML. The default is plain CommonMark; `:
 (md4c/to-html (slurp "README.md") {:github true})  # the body only, without <html> or <head>
 ```
 
-Raw HTML in the input is passed through, as CommonMark says, so pass `:no-html true` for text you do not trust. `chirp help query md4c` lists the options.
+Raw HTML in the input is passed through, as CommonMark says, so pass `:no-html true` for text you do not trust. `chirp --help query md4c` lists the options.
 
 From 0.4.0, `lexbor` parses HTML the way a browser does and finds elements with CSS selectors, for example to check what a deployed site serves:
 
@@ -105,11 +105,11 @@ From 0.4.0, `lexbor` parses HTML the way a browser does and finds elements with 
 (lexbor/text (lexbor/select-first page "h1"))                     # nil when nothing matches
 ```
 
-A node is a handle into its document, so it can be searched in turn (`(lexbor/select node "li")`), and `lexbor/html` gives its markup back. `chirp help query lexbor` lists the functions.
+A node is a handle into its document, so it can be searched in turn (`(lexbor/select node "li")`), and `lexbor/html` gives its markup back. `chirp --help query lexbor` lists the functions.
 
 ## Help
 
-`chirp help` lists the help topics, `chirp help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp help read <id>` prints a result in full. The text is inside the binary.
+`chirp -h` lists the help topics, `chirp --help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp --help read <id>` prints a result in full. The text is inside the binary.
 
 ## What it bundles
 
@@ -144,7 +144,7 @@ Releases are on the [releases page](https://github.com/roobie/chirp/releases). E
 | `chirp-<version>-windows-x64.exe` | Windows x64 |
 | `NOTICES-<target>.txt` | third-party license texts for that binary |
 | `SHA256SUMS` | the sha256 of every asset |
-| `SHA256SUMS.sig` | Ed25519 signature of `SHA256SUMS`, checked by `chirp self-update` |
+| `SHA256SUMS.sig` | Ed25519 signature of `SHA256SUMS`, checked by `chirp --self-update` |
 
 On Linux and macOS, make the binary executable with `chmod +x`. macOS binaries are signed ad hoc, not by an Apple developer ID, so a downloaded one is quarantined. After verifying it, remove the quarantine flag with `xattr -d com.apple.quarantine chirp-<version>-macos-arm64`.
 

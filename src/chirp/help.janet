@@ -66,12 +66,12 @@
   (add-docs "" root-env false)
   (sort-by |($ :id) out))
 
-(defn- die [& msg] (eprint "chirp help: " ;msg) (os/exit 1))
+(defn- die [& msg] (eprint "chirp --help: " ;msg) (os/exit 1))
 
-# The usage text is the `help` topic, so it stays content and is searchable too.
-(defn- usage [entries]
-  (print ((find |(= "help" ($ :id)) entries) :text))
-  (print "\n## Topics\n")
+(defn print-topics
+  "Print the help topics, one per line: id and title."
+  [entries]
+  (print "Topics\n")
   (each e entries
     (when (= :topic (e :kind)) (print "  " (e :id) "  " (e :title)))))
 
@@ -104,7 +104,7 @@
           (unless (and (int? limit) (pos? limit)) (die "--limit needs a positive integer")))
       (array/push words a))
     (++ i))
-  (when (empty? words) (die "query needs a search string, e.g. chirp help query certificate"))
+  (when (empty? words) (die "query needs a search string, e.g. chirp --help query certificate"))
   (def [ok rows] (query entries (string/join words " ") limit))
   (unless ok (die "invalid query: " rows))
   (if (empty? rows)
@@ -114,22 +114,22 @@
       (print "    " (one-line s)))))
 
 (defn- cmd-read [entries args]
-  (unless (= 1 (length args)) (die "read needs exactly one id, e.g. chirp help read https"))
+  (unless (= 1 (length args)) (die "read needs exactly one id, e.g. chirp --help read https"))
   (def id (first args))
   (if-let [e (find |(= id ($ :id)) entries)]
     (print (e :text))
     (let [near (take 5 (filter |(string/find id ($ :id)) entries))]
       (die "no entry " id
-           (if (empty? near) ". Try: chirp help query <words>"
+           (if (empty? near) ". Try: chirp --help query <words>"
              (string ". Did you mean: " (string/join (map |($ :id) near) ", ")))))))
 
 (defn run
-  "Dispatch `chirp help ...`; args are the words after `help`."
+  "Dispatch `chirp --help <word> ...`; args are the words after `--help`, at
+  least one. An unknown word is a usage error: exit 2."
   [entries args]
   (case (first args)
-    nil (usage entries)
     "query" (cmd-query entries (slice args 1))
     "read" (cmd-read entries (slice args 1))
-    (do (eprint "chirp help: unknown command " (first args))
-        (usage entries)
-        (os/exit 1))))
+    (do (eprint "chirp --help: unknown command " (first args)
+                ". Try: chirp -h")
+        (os/exit 2))))

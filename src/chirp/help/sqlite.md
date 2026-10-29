@@ -48,4 +48,4 @@ FTS5 is compiled in. Create a virtual table, insert, and query with `MATCH`; `bm
   (print (r :title)))
 ```
 
-`chirp help query` itself is built on this.
+`chirp --help query` itself is built on this.

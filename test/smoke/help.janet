@@ -1,13 +1,22 @@
 # The baked-in help answers offline: ranked search, reads, and clean failures.
 (defn- help [& args]
-  (def p (os/spawn [(dyn *executable*) "help" ;args] :p {:out :pipe :err :pipe}))
+  (def p (os/spawn [(dyn *executable*) "--help" ;args] :p {:out :pipe :err :pipe}))
   (def [out err] (ev/gather (ev/read (p :out) :all) (ev/read (p :err) :all)))
   [(os/proc-wait p) (string out) (string err)])
 
 (defn main [&]
   (def [ucode uout _] (help))
-  (assert (and (= 0 ucode) (string/find "NEAR(" uout) (string/find "  sqlite  SQLite" uout))
-          "bare help shows query examples and topics")
+  (assert (and (= 0 ucode) (string/find "chirp --help query" uout)
+               (string/find "  sqlite  SQLite" uout) (string/find "Options are:" uout))
+          "bare --help shows usage, topics and Janet's options")
+
+  (def [kcode kout _] (help "read" "help"))
+  (assert (and (= 0 kcode) (string/find "NEAR(" kout)) "the help topic holds query examples")
+
+  (def [xcode xout xerr] (help "bogus"))
+  (assert (= 2 xcode) "unknown word exits 2")
+  (assert (and (empty? xout) (string/find "bogus" xerr) (not (string/find "Options are:" xerr)))
+          "unknown word is named on stderr, nothing else printed")
 
   (def [qcode qout _] (help "query" "sqlite"))
   (assert (= 0 qcode) "query exits 0")

@@ -8,6 +8,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 - `chirp --dev-proc --install` writes the dev-proc agent skill (how work is run in a repo with a `.work/` directory) from the binary alone, so no checkout is needed. The files go to `.agents/skills/dev-proc` and `.claude/skills/dev-proc` is a relative link to them, the layout the npm `skills` package uses; `-g` installs under the home directory instead and `--copy` writes a real copy in place of the link. Installing again changes nothing when the copy is identical; a copy you have edited is refused unless you pass `--force`, which rewrites only the shipped files; files you added are left alone; and a `.claude/skills/dev-proc` that is not this link is never replaced. The installed skill runs with `chirp .claude/skills/dev-proc/scripts/dev-proc.janet`.
 
+### Changed
+
+- The offline help and the updater are now flags like the rest of chirp's own commands: `chirp --help query '<words>'`, `chirp --help read <id>` and `chirp --self-update` (`-h` still works for `--help`, and bare `chirp -h` now ends with the list of help topics). This frees the words `help` and `self-update` for your own scripts: `chirp help a b` runs a file named `help` like any other script. The old forms `chirp help …` and `chirp self-update` are gone, with no hint left behind. Asking `--help` about a word it does not know exits 2.
+
 ## 0.4.0
 
 Released 2026-10-28.

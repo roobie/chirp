@@ -76,12 +76,19 @@
         ((debugger-on-status env) f res)))))
 
 # Janet's list is not copied: its own handler prints it and exits 0.
-# Code fences are markdown for `chirp help read`, noise on a terminal.
-(defn- print-help []
-  (each line (string/split "\n" (string/trim (usage-entry :body)))
-    (unless (string/has-prefix? "```" line) (print line)))
-  (print)
-  (cli-main @["-h"]))
+# Code fences are markdown for `chirp --help read`, noise on a terminal.
+# Words after -h/--help go to the offline help; bare, it is chirp's usage, the
+# help topics, then Janet's options.
+(defn- print-help [words]
+  (if (empty? words)
+    (do
+      (each line (string/split "\n" (string/trim (usage-entry :body)))
+        (unless (string/has-prefix? "```" line) (print line)))
+      (print)
+      (help/print-topics help-entries)
+      (print)
+      (cli-main @["-h"]))
+    (help/run help-entries words)))
 
 (defn main [& argv]
   (eachp [name env] bundled (put module/cache name env))
@@ -92,17 +99,16 @@
     # must show in the exit status.
     nil (if (os/isatty stdin)
           (do
-            (print (identity-line ca) " - '(doc)' or 'chirp help' for help")
+            (print (identity-line ca) " - '(doc)' or 'chirp -h' for help")
             (cli-main @["-q"]))
           (run-stdin @["-"]))
     "-" (run-stdin args)
     "-v" (print (identity-line ca))
     "--version" (print (identity-line ca))
     "--changelog" (prin (extra-topics "changelog"))
-    "-h" (print-help)
-    "--help" (print-help)
-    "help" (help/run help-entries (array/slice args 1))
-    "self-update" (update/run (array/slice args 1) update-config)
+    "-h" (print-help (array/slice args 1))
+    "--help" (print-help (array/slice args 1))
+    "--self-update" (update/run (array/slice args 1) update-config)
     (if-let [flag (first args)
              name (and (string/has-prefix? "--" flag) (string/slice flag 2))
              _ ((skills-config :skills) name)]

@@ -10,16 +10,15 @@ chirp script.janet arg...          # run a script
 chirp - arg...                     # run stdin as a script
 chirp -v | --version               # version and identity
 chirp --changelog                  # what changed in each release
-chirp help                         # offline docs
-chirp help query '<words>'         # search them
-chirp help read <id>               # print one result
-chirp self-update [--check] [--force]   # replace chirp with the latest release
+chirp -h | --help                  # this text, the help topics, then Janet's options
+chirp --help query '<words>'       # search the offline docs
+chirp --help read <id>             # print one result
+chirp --self-update [--check] [--force]   # replace chirp with the latest release
 chirp --dev-proc                   # the dev-proc agent skill: options
 chirp --dev-proc --install [-g] [--copy] [--force]   # write it into this project, or ~ with -g
-chirp -h | --help                  # this text, then Janet's options
 ```
 
-All other options (`-e`, `-l` and the rest) are Janet's own and are listed below.
+All other options (`-e`, `-l` and the rest) are Janet's own and are listed below. chirp's own commands are all options, so a bare word is always a script file: `chirp help` runs a script named `help`.
 
 ## Version and identity
 
@@ -27,7 +26,7 @@ All other options (`-e`, `-l` and the rest) are Janet's own and are listed below
 
 ## Certificate authorities
 
-TLS verifies certificates by default. At startup chirp uses the file named by `SSL_CERT_FILE` if that is set. Otherwise it takes the first of these that exists and sets `SSL_CERT_FILE` to it: `/etc/ssl/certs/ca-certificates.crt`, `/etc/pki/tls/certs/ca-bundle.crt`, `/etc/ssl/cert.pem`. Windows has no such file, so HTTPS there needs `SSL_CERT_FILE` set by hand; see `chirp help read https/windows-certificates`.
+TLS verifies certificates by default. At startup chirp uses the file named by `SSL_CERT_FILE` if that is set. Otherwise it takes the first of these that exists and sets `SSL_CERT_FILE` to it: `/etc/ssl/certs/ca-certificates.crt`, `/etc/pki/tls/certs/ca-bundle.crt`, `/etc/ssl/cert.pem`. Windows has no such file, so HTTPS there needs `SSL_CERT_FILE` set by hand; see `chirp --help read https/windows-certificates`.
 
 ## Running scripts
 
@@ -39,7 +38,7 @@ TLS verifies certificates by default. At startup chirp uses the file named by `S
   (print "arguments: " (string/join (slice args 1) ",")))
 ```
 
-Run as `chirp script.janet a b`, this prints `script: script.janet` and `arguments: a,b`. With no arguments on a terminal chirp starts a REPL. A script named `help` must be run as `./help`, because `chirp help` is the help command.
+Run as `chirp script.janet a b`, this prints `script: script.janet` and `arguments: a,b`. With no arguments on a terminal chirp starts a REPL.
 
 ## Piping code in
 
@@ -79,8 +78,8 @@ Read a module's docs with `(doc ...)`, for example `chirp -e '(import spork/sh) 
 
 ## Updating chirp
 
-`chirp self-update` replaces the binary with the latest signed release; `--check` only reports. See `chirp help read self-update`.
+`chirp --self-update` replaces the binary with the latest signed release; `--check` only reports. See `chirp --help read self-update`.
 
 ## Offline help
 
-`chirp help` lists the help topics. `chirp help query '<words>'` searches them and the docstrings of every bundled module and of Janet's core. `chirp help read <id>` prints one result in full. The text is inside the binary, so it works offline.
+`chirp -h` lists the help topics. `chirp --help query '<words>'` searches them and the docstrings of every bundled module and of Janet's core. `chirp --help read <id>` prints one result in full. The text is inside the binary, so it works offline.

@@ -17,9 +17,9 @@
   (assert (string/find (string "\n" heading "\n") (string/replace-all "\r" "" out))
           (string "no " heading " section for " version))
 
-  (def [rcode rout rerr] (run "help" "read" "changelog/0-1-0"))
+  (def [rcode rout rerr] (run "--help" "read" "changelog/0-1-0"))
   (assert (and (= 0 rcode) (string/find "## 0.1.0" rout)) (string "read section: " rerr))
 
-  (def [qcode qout _] (run "help" "query" "changelog"))
+  (def [qcode qout _] (run "--help" "query" "changelog"))
   (assert (and (= 0 qcode) (string/find "changelog" qout)) (string "query: " qout))
   (print "ok changelog"))
