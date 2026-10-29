@@ -24,9 +24,9 @@ The `sqlite3` module embeds SQLite, so no system library is needed. It was added
 (print (sqlite3/last-insert-rowid db))
 ```
 
-## Rows are tables
+## Rows are structs
 
-A query returns an array of tables keyed by column name as keywords:
+A query returns an array of structs keyed by column name as keywords. Structs are immutable; `(thaw row)` gives a mutable table copy.
 
 ```janet
 (def rows (sqlite3/eval db "SELECT name, wingspan FROM birds ORDER BY id;"))

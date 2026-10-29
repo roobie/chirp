@@ -79,3 +79,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-27 slice gh-pages-site delivered: https://roobie.github.io/chirp/ (D-ME7B5XOAG245FN65, L-QMATIVF5W37HM6U4, L-EGSSVSI3WKR7ORNR); homepage URL is B-YHXYPFVYVAOKLA2Z
 - 2026-10-28 slice lexbor delivered: `lexbor` module, HTML parsing and CSS selectors (D-AYM6G4PAISONUDLK); site tests in B-VDJWHBDAHVSYULLB
 - 2026-10-28 slice site-tests delivered: `site/check.janet` checks the built and live site in `pages` (D-BRHSLBZO62TBVJZA)
+- 2026-10-30 task sqlite-help-rows-structs delivered: the sqlite help says query rows are structs, not tables
