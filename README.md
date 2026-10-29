@@ -109,7 +109,7 @@ A node is a handle into its document, so it can be searched in turn (`(lexbor/se
 
 ## Help
 
-`chirp -h` lists the help topics, `chirp --help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp --help read <id>` prints a result in full. The text is inside the binary.
+`chirp -h` lists the help topics, `chirp --help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp --help read <id>` prints a result in full. The text is inside the binary. `chirp --help serve` shows the same help in a browser at `http://127.0.0.1:3111/`.
 
 ## What it bundles
 

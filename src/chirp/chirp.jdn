@@ -16,6 +16,9 @@
  # The changelog is a repo-root file people read on GitHub; copying it into
  # help/ would let the two drift.
  :help-extra {"changelog" "../../CHANGELOG.md"}
+ # `chirp --help serve`: where it listens unless --host or --port say otherwise, and the
+ # stylesheet its pages use (the project site's, so the two look alike).
+ :help-serve {:host "127.0.0.1" :port 3111 :style "../../site/style.css"}
  # Agent skills that `chirp --<name> --install` can write, name -> directory from
  # this directory. The repo's own copy stays the source of truth.
  :skills {"dev-proc" "../../.agents/skills/dev-proc"}

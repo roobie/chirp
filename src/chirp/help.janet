@@ -2,6 +2,7 @@
 # run searches it at runtime with an in-memory FTS5 index, so nothing is read
 # from disk and no database blob ships.
 (import sqlite3)
+(import ./help-serve)
 
 (defn- slug [s]
   (string/join (peg/match ~(any (+ (<- (some (range "az" "09"))) 1))
@@ -77,20 +78,27 @@
 
 (defn- one-line [s] (string/trim (peg/replace-all ~(some (set " \t\r\n")) " " s)))
 
-(defn- query [entries q limit]
+(defn index
+  "An open in-memory FTS5 database over the entries. The caller closes it."
+  [entries]
   (def db (sqlite3/open ":memory:"))
-  (defer (sqlite3/close db)
-    # The porter stemmer lets `certificate` find `certificates`.
-    (sqlite3/eval db "CREATE VIRTUAL TABLE t USING fts5(id, title, body, tokenize = 'porter unicode61');")
-    (sqlite3/eval db "BEGIN;")
-    (each e entries
-      (sqlite3/eval db "INSERT INTO t VALUES (?, ?, ?);" [(e :id) (e :title) (e :body)]))
-    (sqlite3/eval db "COMMIT;")
-    # Title outweighs id outweighs body.
-    (protect (sqlite3/eval db (string/format
-                                "SELECT id, title, snippet(t, 2, '', '', '...', 16) AS s FROM t
-                                 WHERE t MATCH :q ORDER BY bm25(t, 3.0, 10.0, 1.0) LIMIT %d;" limit)
-                           {:q q}))))
+  # The porter stemmer lets `certificate` find `certificates`.
+  (sqlite3/eval db "CREATE VIRTUAL TABLE t USING fts5(id, title, body, tokenize = 'porter unicode61');")
+  (sqlite3/eval db "BEGIN;")
+  (each e entries
+    (sqlite3/eval db "INSERT INTO t VALUES (?, ?, ?);" [(e :id) (e :title) (e :body)]))
+  (sqlite3/eval db "COMMIT;")
+  db)
+
+(defn search
+  "Ranked hits for an FTS5 query: [true rows] with id, title and snippet `s`, or
+  [false message] when the query is invalid."
+  [db q limit]
+  # Title outweighs id outweighs body.
+  (protect (sqlite3/eval db (string/format
+                              "SELECT id, title, snippet(t, 2, '', '', '...', 16) AS s FROM t
+                               WHERE t MATCH :q ORDER BY bm25(t, 3.0, 10.0, 1.0) LIMIT %d;" limit)
+                         {:q q})))
 
 (defn- cmd-query [entries args]
   (var limit 10)
@@ -105,7 +113,8 @@
       (array/push words a))
     (++ i))
   (when (empty? words) (die "query needs a search string, e.g. chirp --help query certificate"))
-  (def [ok rows] (query entries (string/join words " ") limit))
+  (def db (index entries))
+  (def [ok rows] (defer (sqlite3/close db) (search db (string/join words " ") limit)))
   (unless ok (die "invalid query: " rows))
   (if (empty? rows)
     (print "no matches")
@@ -123,13 +132,42 @@
            (if (empty? near) ". Try: chirp --help query <words>"
              (string ". Did you mean: " (string/join (map |($ :id) near) ", ")))))))
 
+(defn- cmd-serve [entries args serve-config]
+  (var port (serve-config :port))
+  (var host (serve-config :host))
+  (var i 0)
+  (while (< i (length args))
+    (def a (args i))
+    (case a
+      "--port" (do
+                 (++ i)
+                 (set port (scan-number (get args i "")))
+                 (unless (and (int? port) (<= 1 port 65535))
+                   (eprint "chirp --help: serve: --port needs an integer from 1 to 65535")
+                   (os/exit 2)))
+      "--host" (do
+                 (++ i)
+                 (set host (get args i))
+                 (when (or (nil? host) (empty? host))
+                   (eprint "chirp --help: serve: --host needs an address, e.g. 0.0.0.0")
+                   (os/exit 2)))
+      (do (eprint "chirp --help: serve: unknown option " a ". Try: chirp --help read help")
+          (os/exit 2)))
+    (++ i))
+  # One index for the server's whole life; every request searches it.
+  (def db (index entries))
+  (help-serve/serve entries (fn [q limit] (search db q limit))
+                    (merge serve-config {:port port :host host})))
+
 (defn run
   "Dispatch `chirp --help <word> ...`; args are the words after `--help`, at
-  least one. An unknown word is a usage error: exit 2."
-  [entries args]
+  least one. An unknown word is a usage error: exit 2. serve-config is what
+  `serve` needs: :host, :port, :style (stylesheet text) and :version."
+  [entries args serve-config]
   (case (first args)
     "query" (cmd-query entries (slice args 1))
     "read" (cmd-read entries (slice args 1))
+    "serve" (cmd-serve entries (slice args 1) serve-config)
     (do (eprint "chirp --help: unknown command " (first args)
                 ". Try: chirp -h")
         (os/exit 2))))

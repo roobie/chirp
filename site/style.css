@@ -42,3 +42,10 @@ th { background: var(--code-bg); }
 hr { border: 0; border-top: 2px solid var(--line); margin: 3rem 0; }
 blockquote { margin: 1rem 0; padding: 0 1rem; color: var(--muted); border-left: 3px solid var(--line); }
 img { max-width: 100%; }
+form.search { display: flex; gap: .5rem; margin: 1rem 0; }
+form.search input { flex: 1; min-width: 0; font: inherit; padding: .4rem .6rem; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
+form.search button { font: inherit; padding: .4rem .9rem; color: var(--fg); background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; }
+ul.results { list-style: none; padding: 0; }
+ul.results li { margin: .8rem 0; }
+ul.results small { color: var(--muted); }
+.error { color: var(--accent); }

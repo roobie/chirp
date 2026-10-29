@@ -28,6 +28,11 @@
   (tabseq [[stem path] :pairs (config :help-extra)]
     stem (slurp (string here path))))
 (def- help-entries (help/collect (string here "help/") bundled extra-topics))
+# `--help serve` pages use the project site's stylesheet, baked in like the topics.
+(def- serve-config
+  (let [c (config :help-serve)]
+    {:host (c :host) :port (c :port) :version (config :version)
+     :style (slurp (string here (c :style)))}))
 
 # Skill files are read now, in sorted order, like the help topics.
 (import ./skills)
@@ -88,7 +93,7 @@
       (help/print-topics help-entries)
       (print)
       (cli-main @["-h"]))
-    (help/run help-entries words)))
+    (help/run help-entries words serve-config)))
 
 (defn main [& argv]
   (eachp [name env] bundled (put module/cache name env))
