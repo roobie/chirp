@@ -52,9 +52,12 @@
   (def tmp (tmpdir "dev-proc"))
   (defer (sh/rm tmp)
     (def no-env {})
+    # The image carries the files as committed; a Windows checkout may have
+    # turned their line endings into CRLF.
+    (defn text [path] (string/replace-all "\r" "" (slurp path)))
     (defn same-as-source? [dir]
       (and (deep= (tuple ;shipped) (tuple ;(walk dir)))
-           (all |(= (string (slurp (string source "/" $))) (string (slurp (string dir "/" $)))) shipped)))
+           (all |(= (text (string source "/" $)) (text (string dir "/" $))) shipped)))
     (defn exits [what want [code out err]]
       (assert (= want code) (string what ": exit " code " " (string/format "%q" (string out err))))
       (string out err))

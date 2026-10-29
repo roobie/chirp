@@ -40,6 +40,8 @@ Dogfooded: the skill's source of truth is now `.agents/skills/dev-proc`, and `.c
 - 2026-10-28 local linux-x64 container build: smoke suite all 17 checks pass, dev-proc-install included (layout, relative link, installed copy runs init+status, up-to-date, refuse, --force, foreign dir, --copy, -g). CI not yet run.
 - 2026-10-28 dogfood: git mv to .agents/skills/dev-proc, rebuilt, `chirp --dev-proc --install` in the repo → "up to date" (3 test files left in place, not shipped) + "linked .claude/skills/dev-proc -> ../../.agents/skills/dev-proc". Then smoke (all pass), the 3 dev-proc test files (pass), dev-proc check (ok), site build + site check (11 pages ok).
 
+- 2026-10-28 CI run 40791461184 (2ec89fb): every build, compare, leakcheck and smoke green except smoke windows-x64, where dev-proc-install's byte compare met a CRLF checkout; the test now compares text without CR.
+
 ## Harvest
 - [ ] decision: --install refuses to overwrite a modified copy or replace a foreign .claude/skills/dev-proc, unlike npm skills which overwrites — content is moddable, so user edits are not clobbered silently; files it does not ship never refuse an install (they are never touched, and the source repo keeps its tests beside the shipped files)
 - [ ] decision: this repo's skill lives in .agents/skills/dev-proc, the same layout the installer makes, with .claude/skills/dev-proc a committed link
