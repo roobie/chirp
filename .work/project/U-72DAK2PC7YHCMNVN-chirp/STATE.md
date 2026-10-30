@@ -26,10 +26,9 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.5.0 is published: `--help serve`, `--help read --source`, `--dev-proc --install`, chirp's own commands as flags, and the sqlite help fix. Main carries `0.6.0-dev` with an empty Unreleased section (D-DYWSJTLDO6S5DQDR). Slice dev-proc-ergonomics (U-2J5YBCNW6SJWWCGW) is executing.
+0.5.0 is published: `--help serve`, `--help read --source`, `--dev-proc --install`, chirp's own commands as flags, and the sqlite help fix. Main carries `0.6.0-dev` with an empty Unreleased section (D-DYWSJTLDO6S5DQDR). Unreleased: dev-proc ergonomics (U-2J5YBCNW6SJWWCGW).
 
 ## Next
-- Merge slice dev-proc-ergonomics.
 - Pick from the backlog with BR.
 
 ## Evidence
@@ -83,3 +82,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-28 slice site-tests delivered: `site/check.janet` checks the built and live site in `pages` (D-BRHSLBZO62TBVJZA)
 - 2026-10-30 task sqlite-help-rows-structs delivered: the sqlite help says query rows are structs, not tables
 - 2026-10-30 v0.5.0 tagged (BR) and released (run 40981408317); main moves to 0.6.0-dev
+- 2026-10-30 slice dev-proc-ergonomics delivered: one-command units and records, `note`, `trailers`, local dates; `--` terminator in B-DDPZPOA7SAX5D6LX, stale-ref hints in B-PC45JD26WTVBOKGI

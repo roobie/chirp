@@ -4,6 +4,14 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Added
+
+- The dev-proc skill (`chirp --dev-proc --install`) needs fewer hand edits. `new` takes `--criterion`, `--purpose` and `--execute`, so a unit can be created and pass its gate in one command. `new` and `record` take section text from `--body-file` or `--body -` (stdin), and print just the id with `--id` or a JSON object with `--json`. `note <unit> now|next|evidence|harvest|log "…"` writes a unit's working sections, and `trailers` prints the `Work:` lines for what is staged.
+
+### Fixed
+
+- dev-proc dates follow the local calendar day; they were the UTC day, so late-evening or early-morning work could be dated a day off.
+
 ## 0.5.0
 
 Released 2026-10-30.
