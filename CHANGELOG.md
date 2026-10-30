@@ -2,7 +2,9 @@
 
 What changed for people who use chirp, newest first; the binary carries this file so it can be read offline.
 
-## Unreleased
+## 0.6.0
+
+Released 2026-10-30.
 
 ### Added
 

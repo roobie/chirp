@@ -26,9 +26,10 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.5.0 is published: `--help serve`, `--help read --source`, `--dev-proc --install`, chirp's own commands as flags, and the sqlite help fix. Main carries `0.6.0-dev` with an empty Unreleased section (D-DYWSJTLDO6S5DQDR). Unreleased: dev-proc ergonomics (U-2J5YBCNW6SJWWCGW).
+0.5.0 is published. Main carries `0.6.0`, ready to tag: CHANGELOG.md's Unreleased section became `## 0.6.0` (D-DYWSJTLDO6S5DQDR), covering dev-proc ergonomics (U-2J5YBCNW6SJWWCGW).
 
 ## Next
+- Tag `v0.6.0` once main CI is green (BR asked for the release so other hosts get the dev-proc changes, and pushes the tag, 2026-10-30); then main moves to `0.7.0-dev`.
 - Pick from the backlog with BR.
 
 ## Evidence
