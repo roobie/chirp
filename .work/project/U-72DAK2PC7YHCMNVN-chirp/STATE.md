@@ -85,3 +85,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-30 v0.5.0 tagged (BR) and released (run 40981408317); main moves to 0.6.0-dev
 - 2026-10-30 slice dev-proc-ergonomics delivered: one-command units and records, `note`, `trailers`, local dates; `--` terminator in B-DDPZPOA7SAX5D6LX, stale-ref hints in B-PC45JD26WTVBOKGI
 - 2026-10-30 v0.6.0 tagged (BR) and released (run 40984863210); main moves to 0.7.0-dev; self-update gap filed as #7
+- 2026-10-30 slice release-cut delivered: tools/release/cut.janet makes the release edits and the move to the next -dev; the tag stays manual (D-MB5WIOASYBDI7AEB)
