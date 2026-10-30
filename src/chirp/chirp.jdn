@@ -1,6 +1,6 @@
 {# A -dev suffix marks builds from main; release.yml requires the tag to equal
  # this, so a release first drops the suffix.
- :version "0.5.0"
+ :version "0.6.0-dev"
  # `chirp --self-update` reads <base>/latest/download/ and <base>/download/v<version>/,
  # a file tree that any mirror can serve.
  :update {:base "https://github.com/roobie/chirp/releases"
