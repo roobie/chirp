@@ -50,7 +50,7 @@
 (defn- some-str [s] (when (and s (not= s "")) s))
 
 (defn- today []
-  (def d (os/date)) # UTC, as Date#toISOString is
+  (def d (os/date nil true)) # the local calendar day: work done after local midnight belongs to the new day
   (string/format "%04d-%02d-%02d" (d :year) (+ 1 (d :month)) (+ 1 (d :month-day))))
 
 (defn- rank [type] (or (index-of type TYPES) -1))
@@ -224,8 +224,8 @@
 
 (defn- title-of [body] (if-let [m (heading-match body)] (m 2) ""))
 
-# /^## <heading>\s*$([\s\S]*?)(?=^## |(?![\s\S]))/m : the section text after the heading line
-(defn- section [body heading]
+# /^## <heading>\s*$([\s\S]*?)(?=^## |(?![\s\S]))/m : [text-start text-end heading-line-end] of the section
+(defn- section-range [body heading]
   (def n (length body))
   (def head (string "## " heading))
   (var res nil)
@@ -240,9 +240,30 @@
       (when (>= p k)
         (var q p)
         (while (and (< q n) (not (and (line-start? body q) (fm/at? body q "## ")))) (++ q))
-        (set res (string/slice body p q))))
+        (set res [p q (eol body k)])))
     (++ i))
-  (or res ""))
+  res)
+
+# the section text after the heading line
+(defn- section [body heading]
+  (if-let [[p q] (section-range body heading)] (string/slice body p q) ""))
+
+(defn- need-section [body heading]
+  (or (section-range body heading) (die (string "no \"## " heading "\" section"))))
+
+# The section's body becomes `text`; the heading line and every other section stay as they are.
+(defn- replace-section [body heading text]
+  (def [_ q hend] (need-section body heading))
+  (def t (fm/jtrim text))
+  (string (string/slice body 0 hend) "\n" (if (empty? t) "" (string t "\n"))
+          (if (< q (length body)) (string "\n" (string/slice body q)) "")))
+
+# `line` joins the section's end, in front of the blank line that separates it from the next one.
+(defn- append-to-section [body heading line]
+  (def [_ q hend] (need-section body heading))
+  (var e q)
+  (while (and (> e hend) (fm/ws? (body (- e 1)))) (-- e))
+  (string (string/slice body 0 e) "\n" line "\n" (if (< q (length body)) (string "\n" (string/slice body q)) "")))
 
 # An occurrence at j is a /^\s*<lit>/m match when only whitespace lies between it and a line start.
 (defn- at-line-start-ws? [s j]
@@ -503,6 +524,13 @@
 
 (defn- print-json [v] (print (jenc v "")))
 
+# What a creating command prints: only the id (--id), one JSON object (--json), or the human lines.
+(defn- report [args id obj & lines]
+  (cond
+    (args "id") (print id)
+    (args "json") (print-json obj)
+    (each l lines (print l))))
+
 # ---------- gates
 
 (defn- gate-problems [root u to]
@@ -609,6 +637,66 @@
       (die (string "parent " (p :label) " must be a higher level than " type)))
     (p :id)))
 
+# [text before the first "## " heading, [[heading text] …]]; "## " lines inside code fences are content.
+(defn- split-sections [text]
+  (def pre @"")
+  (def out @[])
+  (var fence false)
+  (each line (string/split "\n" text)
+    (def t (fm/jtrim line))
+    (def heading? (and (not fence) (string/has-prefix? "## " line)))
+    (when (or (string/has-prefix? "```" t) (string/has-prefix? "~~~" t)) (set fence (not fence)))
+    (cond
+      heading? (array/push out @[(fm/jtrim (string/slice line 3)) @[]])
+      (empty? out) (buffer/push pre line "\n")
+      (array/push ((last out) 1) line)))
+  [(string pre) (map (fn [[h ls]] [h (string/join ls "\n")]) out)])
+
+# The body given with --body - (stdin) or --body-file: each "## Heading" block replaces the section of
+# that name in the template `text`. `taken` names sections another flag has already filled.
+(defn- apply-body [ctx args text taken]
+  (when (and (args "body") (args "body-file")) (die "give --body or --body-file, not both"))
+  (def src
+    (cond
+      (args "body-file") (read-file (resolve (ctx :cwd) (args "body-file")))
+      (args "body") (if (= (args "body") "-")
+                      (string (or (file/read stdin :all) ""))
+                      (die "--body takes - (read stdin); use --body-file for a file"))))
+  (if (nil? src)
+    text
+    (do
+      (def [pre blocks] (split-sections src))
+      (unless (empty? (fm/jtrim pre)) (die "the body must start with a \"## Heading\" line"))
+      (def valid (map |($ 0) ((split-sections text) 1)))
+      (def seen @{})
+      (var out text)
+      (each [h b] blocks
+        (unless (index-of h valid)
+          (die (string "no section \"" h "\" in the template; valid: " (string/join valid ", "))))
+        (when (or (seen h) (index-of h taken)) (die (string "section \"" h "\" is given twice")))
+        (put seen h true)
+        (set out (replace-section out h b)))
+      out)))
+
+# Moves the unit through the gate and returns the line to report; dies when the gate is closed.
+(defn- move-phase [root u to force]
+  (unless (index-of to PHASES)
+    (die (string "phase must be one of: " (string/join PHASES ", ") " (use `close` to end a unit)")))
+  (def from (fm/fm-get (u :fm) "phase"))
+  (if (= from to)
+    (string (show u) " already in " to)
+    (do
+      (def forward (> (index-of to PHASES) (or (and (string? from) (index-of from PHASES)) -1)))
+      (def problems (if forward (gate-problems root u to) @[]))
+      (when (and (not (empty? problems)) (not force))
+        (die (string "gate → " to " closed:\n  ✗ " (string/join problems "\n  ✗ ")
+                     "\n(--force to override, and say why in the Log)")))
+      (spit (u :state-path) (dump-doc (fm-set (u :fm) "phase" to) (u :body)))
+      (append-log (u :state-path)
+                  (string "phase " (jstr from) " → " to
+                          (if (and force (not (empty? problems))) " (forced)" "")))
+      (string (show u) ": " (jstr from) " → " to))))
+
 (defn- cmd-new [ctx args]
   (def [type name] (args :pos))
   (unless (index-of type TYPES) (die (string "type must be one of: " (string/join TYPES ", "))))
@@ -620,55 +708,89 @@
   (def id (new-ident "U"))
 
   (var origin "")
-  (when (some-str (args "from"))
-    (def b (find-record root (args "from")))
-    (unless (= (b :kind) "backlog") (die (string (args "from") " is not a backlog item")))
-    # Demote the item's headings so they nest under Origin instead of becoming STATE sections.
-    (def body (b :body))
-    (def detail (demote-headings
-                  (fm/jtrim (if-let [m (heading-match body)]
-                              (string (string/slice body 0 (m 0)) (string/slice body (m 1)))
-                              body))))
-    (set origin (string "\n### Origin\nPromoted from backlog: " (title-of body) "\n\n" detail "\n"))
-    (sh/rm (b :file)))
+  (def backlog
+    (when (some-str (args "from"))
+      (def b (find-record root (args "from")))
+      (unless (= (b :kind) "backlog") (die (string (args "from") " is not a backlog item")))
+      # Demote the item's headings so they nest under Origin instead of becoming STATE sections.
+      (def body (b :body))
+      (def detail (demote-headings
+                    (fm/jtrim (if-let [m (heading-match body)]
+                                (string (string/slice body 0 (m 0)) (string/slice body (m 1)))
+                                body))))
+      (set origin (string "\n### Origin\nPromoted from backlog: " (title-of body) "\n\n" detail "\n"))
+      b))
 
-  (def dir (pjoin (root :dir) type (string id "-" name)))
-  (mkdirp dir)
   (def owner (if (some-str (args "owner"))
                (map fm/jtrim (string/split "," (args "owner")))
                @["TODO: person and/or agent"]))
+  (def criteria (list-of (args "criterion")))
   (def front @[@["phase" "initialize"] @["parent" parent] @["owner" owner] @["created" (today)]
-               @["success_criteria" @["TODO: observable outcome that proves this unit is done"]]])
+               @["success_criteria" (if (empty? criteria)
+                                      @["TODO: observable outcome that proves this unit is done"]
+                                      criteria)]])
   (def vars {"id" id "label" lbl "date" (today)})
-  (spit (pjoin dir "STATE.md")
-        (dump-doc front (replace-first (template "STATE.md" vars) "<!-- origin -->"
-                                       (if (empty? (fm/jtrim origin)) "" origin))))
+  # Everything that can fail is built before the first file is touched.
+  (var state (template "STATE.md" vars))
+  (def purpose (some-str (args "purpose")))
+  (when purpose (set state (replace-section state "Purpose" purpose)))
+  (set state (apply-body ctx args state (if purpose ["Purpose"] [])))
+  # The marker sits in Context & constraints, which a body may have replaced.
+  (unless (empty? (fm/jtrim origin))
+    (set state (if (string/find "<!-- origin -->" state)
+                 (replace-first state "<!-- origin -->" origin)
+                 (append-to-section state "Context & constraints" (string "\n" (fm/jtrim origin))))))
+  (set state (replace-first state "<!-- origin -->" ""))
+  (def designs (seq [f :in (filter |(not= $ "") (string/split "," (or (args "with") "")))]
+                 (or (get {"design" "DESIGN.md" "plan" "PLAN.md"} (fm/jtrim f)) (die "--with takes design,plan"))))
+
+  (when backlog (sh/rm (backlog :file)))
+  (def dir (pjoin (root :dir) type (string id "-" name)))
+  (mkdirp dir)
+  (spit (pjoin dir "STATE.md") (dump-doc front state))
   (def created @["STATE.md"])
-  (each f (filter |(not= $ "") (string/split "," (or (args "with") "")))
-    (def file (or (get {"design" "DESIGN.md" "plan" "PLAN.md"} (fm/jtrim f)) (die "--with takes design,plan")))
+  (each file designs
     (spit (pjoin dir file) (template file vars))
     (array/push created file))
-  (print "created " id " " lbl ": " (rel (ctx :top) dir) "/ {" (string/join created ", ") "}  mode: initialize")
-  (when (some-str (args "from")) (print "consumed backlog " (args "from"))))
+
+  # --execute runs the gate of `phase <unit> execute`; the unit exists either way.
+  (def gate
+    (when (args "execute")
+      (def fresh (load-root (root :dir)))
+      (protect (move-phase fresh (find-unit fresh id) "execute" false))))
+  (report args id
+          (jobj "id" id "label" lbl "type" type "name" name "path" (rel (ctx :top) dir)
+                "phase" (if (and gate (gate 0)) "execute" "initialize")
+                "files" created "consumed" (some-str (args "from")))
+          (string "created " id " " lbl ": " (rel (ctx :top) dir) "/ {" (string/join created ", ") "}  mode: initialize")
+          ;(if backlog [(string "consumed backlog " (args "from"))] [])
+          ;(if (and gate (gate 0)) [(gate 1)] []))
+  (when (and gate (not (gate 0))) (error (gate 1))))
 
 (defn- cmd-phase [ctx args]
   (def [id to] (args :pos))
-  (unless (index-of to PHASES)
-    (die (string "phase must be one of: " (string/join PHASES ", ") " (use `close` to end a unit)")))
   (def root ((ctx :root)))
-  (def u (find-unit root id))
-  (def from (fm/fm-get (u :fm) "phase"))
-  (when (= from to) (print (show u) " already in " to) (break))
-  (def forward (> (index-of to PHASES) (or (and (string? from) (index-of from PHASES)) -1)))
-  (def problems (if forward (gate-problems root u to) @[]))
-  (when (and (not (empty? problems)) (not (args "force")))
-    (die (string "gate → " to " closed:\n  ✗ " (string/join problems "\n  ✗ ")
-                 "\n(--force to override, and say why in the Log)")))
-  (spit (u :state-path) (dump-doc (fm-set (u :fm) "phase" to) (u :body)))
-  (append-log (u :state-path)
-              (string "phase " (jstr from) " → " to
-                      (if (and (args "force") (not (empty? problems))) " (forced)" "")))
-  (print (show u) ": " (jstr from) " → " to))
+  (print (move-phase root (find-unit root id) to (args "force"))))
+
+(def NOTE-SECTIONS {"now" "Now" "next" "Next" "evidence" "Evidence" "harvest" "Harvest" "log" "Log"})
+
+(defn- cmd-note [ctx args]
+  (def [ref sec & words] (args :pos))
+  (def heading (get NOTE-SECTIONS sec))
+  (unless (and ref heading) (die (string "usage: note <unit> <" (string/join (sort (keys NOTE-SECTIONS)) "|") "> \"text\"")))
+  (def text (fm/jtrim (string/join (or words []) " ")))
+  (when (empty? text) (die "a note needs text"))
+  (def u (find-unit ((ctx :root)) ref))
+  (need-section (u :body) heading)
+  (case sec
+    "log" (append-log (u :state-path) text)
+    (spit (u :state-path)
+          (dump-doc (u :fm)
+                    (case sec
+                      "evidence" (append-to-section (u :body) heading (string "- " text))
+                      "harvest" (append-to-section (u :body) heading (string "- [ ] " text))
+                      (replace-section (u :body) heading text)))))
+  (print (show u) ": " sec " updated"))
 
 (defn- cmd-rescope [ctx args]
   (def root ((ctx :root)))
@@ -747,13 +869,18 @@
                    @["supersedes" (unless (empty? supersedes) supersedes)]]
       "learning" @[@["date" (today)] @["read_if" read-if] @["refs" refs]]
       "backlog" @[@["created" (today)]]))
+  (def text (apply-body ctx args (template (string kind ".md") {"id" id "title" title "date" (today)}) []))
   (mkdirp (dirname file))
-  (spit file (dump-doc front (template (string kind ".md") {"id" id "title" title "date" (today)})))
+  (spit file (dump-doc front text))
   (each r old (os/rm (r :file)))
-  (print "created " (rel (ctx :top) file))
-  (unless (empty? old)
-    (print "deleted " (string/join (map |($ :id) old) ", ") " — add to the commit message:")
-    (each r old (print "  Supersedes: " (r :id)))))
+  (report args id
+          (jobj "id" id "kind" kind "path" (rel (ctx :top) file)
+                "superseded" (unless (empty? old) (map |($ :id) old)))
+          (string "created " (rel (ctx :top) file))
+          ;(if (empty? old)
+             []
+             [(string "deleted " (string/join (map |($ :id) old) ", ") " — add to the commit message:")
+              ;(map |(string "  Supersedes: " ($ :id)) old)])))
 
 (defn- check-ref [ref base top]
   (def i (string/find "#" ref))
@@ -799,6 +926,29 @@
                (or (nil? best) (> (length (r :base)) (length (best :base)))))
       (set best r)))
   best)
+
+# The roots with an executing unit where code is staged but no unit's STATE.md is: what the
+# pre-commit check rejects. Each is {:root-rel … :executing [units whose STATE.md would satisfy it]}.
+(defn- state-gaps [roots top staged]
+  (def out @[])
+  (each root roots
+    (def root-rel (rel top (root :dir)))
+    (def executing (filter |(= (fm/fm-get ($ :fm) "phase") "execute") (root :units)))
+    (unless (empty? executing)
+      (def mine (filter |(= (owning-root roots top $) root) staged))
+      (def code (some |(not (string/has-prefix? (string root-rel "/") $)) mine))
+      (def state (some |(and (string/has-prefix? (string root-rel "/") $) (string/has-suffix? "/STATE.md" $)) mine))
+      (when (and code (not state))
+        (array/push out {:root-rel root-rel :executing executing}))))
+  out)
+
+# Roots that hold a staged file, in staged order.
+(defn- touched-roots [roots top staged]
+  (def out @[])
+  (each f staged
+    (when-let [r (owning-root roots top f)]
+      (unless (find |(= $ r) out) (array/push out r))))
+  out)
 
 (defn- cmd-check [ctx args]
   (def roots (map load-root (all-roots (ctx :top))))
@@ -847,16 +997,9 @@
         (when (todo-line? (r :body)) (array/push warns (string at ": unfilled TODO"))))))
 
   (when (args "staged")
-    (def staged (staged-files (ctx :top)))
-    (each root roots
-      (def root-rel (rel (ctx :top) (root :dir)))
-      (when (some |(= (fm/fm-get ($ :fm) "phase") "execute") (root :units))
-        (def mine (filter |(= (owning-root roots (ctx :top) $) root) staged))
-        (def code (some |(not (string/has-prefix? (string root-rel "/") $)) mine))
-        (def state (some |(and (string/has-prefix? (string root-rel "/") $) (string/has-suffix? "/STATE.md" $)) mine))
-        (when (and code (not state))
-          (array/push (if (strict?) errors warns)
-                      (string root-rel ": code changed under an executing unit but no STATE.md is staged — keep docs current in every commit"))))))
+    (each g (state-gaps roots (ctx :top) (staged-files (ctx :top)))
+      (array/push (if (strict?) errors warns)
+                  (string (g :root-rel) ": code changed under an executing unit but no STATE.md is staged — keep docs current in every commit"))))
 
   (each w warns (print "warn  " w))
   (each e errors (print "error " e))
@@ -899,11 +1042,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (def file (or (first (args :pos)) (die "usage: check-msg <commit-msg-file>")))
   (def msg (strip-comments (read-file (resolve (ctx :cwd) file))))
   (def roots (map load-root (all-roots (ctx :top))))
-  (def touched @[])
-  (each f (staged-files (ctx :top))
-    (when-let [r (owning-root roots (ctx :top) f)]
-      (unless (find |(= $ r) touched) (array/push touched r))))
-  (def active (some |(not (empty? ($ :units))) touched))
+  (def active (some |(not (empty? ($ :units))) (touched-roots roots (ctx :top) (staged-files (ctx :top)))))
   (def trailers (work-trailers msg))
   (def out @[])
   (when (and active (empty? trailers))
@@ -913,6 +1052,28 @@ match the words, best first. --backlog also searches backlog items. --json is fo
       (array/push out (string "trailer \"Work: " t "\" is not a unit id (U-<16 base32 chars>)"))))
   (each o out (print (if (strict?) "error" "warn ") " " o))
   (when (and (not (empty? out)) (strict?)) (put ctx :exit 1)))
+
+(defn- cmd-trailers [ctx args]
+  (def top (ctx :top))
+  (def roots (map load-root (all-roots top)))
+  (def staged (staged-files top))
+  # A unit is named by the directory of any staged file, so a unit deleted by `close` counts too.
+  (def found @[])
+  (each f staged
+    (when-let [r (owning-root roots top f)]
+      (def segs (string/split "/" (string/slice f (min (length f) (+ 1 (length (rel top (r :dir))))))))
+      (when-let [rk (index-of (get segs 0) TYPES)
+                 m (peg/match unit-dir-peg (get segs 1 ""))]
+        (unless (find |(= ($ 0) (m 0)) found) (array/push found [(m 0) rk (length found)])))))
+  # Most specific unit first, ties in staged order.
+  (each [id] (sorted found (fn [a b] (or (> (a 1) (b 1)) (and (= (a 1) (b 1)) (< (a 2) (b 2))))))
+    (print "Work: " id))
+  # The hooks ask for nothing further: any one valid Work: trailer satisfies check-msg.
+  (each g (state-gaps roots top staged)
+    (eprint "warn  " (g :root-rel) ": code is staged under an executing unit but no STATE.md is; the pre-commit check passes once one of these is staged: "
+            (string/join (map |(rel top (pjoin ($ :dir) "STATE.md")) (g :executing)) ", ")))
+  (when (and (empty? found) (some |(not (empty? ($ :units))) (touched-roots roots top staged)))
+    (eprint "warn  staged changes fall under active units, but no unit file is staged to name one")))
 
 (defn- cmd-dig [ctx args]
   (def id (or (first (args :pos)) (die "usage: dig <U-… | D-… | L-… | B-…>")))
@@ -989,12 +1150,25 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   status [<unit>] [--json]                 tree of units, or one unit's mode + gate
   find <words…> [--backlog] [--json]       decisions and learnings whose read_if or title match what you are about to do
   new <type> <name> [--parent <unit>] [--owner a,b] [--from B-…] [--with design,plan]
+      [--criterion "…"]… [--purpose "…"] [--execute] [--id|--json] [body]
+                                           --criterion fills success_criteria, --purpose the Purpose section;
+                                           --execute then passes the gate of "phase <unit> execute" (the unit is
+                                           kept and the exit is nonzero when owner or criteria are missing);
+                                           --id prints only the id, --json one object
   phase <unit> <phase>      [--force]      move a unit (forward moves are gated)
+  note <unit> <now|next|evidence|harvest|log> "text"
+                                           now/next replace that section; evidence/harvest/log append one line
+                                           (log gets today's date, harvest "backlog: …" becomes "- [ ] backlog: …")
   rescope <unit> [--type t] [--name n] [--parent <unit>|none]
   close <unit> [--scrap --decision D-…]   delete a finalized unit's docs
   record <decision|learning|backlog> <title> [--read-if "…"]… [--ref path#symbol]… [--supersedes D-…,…]
+      [--id|--json] [body]
+  [body] = --body-file <path> | --body -   (stdin). Markdown of "## Heading" blocks; each replaces the
+           template section of that name, an unknown heading is an error naming the valid ones.
   check [--staged]                         lint every .work/ root in the repo
   check-msg <file>                         lint a commit message's Work: trailer
+  trailers                                 print Work: lines for the units whose files are staged, most specific
+                                           first; warns on stderr when the pre-commit check would want a STATE.md
   dig <U-…|D-…|L-…|B-…>                    show deleted docs from git history
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
@@ -1003,9 +1177,9 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 (def COMMANDS
   {"init" cmd-init "status" cmd-status "find" cmd-find "new" cmd-new "phase" cmd-phase
    "rescope" cmd-rescope "close" cmd-close "record" cmd-record "check" cmd-check
-   "check-msg" cmd-check-msg "dig" cmd-dig "hooks" cmd-hooks})
-(def BOOLEAN {"json" true "scrap" true "staged" true "hook" true "force" true "help" true "backlog" true})
-(def REPEATABLE {"read-if" true "ref" true})
+   "check-msg" cmd-check-msg "trailers" cmd-trailers "note" cmd-note "dig" cmd-dig "hooks" cmd-hooks})
+(def BOOLEAN {"id" true "execute" true "json" true "scrap" true "staged" true "hook" true "force" true "help" true "backlog" true})
+(def REPEATABLE {"read-if" true "ref" true "criterion" true})
 
 # Positional arguments live under :pos; flags under their string name.
 (defn- parse-args [argv]

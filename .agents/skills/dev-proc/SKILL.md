@@ -60,12 +60,14 @@ Every id is a kind prefix (`U` unit, `D` decision, `L` learning, `B` backlog) pl
 ### idle (no unit covers the work)
 Curate the backlog: merge duplicates, drop stale items, and keep it short. A backlog file is a candidate, not a commitment. To start work: `$DP new <type> <name> [--parent <unit>] [--from B-…] [--with design,plan]`. `--from` consumes the backlog item into `STATE.md`.
 
+A unit or record should take one command, not a command plus a hand edit, and the result still shows in the diff: `new` and `record` can fill fields and sections and pass the execute gate as they create, and print just the id for scripts (`$DP help`). Dates are the local calendar day, the day the person working sees.
+
 ### initialize
 Establish **purpose, scope, context, constraints, resources, ownership and success criteria** in `STATE.md` (plus `DESIGN.md`/`PLAN.md` when the unit is big enough to need them). Run `$DP find "<the unit's purpose>"` and read what it lists. The gate to execute requires a non-empty `owner` and observable `success_criteria`: `$DP phase <id> execute`.
 
 ### execute (loop)
 Repeat: **plan → act → inspect evidence → adapt → persist.**
-- Keep `## Now` and `## Next` current; it is a cursor, so rewrite freely.
+- Keep `## Now` and `## Next` current; it is a cursor, so rewrite freely. `$DP note` writes these and the other execute sections, so keeping them current costs one command.
 - Put proof against the criteria in `## Evidence`.
 - The moment you notice a decision, a learning or deferred work, add a `- [ ] decision|learning|backlog: …` line to `## Harvest`. Finalize depends on this list. Friction with the way of working itself goes in as `- [ ] process: …` and feeds the retrospective.
 - Append notable events to `## Log`, which is always the last section.
@@ -95,6 +97,7 @@ Choose a branch: **deliver** or **scrap**.
   Supersedes: D-K7Q2M4XWZ3PB5N6R      # when a decision replaces another (record --supersedes deletes the old file)
   Decision: D-3HVN7TQ2ALW5EXKC        # on a scrap commit
   ```
+- `$DP trailers` prints the `Work:` lines for what is staged, so ids are never typed by hand, and names the `STATE.md` the pre-commit check would still want. It leaves out ancestors: one valid trailer satisfies the hooks, and `parent` reaches the rest.
 - `$DP hooks install` adds pre-commit and commit-msg checks. They warn by default; `DEV_PROC_STRICT=1` makes them block.
 - `$DP check` before you hand off.
 
