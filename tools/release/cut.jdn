@@ -1,0 +1,7 @@
+{# Where the version lives; the script replaces only the :version string in it.
+ :version-file "src/chirp/chirp.jdn"
+ # Release notes are the section of this file named after the version.
+ :changelog "CHANGELOG.md"
+ # Docs showing the released version in a `# chirp X.Y.Z ` comment, so a release
+ # leaves no stale example; each must hold exactly one such comment.
+ :examples ["README.md"]}
