@@ -2,7 +2,9 @@
 
 What changed for people who use chirp, newest first; the binary carries this file so it can be read offline.
 
-## Unreleased
+## 0.5.0
+
+Released 2026-10-30.
 
 ### Added
 
@@ -13,6 +15,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 ### Changed
 
 - The offline help and the updater are now flags like the rest of chirp's own commands: `chirp --help query '<words>'`, `chirp --help read <id>` and `chirp --self-update` (`-h` still works for `--help`, and bare `chirp -h` now ends with the list of help topics). This frees the words `help` and `self-update` for your own scripts: `chirp help a b` runs a file named `help` like any other script. The old forms `chirp help …` and `chirp self-update` are gone, with no hint left behind. Asking `--help` about a word it does not know exits 2.
+
+### Fixed
+
+- The sqlite help said query rows are tables; they are structs, which cannot be changed in place. It now says so and points to `(thaw row)` for a mutable copy.
 
 ## 0.4.0
 

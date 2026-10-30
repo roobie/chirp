@@ -26,9 +26,10 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.4.0 is published: `pcre2` on PCRE2, `md4c` (Markdown to HTML) and `lexbor` (HTML parsing and CSS selectors). Main carries `0.5.0-dev` with an empty Unreleased section (D-DYWSJTLDO6S5DQDR).
+0.4.0 is published. Main carries `0.5.0`, ready to tag: CHANGELOG.md's Unreleased section became `## 0.5.0` (D-DYWSJTLDO6S5DQDR), covering `--help serve`, `--help read --source`, `--dev-proc --install`, chirp's own commands as flags, and the sqlite help fix.
 
 ## Next
+- Tag `v0.5.0` once main CI is green (BR asked for the release and pushes the tag, 2026-10-30); then main moves to `0.6.0-dev` with a fresh Unreleased section, and issues #1 and #2 close with a link to the release.
 - Pick from the backlog with BR.
 
 ## Evidence
