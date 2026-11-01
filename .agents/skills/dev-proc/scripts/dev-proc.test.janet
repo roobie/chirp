@@ -313,6 +313,14 @@
         # an open Harvest item blocks close, as it would by hand
         (check (string/find "1 unchecked" ((run dir "close" "task/noted") :stderr)))))))
 
+(test "note preserves text beginning with -- after the terminator"
+  (fn []
+    (note-test
+      (fn [dir file]
+        (def r (run dir "note" "task/noted" "log" "--" "--force was needed"))
+        (check (= 0 (r :status)) (r :stderr))
+        (check (string/find "--force was needed" (slurp file)) (slurp file))))))
+
 (test "note rejects an unknown section and empty text"
   (fn []
     (note-test

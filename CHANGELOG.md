@@ -7,6 +7,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 ### Added
 
 - The help topic `subprocess` (`chirp --help read subprocess`): running a program in another directory, and changing one environment variable without losing the rest.
+- The dev-proc skill takes `--` to end its options, so text that starts with `--` can follow: `note <unit> log -- "--force was needed"`.
 - `chirp --self-update --output PATH` saves the verified latest release at `PATH`, or inside it when it is a directory, without replacing the running chirp.
 
 ### Fixed

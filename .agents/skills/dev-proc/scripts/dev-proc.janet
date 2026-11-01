@@ -1172,7 +1172,9 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   dig <U-…|D-…|L-…|B-…>                    show deleted docs from git history
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
-  --root <dir>   use this .work/ instead of the nearest one above cwd`))
+  --root <dir>   use this .work/ instead of the nearest one above cwd
+  --             end of options: later arguments are text even if they start with --
+                 (note <unit> log -- "--force was needed")`))
 
 (def COMMANDS
   {"init" cmd-init "status" cmd-status "find" cmd-find "new" cmd-new "phase" cmd-phase
@@ -1181,14 +1183,17 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 (def BOOLEAN {"id" true "execute" true "json" true "scrap" true "staged" true "hook" true "force" true "help" true "backlog" true})
 (def REPEATABLE {"read-if" true "ref" true "criterion" true})
 
-# Positional arguments live under :pos; flags under their string name.
+# Positional arguments live under :pos; flags under their string name. A bare
+# -- ends the flags, so later arguments are positional even if they start with --.
 (defn- parse-args [argv]
   (def args @{:pos @[]})
+  (var flags? true)
   (var i 0)
   (while (< i (length argv))
     (def a (argv i))
-    (if (not (string/has-prefix? "--" a))
-      (array/push (args :pos) a)
+    (cond
+      (or (not flags?) (not (string/has-prefix? "--" a))) (array/push (args :pos) a)
+      (= a "--") (set flags? false)
       (let [s (string/slice a 2)
             eq (string/find "=" s)
             key (if eq (string/slice s 0 eq) s)]
