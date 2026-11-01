@@ -29,9 +29,9 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 0.6.0 is published. Main carries 0.7.0-dev; Unreleased holds the self-update read-only-directory fix with --output, the hyphenated help query fix, os/spawn :cd on linux, dev-proc's -- terminator, help search snippets as plain text with highlighted matches, help queries for any punctuated name (os/spawn), and REPL line editing through spork/getline. Milestone 0.7.0 holds #7 and #5; release.yml's close-milestone job closes them and the milestone when v0.7.0 is tagged.
 
 ## Next
-- BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z; the draft is in the backlog item) and the spork/getline one (B-DJQCZSQATWOHTVWU)
+- BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - Reply on #4 and #6 with spork/misc/print-table and spork/schema, per the triage
-- At the v0.7.0 release, check that close-milestone closed #5, #7 and milestone 0.7.0 (its first live run); close the leftover 0.5.0 milestone by hand
+- At the v0.7.0 release, check that close-milestone closed #5, #7 and milestone 0.7.0 (its first live run)
 - Then pick the next bug or backlog item with BR
 
 ## Evidence
@@ -101,3 +101,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-02 task help-snippets delivered
 - 2026-11-02 task release-closes-milestone delivered; first live run at v0.7.0
 - 2026-11-02 tasks help-query-punctuation and repl-line-editing delivered
+- 2026-11-02 milestone 0.5.0 closed by BR
