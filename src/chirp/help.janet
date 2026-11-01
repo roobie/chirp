@@ -94,15 +94,52 @@
   (sqlite3/eval db "COMMIT;")
   db)
 
+# FTS5 reads `-` in a bareword as an operator, so `dev-proc` asks for column
+# `proc`. Names like dev-proc are what people search for, so a hyphenated
+# bareword outside a quoted string becomes a phrase; other syntax passes as is.
+(def- query-grammar
+  {:w ~(+ (range "az" "AZ" "09") "_" (range "\x80\xff"))
+   :word ~(some :w)
+   :quoted ~(* `"` (any (+ `""` (if-not `"` 1))) (? `"`))
+   :hyphened ~(* :word (some (* "-" :word)))})
+
+(def- quote-hyphened
+  (peg/compile
+    (table/to-struct
+      (merge query-grammar
+             {:main ~(* (% (any (+ (<- :quoted)
+                                   (/ (<- :hyphened) ,|(string `"` $ `"`))
+                                   (<- :word) (<- 1))))
+                        -1)}))))
+
+(def- hyphened-terms
+  (peg/compile
+    (table/to-struct
+      (merge query-grammar {:main ~(any (+ :quoted (<- :hyphened) :word 1))}))))
+
 (defn search
   "Ranked hits for an FTS5 query: [true rows] with id, title and snippet `s`, or
-  [false message] when the query is invalid."
+  [false message] when the query is invalid. A hyphenated bareword such as
+  dev-proc is searched as a phrase, and entries whose id or title hold it
+  literally rank first."
   [db q limit]
+  # The stemmer makes the phrase spork-https also match spork/http, which then
+  # outranks the entries for the name itself; a literal hit settles it.
+  (def terms (peg/match hyphened-terms q))
+  (def params @{:q (first (peg/match quote-hyphened q))})
+  (def hits
+    (seq [[i term] :pairs terms
+          :let [k (keyword "h" i)]]
+      (put params k (string/ascii-lower term))
+      (string/format "(instr(lower(id), :%s) > 0 OR instr(lower(title), :%s) > 0)" k k)))
+  # A bare constant in ORDER BY would be read as a column number.
+  (def literal (if (empty? hits) "" (string "(" (string/join hits " + ") ") DESC, ")))
   # Title outweighs id outweighs body.
   (protect (sqlite3/eval db (string/format
                               "SELECT id, title, snippet(t, 2, '', '', '...', 16) AS s FROM t
-                               WHERE t MATCH :q ORDER BY bm25(t, 3.0, 10.0, 1.0) LIMIT %d;" limit)
-                         {:q q})))
+                               WHERE t MATCH :q ORDER BY %sbm25(t, 3.0, 10.0, 1.0) LIMIT %d;"
+                              literal limit)
+                         params)))
 
 (defn- cmd-query [entries args]
   (var limit 10)

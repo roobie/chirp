@@ -71,6 +71,8 @@
     (def [ps _] (get* "/read/%3E"))
     (assert (= 200 ps) "percent-encoded core name decodes")
 
+    (def [ks kb] (get* "/search?q=spork-https"))
+    (assert (and (= 200 ks) (string/find "spork-https/" kb)) "a hyphenated search is 200 with hits")
     (def [bs bb] (get* "/search?q=%22"))
     (assert (and (= 400 bs) (string/find "Invalid query" bb)) "invalid query is 400")
 

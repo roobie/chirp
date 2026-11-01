@@ -22,6 +22,11 @@
   (assert (= 0 qcode) "query exits 0")
   (assert (string/find "sqlite/" qout) (string "query hit: " qout))
 
+  # FTS5 would read the hyphen as an operator; the name is searched as a phrase.
+  (each [q hit] [["spork-https" "spork-https/"] ["self-update" "self-update"] ["dev-proc" "dev-proc"]]
+    (def [hcode hout herr] (help "query" q))
+    (assert (and (= 0 hcode) (string/find hit hout)) (string "hyphenated query " q ": " hcode " " hout herr)))
+
   (def [rcode rout _] (help "read" "chirp"))
   (assert (and (= 0 rcode) (string/find "# chirp" rout)) "read prints the file")
 

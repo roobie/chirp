@@ -62,3 +62,4 @@ Push; watch ci.yml smoke on linux-x64, linux-arm64, macos-arm64 (read-only case 
 - 2026-11-01 Linux 6.12: a running chirp cannot open its own file for writing (ETXTBSY, 'could not open file … with mode wb'), so an in-place fallback is impossible; the reporter's working cp ran after chirp exited
 - 2026-11-01 BR chose B: on a read-only directory save a verified binary elsewhere and print the install command; add --output
 - 2026-11-01 phase initialize → execute
+- 2026-11-01 pushed 07e6fe7-amended; waiting for ci.yml
