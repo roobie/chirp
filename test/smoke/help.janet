@@ -26,10 +26,19 @@
   (assert (and (string/find "trusted-cert" cout) (not (string/find "`" cout)) (not (string/find "\x02" cout)))
           (string "query snippets are plain text: " cout))
 
-  # FTS5 would read the hyphen as an operator; the name is searched as a phrase.
+  # FTS5 would read the punctuation as syntax; the name is searched as a phrase.
   (each [q hit] [["spork-https" "spork-https/"] ["self-update" "self-update"] ["dev-proc" "dev-proc"]]
     (def [hcode hout herr] (help "query" q))
     (assert (and (= 0 hcode) (string/find hit hout)) (string "hyphenated query " q ": " hcode " " hout herr)))
+  # A binding's name lists that binding first.
+  (each q ["os/spawn" "spork/getline/make-getline" "table?"]
+    (def [hcode hout herr] (help "query" q))
+    (assert (and (= 0 hcode) (string/has-prefix? (string q "  ") hout))
+            (string "query " q ": " hcode " " hout herr)))
+  (def [ccode cout cerr] (help "query" "os/spawn :cd"))
+  (assert (and (= 0 ccode) (string/find "subprocess/" cout)) (string "query os/spawn :cd: " ccode " " cout cerr))
+  (def [tcode tout terr] (help "query" "title:server"))
+  (assert (and (= 0 tcode) (string/find "server" tout)) (string "column filter: " tcode " " tout terr))
 
   (def [scode sout _] (help "query" "subprocess working directory"))
   (assert (and (= 0 scode) (string/find "subprocess/run-in-another-directory" sout))

@@ -37,7 +37,7 @@ chirp --help query 'id:sh'                 # only in ids, e.g. the spork/sh bind
 chirp --help query 'NEAR(read stream, 5)'  # within 5 words of each other
 ```
 
-A hyphenated name is searched as a phrase, and entries whose id or title hold it come first, so `chirp --help query spork-https` lists the spork-https bindings before spork/http; other punctuation needs a quoted phrase, such as `'"user-agent: x"'`. An invalid query prints the FTS5 error and exits 1.
+A name with punctuation in it, such as `spork-https`, `os/spawn`, `table?` or `:cd`, is searched as a phrase, and entries whose id or title hold it come first, so `chirp --help query spork-https` lists the spork-https bindings before spork/http. A `:` straight after a word is a column filter, as above; for anything else FTS5 treats as syntax, use a quoted phrase, such as `'"user-agent: x"'`. An invalid query prints the FTS5 error and exits 1.
 
 ## Ids
 
