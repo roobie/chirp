@@ -25,6 +25,7 @@
 # Help files and docstrings are read now, in sorted order, and live in the image.
 (import ./help)
 (import ./source)
+(import ./repl)
 (def- extra-topics
   (tabseq [[stem path] :pairs (config :help-extra)]
     stem (slurp (string here path))))
@@ -111,7 +112,7 @@
     nil (if (os/isatty stdin)
           (do
             (print (identity-line ca) " - '(doc)' or 'chirp -h' for help")
-            (cli-main @["-q"]))
+            (repl/run))
           (run-stdin @["-"]))
     "-" (run-stdin args)
     "-v" (print (identity-line ca))

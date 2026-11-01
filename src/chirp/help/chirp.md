@@ -39,7 +39,7 @@ TLS verifies certificates by default. At startup chirp uses the file named by `S
   (print "arguments: " (string/join (slice args 1) ",")))
 ```
 
-Run as `chirp script.janet a b`, this prints `script: script.janet` and `arguments: a,b`. With no arguments on a terminal chirp starts a REPL.
+Run as `chirp script.janet a b`, this prints `script: script.janet` and `arguments: a,b`. With no arguments on a terminal chirp starts a REPL, with history (Up and Down), cursor movement, Tab completion and Ctrl-G for the docstring of the name before the cursor.
 
 ## Piping code in
 
