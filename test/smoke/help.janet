@@ -21,6 +21,10 @@
   (def [qcode qout _] (help "query" "sqlite"))
   (assert (= 0 qcode) "query exits 0")
   (assert (string/find "sqlite/" qout) (string "query hit: " qout))
+  # The first hit is the https topic, whose markdown has `:trusted-cert`.
+  (def [_ cout _] (help "query" "certificate" "--limit" "1"))
+  (assert (and (string/find "trusted-cert" cout) (not (string/find "`" cout)) (not (string/find "\x02" cout)))
+          (string "query snippets are plain text: " cout))
 
   # FTS5 would read the hyphen as an operator; the name is searched as a phrase.
   (each [q hit] [["spork-https" "spork-https/"] ["self-update" "self-update"] ["dev-proc" "dev-proc"]]

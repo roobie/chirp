@@ -60,19 +60,29 @@
           "\" placeholder=\"Search the help\" aria-label=\"Search the help\" autofocus> "
           "<button type=\"submit\">Search</button></form>\n"))
 
+# Bytes that cannot occur in the help text mark the matched terms in a snippet,
+# so it can be escaped whole and the marks turned into <mark> after.
+(def- mark-open "\x02")
+(def- mark-close "\x03")
+
+(defn- snippet-html [s]
+  (->> (escape (string/trim s))
+       (string/replace-all mark-open "<mark>")
+       (string/replace-all mark-close "</mark>")))
+
 # The same markup is the whole results area of the page and the fragment the
 # script swaps in.
 (defn- results-html [search q]
   (if (empty? q)
     [200 ""]
-    (let [[ok rows] (search q 50)]
+    (let [[ok rows] (search q 50 [mark-open mark-close])]
       (cond
         (not ok) [400 (string "<p class=\"error\">Invalid query: " (escape rows) "</p>\n")]
         (empty? rows) [200 "<p>No matches.</p>\n"]
         [200 (string "<ul class=\"results\">\n"
                      ;(seq [{:id id :title title :s s} :in rows]
                         (string "<li><a href=\"" (link id) "\"><code>" (escape id) "</code> "
-                                (escape title) "</a><br><small>" (escape s) "</small></li>\n"))
+                                (escape title) "</a><br><small>" (snippet-html s) "</small></li>\n"))
                      "</ul>\n")]))))
 
 (defn- text-response [status type body]
@@ -83,8 +93,8 @@
         (string "<h1>Not found</h1>\n<p>" (escape what) "</p>\n<p><a href=\"/\">Back to the topics</a></p>\n")))
 
 (defn serve
-  "Serve the help entries over HTTP and block. `search` is (fn [q limit]) ->
-  [ok rows|message] over an index built once; config holds :host, :port, :style
+  "Serve the help entries over HTTP and block. `search` is (fn [q limit marks])
+  -> [ok rows|message] over an index built once, marks as in help/search; config holds :host, :port, :style
   (the stylesheet text) and :version."
   [entries search config]
   (def by-id (tabseq [e :in entries] (e :id) e))

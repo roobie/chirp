@@ -2,6 +2,8 @@
 # run searches it at runtime with an in-memory FTS5 index, so nothing is read
 # from disk and no database blob ships.
 (import sqlite3)
+(import md4c)
+(import lexbor)
 (import ./help-serve)
 
 (defn- slug [s]
@@ -22,19 +24,25 @@
       (array/push cur line)))
   [pre sections])
 
+# What a markdown entry says, without its syntax: the index searches and quotes
+# this, so snippets carry no backticks or fences.
+(defn- plain [md] (lexbor/text (lexbor/parse (md4c/to-html md {:github true}))))
+
 (defn- md-entries [stem text]
   (def [pre sections] (split-sections text))
   (def h1 (find |(string/has-prefix? "# " $) pre))
   (def entries
     @[{:id stem :kind :topic :text (string/trim text)
        :title (if h1 (string/trim (string/slice h1 2)) stem)
-       :body (string/join pre "\n")}])
+       :body (string/join pre "\n")
+       :plain (plain (string/join pre "\n"))}])
   (each [heading & lines] sections
     (def title (string/trim (string/slice heading 3)))
     (array/push entries
                 {:id (string stem "/" (slug title)) :kind :section :title title
                  :text (string/trim (string/join [heading ;lines] "\n"))
-                 :body (string/join lines "\n")}))
+                 :body (string/join lines "\n")
+                 :plain (plain (string/join lines "\n"))}))
   entries)
 
 (defn collect
@@ -83,14 +91,15 @@
 (defn- one-line [s] (string/trim (peg/replace-all ~(some (set " \t\r\n")) " " s)))
 
 (defn index
-  "An open in-memory FTS5 database over the entries. The caller closes it."
+  "An open in-memory FTS5 database over the entries. The caller closes it.
+  Markdown entries are indexed as plain text; docstrings as they are."
   [entries]
   (def db (sqlite3/open ":memory:"))
   # The porter stemmer lets `certificate` find `certificates`.
   (sqlite3/eval db "CREATE VIRTUAL TABLE t USING fts5(id, title, body, tokenize = 'porter unicode61');")
   (sqlite3/eval db "BEGIN;")
   (each e entries
-    (sqlite3/eval db "INSERT INTO t VALUES (?, ?, ?);" [(e :id) (e :title) (e :body)]))
+    (sqlite3/eval db "INSERT INTO t VALUES (?, ?, ?);" [(e :id) (e :title) (get e :plain (e :body))]))
   (sqlite3/eval db "COMMIT;")
   db)
 
@@ -121,12 +130,14 @@
   "Ranked hits for an FTS5 query: [true rows] with id, title and snippet `s`, or
   [false message] when the query is invalid. A hyphenated bareword such as
   dev-proc is searched as a phrase, and entries whose id or title hold it
-  literally rank first."
-  [db q limit]
+  literally rank first. `marks`, an optional [open close] pair of strings,
+  surrounds each matched term in the snippet."
+  [db q limit &opt marks]
+  (def [mark-open mark-close] (or marks ["" ""]))
   # The stemmer makes the phrase spork-https also match spork/http, which then
   # outranks the entries for the name itself; a literal hit settles it.
   (def terms (peg/match hyphened-terms q))
-  (def params @{:q (first (peg/match quote-hyphened q))})
+  (def params @{:q (first (peg/match quote-hyphened q)) :mo mark-open :mc mark-close})
   (def hits
     (seq [[i term] :pairs terms
           :let [k (keyword "h" i)]]
@@ -136,7 +147,7 @@
   (def literal (if (empty? hits) "" (string "(" (string/join hits " + ") ") DESC, ")))
   # Title outweighs id outweighs body.
   (protect (sqlite3/eval db (string/format
-                              "SELECT id, title, snippet(t, 2, '', '', '...', 16) AS s FROM t
+                              "SELECT id, title, snippet(t, 2, :mo, :mc, '...', 16) AS s FROM t
                                WHERE t MATCH :q ORDER BY %sbm25(t, 3.0, 10.0, 1.0) LIMIT %d;"
                               literal limit)
                          params)))
@@ -202,7 +213,7 @@
     (++ i))
   # One index for the server's whole life; every request searches it.
   (def db (index entries))
-  (help-serve/serve entries (fn [q limit] (search db q limit))
+  (help-serve/serve entries (fn [q limit marks] (search db q limit marks))
                     (merge serve-config {:port port :host host})))
 
 (defn run

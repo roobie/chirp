@@ -44,6 +44,16 @@
     (def [fs fb] (get* "/search?fragment=1&q=sqlite"))
     (assert (and (= 200 fs) (string/find "href=\"/read/" fb) (not (string/find "<html" fb))) "fragment is bare results")
 
+    # The https topic's snippet would show `:trusted-cert` with its backticks if
+    # it quoted the markdown; it quotes the text and marks the match instead.
+    # Docstrings are plain text already and keep their own backticks.
+    (def [ms mb] (get* "/search?fragment=1&q=certificate"))
+    (def topic-hit (let [from (string/find "/read/https/trusting-one-certificate" mb)]
+                     (and from (string/slice mb from (string/find "</li>" mb from)))))
+    (assert (and (= 200 ms) topic-hit (string/find "<mark>certificate</mark>" topic-hit)
+                 (not (string/find "`" topic-hit)) (not (string/find "\x02" mb)))
+            (string "topic snippets are text with marked matches: " (or topic-hit mb)))
+
     (def [rs rb] (get* "/read/chirp"))
     (assert (and (= 200 rs) (string/find "<h1>chirp</h1>" rb) (string/find "href=\"/read/chirp/usage\"" rb))
             "topic renders its heading and links its sections")
