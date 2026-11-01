@@ -29,7 +29,8 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 0.6.0 is published. Main carries 0.7.0-dev; Unreleased holds the self-update read-only-directory fix with --output, the hyphenated help query fix, and (slice spawn-cd) os/spawn :cd on linux. Milestone 0.7.0 holds #7.
 
 ## Next
-- Pick the next bug or backlog item with BR; the remaining small one is B-DDPZPOA7SAX5D6LX (dev-proc -- terminator)
+- Finish slice spawn-cd (U-ADROWBCLHGO3WS3X): CI evidence on all four targets, #5 reply, upstream janet reports
+- Then pick the next bug or backlog item with BR
 
 ## Evidence
 - Build-matrix (U-EP6NS3X66GBL2AQL): run 40095901156 builds all four targets twice with matching sha256, and smoke-runs each one on its native runner, HTTPS client and server included.
@@ -89,3 +90,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-01 task self-update-readonly-dir delivered: a read-only install directory gets a verified release and an install command, plus --output (D-V26BZ2WR76SFIGIG, L-YVDCKE6OQ563NH7P); refs #7, which closes with the release
 - 2026-11-01 task help-query-hyphen delivered: hyphenated names search as phrases and rank their own entries first (L-BRH7VAMIKGUSTHKF)
 - 2026-11-01 slice spawn-cd (U-ADROWBCLHGO3WS3X) opened for #5; milestone 0.7.0 created on GitHub with #7
+- 2026-11-01 task note-terminator delivered: -- ends dev-proc's options, so note text can start with --
