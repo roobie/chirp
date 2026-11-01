@@ -240,17 +240,21 @@
 
 (defn- flat [p] (string/replace-all "/" "___" p))
 
+# A defines table as sorted -D flags; true means a bare -DNAME.
+(defn- define-flags [defines]
+  (sort (seq [[k v] :pairs defines]
+          (if (= v true) (string "-D" k) (string "-D" k "=" v)))))
+
 (defn- build-native-cross [n tgt-ossl-root]
   (def {:name name} n)
   (def meta (eval-string (slurp (string "modpath/" name ".meta.janet"))))
   (def dir (string tgt-root "/" (flat name)))
   (mkdirs dir)
   (def defs
-    (sort (seq [[k v] :pairs (merge {"JANET_ENTRY_NAME" (meta :static-entry)
-                                     "JANET_BUILD_TYPE" "release"}
-                                    (get target :defines {})
-                                    (get n :defines {}))]
-            (if (= v true) (string "-D" k) (string "-D" k "=" v)))))
+    (define-flags (merge {"JANET_ENTRY_NAME" (meta :static-entry)
+                          "JANET_BUILD_TYPE" "release"}
+                         (get target :defines {})
+                         (get n :defines {}))))
   (def objs
     (in-dir (string abs-out "/src/" (string (get n :pin :janet)))
       (seq [s :in (native-sources n)]
@@ -278,6 +282,7 @@
   # The amalgamation produced by the native janet build, compiled for the target.
   (def janet-o (string tgt-root "/janet.o"))
   (zig ;tgt-cflags (string "-DJANET_BUILD=\"" janet/build "\"")
+       ;(define-flags (get target :janet-defines {}))
        "-c" "src/janet/build/c/janet.c" "-o" janet-o)
   (def image-o (string tgt-root "/image.o"))
   (zig ;tgt-cflags "-c" image-c "-o" image-o)

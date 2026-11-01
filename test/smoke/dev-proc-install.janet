@@ -14,7 +14,7 @@
       (array/push out (string prefix name))))
   (sorted out))
 
-# run changes directory, so a relative path to the binary would stop working.
+# The child resolves a relative program path after :cd, so it has to be absolute.
 (def exe
   (let [e (dyn *executable*)
         [ok p] (protect (os/realpath e))]
@@ -24,17 +24,14 @@
   "Run the binary under test in dir. Returns [exit stdout stderr], carriage
   returns removed."
   [dir env & args]
-  (def before (os/cwd))
-  (os/cd dir)
-  (defer (os/cd before)
-    # :e replaces the environment, so the overrides go on top of ours.
-    (def p (os/spawn [exe ;args] :pe (merge (os/environ) env {:out :pipe :err :pipe})))
-    (def [out err]
-      (try (ev/with-deadline 60 (ev/gather (ev/read (p :out) :all) (ev/read (p :err) :all)))
-        ([_] (os/proc-kill p true) [nil "killed after 60s"])))
-    [(os/proc-wait p)
-     (string/replace-all "\r" "" (string out))
-     (string/replace-all "\r" "" (string err))]))
+  # :e replaces the environment, so the overrides go on top of ours.
+  (def p (os/spawn [exe ;args] :pe (merge (os/environ) env {:cd dir :out :pipe :err :pipe})))
+  (def [out err]
+    (try (ev/with-deadline 60 (ev/gather (ev/read (p :out) :all) (ev/read (p :err) :all)))
+      ([_] (os/proc-kill p true) [nil "killed after 60s"])))
+  [(os/proc-wait p)
+   (string/replace-all "\r" "" (string out))
+   (string/replace-all "\r" "" (string err))])
 
 (defn- tmpdir [tag]
   (def d (string (or (os/getenv "TMPDIR") (os/getenv "TEMP") (os/getenv "TMP") (os/cwd))

@@ -26,7 +26,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.6.0 is published. Main carries 0.7.0-dev; Unreleased holds the self-update read-only-directory fix with --output, and the hyphenated help query fix.
+0.6.0 is published. Main carries 0.7.0-dev; Unreleased holds the self-update read-only-directory fix with --output, the hyphenated help query fix, and (slice spawn-cd) os/spawn :cd on linux. Milestone 0.7.0 holds #7.
 
 ## Next
 - Pick the next bug or backlog item with BR; the remaining small one is B-DDPZPOA7SAX5D6LX (dev-proc -- terminator)
@@ -88,3 +88,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-10-30 slice release-cut delivered: tools/release/cut.janet makes the release edits and the move to the next -dev; the tag stays manual (D-MB5WIOASYBDI7AEB)
 - 2026-11-01 task self-update-readonly-dir delivered: a read-only install directory gets a verified release and an install command, plus --output (D-V26BZ2WR76SFIGIG, L-YVDCKE6OQ563NH7P); refs #7, which closes with the release
 - 2026-11-01 task help-query-hyphen delivered: hyphenated names search as phrases and rank their own entries first (L-BRH7VAMIKGUSTHKF)
+- 2026-11-01 slice spawn-cd (U-ADROWBCLHGO3WS3X) opened for #5; milestone 0.7.0 created on GitHub with #7

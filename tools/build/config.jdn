@@ -12,15 +12,21 @@
  :build-machine {:openssl-flags ["-fPIC"]}
  # One entry per shipped target, picked by CHIRP_TARGET. Every one is built by
  # the pinned zig, so the compiler is the same whatever the target.
+ # :janet-defines go to janet.c only, :defines to the natives only.
  :targets {:linux-x64 {:triple "x86_64-linux-musl"
                        :openssl-target "linux-x86_64"
                        :cflags ["-std=c99" "-O2" "-fvisibility=hidden"]
+                       # musl has posix_spawn_file_actions_addchdir_np but no
+                       # macro for os.c to detect it by, so os/spawn's :cd is
+                       # off unless asked for.
+                       :janet-defines {"JANET_SPAWN_CHDIR" true}
                        # Static and without a build-id, which varies per build.
                        :lflags ["-static" "-s" "-Wl,--build-id=none"]
                        :libs ["-lm" "-lpthread" "-ldl"]}
            :linux-arm64 {:triple "aarch64-linux-musl"
                          :openssl-target "linux-aarch64"
                          :cflags ["-std=c99" "-O2" "-fvisibility=hidden"]
+                         :janet-defines {"JANET_SPAWN_CHDIR" true}
                          :lflags ["-static" "-s" "-Wl,--build-id=none"]
                          :libs ["-lm" "-lpthread" "-ldl"]}
            # libSystem is the only dynamic dependency; macOS has no static libc.

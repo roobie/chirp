@@ -27,6 +27,10 @@
     (def [hcode hout herr] (help "query" q))
     (assert (and (= 0 hcode) (string/find hit hout)) (string "hyphenated query " q ": " hcode " " hout herr)))
 
+  (def [scode sout _] (help "query" "subprocess working directory"))
+  (assert (and (= 0 scode) (string/find "subprocess/run-in-another-directory" sout))
+          (string "subprocess query: " sout))
+
   (def [rcode rout _] (help "read" "chirp"))
   (assert (and (= 0 rcode) (string/find "# chirp" rout)) "read prints the file")
 
