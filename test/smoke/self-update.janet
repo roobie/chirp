@@ -106,7 +106,46 @@
       (assert (and (= 0 ocode) (string/find "up to date" oout)) (string "older release: " ocode " " oout))
       (assert (unchanged?) "an older release replaced the binary")
 
+      # --output saves the release elsewhere and never touches the running binary.
       (publish)
+      (def want (fake-binary target))
+      (def out-dir (string tmp "/out"))
+      (os/mkdir out-dir)
+      (def [dcode dout derr] (update "--output" out-dir))
+      (def in-dir (string out-dir "/" (asset "99.0.0" target)))
+      (assert (and (= 0 dcode) (string/find in-dir dout) (= want (string (slurp in-dir))))
+              (string "--output DIR: " dcode " " (string/format "%q" (string dout derr))))
+      (def out-file (string tmp "/chirp-saved"))
+      (def [fcode fout ferr] (update "--output" out-file))
+      (assert (and (= 0 fcode) (= want (string (slurp out-file))))
+              (string "--output FILE: " fcode " " (string/format "%q" (string fout ferr))))
+      (assert (unchanged?) "--output changed the running binary")
+
+      # A binary its owner may write, in a directory nobody but root may: the
+      # update cannot rename, so it saves the verified release and says how to
+      # install it. Root and windows ignore the mode, so there it cannot be tested.
+      (def ro (string tmp "/ro"))
+      (os/mkdir ro)
+      (def ro-exe (string ro "/chirp-copy" (if windows? ".exe" "")))
+      (spit ro-exe original)
+      (unless windows? (os/chmod ro-exe 8r755))
+      (os/chmod ro 8r555)
+      (defer (os/chmod ro 8r755)
+        (def probe (string ro "/probe"))
+        (if (when-let [f (file/open probe :wb)] (file/close f) (os/rm probe) true)
+          (print "skip self-update read-only directory: this user can write to any directory")
+          (do
+            (def [rcode rout rerr]
+              (run-copy ro-exe "--self-update" "--force" "--base" base "--key" key-file))
+            (def saved (get (peg/match ~(* (thru "saved at ") (<- (to ";"))) rerr) 0))
+            (assert (and (not= 0 rcode) (string/find "is not writable" rerr) saved
+                         (string/find (string " " saved " ") rerr))
+                    (string "read-only directory: " rcode " " (string/format "%q" (string rout rerr))))
+            (defer (sh/rm (string/slice saved 0 (last (string/find-all "/" saved))))
+              (assert (= want (string (slurp saved))) "read-only directory: saved file is not the release"))
+            (assert (= original (string (slurp ro-exe))) "read-only directory: binary was changed")
+            (assert (not (os/stat (string ro-exe ".new"))) "read-only directory: temporary file left"))))
+
       (def [ucode uout uerr] (update "--force"))
       (assert (= 0 ucode) (string "update: " ucode " " (string/format "%q" (string uout uerr))))
       (assert (= (fake-binary target) (string (slurp exe)))

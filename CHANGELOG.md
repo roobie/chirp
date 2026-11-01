@@ -4,6 +4,14 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Added
+
+- `chirp --self-update --output PATH` saves the verified latest release at `PATH`, or inside it when it is a directory, without replacing the running chirp.
+
+### Fixed
+
+- `chirp --self-update` where the binary is writable but its directory is not (#7). It used to stop with `cannot write …/chirp.new`. A running chirp can only be replaced by a new file renamed over it, which needs the directory, so it now saves the verified release in a new temporary directory, exits non-zero, and prints the path and a command that installs it.
+
 ## 0.6.0
 
 Released 2026-10-30.

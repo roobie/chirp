@@ -151,6 +151,64 @@
 
 # Swapping ----------------------------------------------------------------
 
+# A running binary cannot be opened for writing (ETXTBSY on linux), so the only
+# way to replace it is a new file renamed over it, which needs the directory.
+(defn- can-create? [path]
+  (when-let [f (file/open path :wb)]
+    (file/close f)
+    (os/rm path)
+    true))
+
+(defn- dir-of [path]
+  (def cut (last (seq [i :range [0 (length path)]
+                       :when (or (= (chr "/") (path i))
+                                 (and (windows?) (= (chr "\\") (path i))))]
+                   i)))
+  (cond (nil? cut) "."
+        (zero? cut) "/"
+        (string/slice path 0 cut)))
+
+(defn- save
+  "Write bytes to path as an executable file."
+  [path bytes]
+  (try (spit path bytes)
+    ([e] (die "cannot write " path ": " e)))
+  (unless (windows?) (os/chmod path 8r755)))
+
+(defn- output-path
+  "Where --output puts the binary: the path itself, or name inside it when it
+  is a directory."
+  [path name]
+  (if (= :directory (os/stat path :mode)) (string path "/" name) path))
+
+(defn- temp-dir
+  "A new directory of our own under the system temporary directory. mkdir fails
+  on an existing name, so nobody else can have prepared it."
+  []
+  (def root (or (os/getenv "TMPDIR") (os/getenv "TEMP") (os/getenv "TMP")
+                (if (windows?) "." "/tmp")))
+  (def dir (string root "/chirp-update-" (hex (os/cryptorand 8))))
+  (unless (os/mkdir dir) (die "cannot create " dir))
+  dir)
+
+(defn- quote-arg [s]
+  (cond
+    (windows?) (string `"` s `"`)
+    (peg/match ~(* (some (+ (range "az" "AZ" "09") (set "/._-+:@%"))) -1) s) s
+    (string "'" (string/replace-all "'" `'\''` s) "'")))
+
+# Each command needs only what the user had when chirp failed, plus what it
+# states: cp writes into the existing file, so it needs no write to the
+# directory. macOS kills a signed binary rewritten in place, so there the old
+# file is replaced as a whole, which does need the directory.
+(defn- install-command [src exe]
+  (def [s e] [(quote-arg src) (quote-arg exe)])
+  (case (os/which)
+    :macos (string "sudo install -m 755 " s " " e)
+    :windows (string "copy /Y " s " " e)
+    :mingw (string "copy /Y " s " " e)
+    (string "cp " s " " e "   (with sudo if the file is not yours to write)")))
+
 (defn- install
   "Replace the binary at exe with bytes. On any failure the old binary stays and
   the temporary file is removed."
@@ -185,9 +243,10 @@
     (case a
       "--check" (put opts :check true)
       "--force" (put opts :force true)
+      "--output" (put opts :output (value a))
       "--base" (put opts :base (value a))
       "--key" (put opts :key (value a))
-      (die "unknown argument " a ". Usage: chirp --self-update [--check] [--force] [--base URL] [--key PEM]"))
+      (die "unknown argument " a ". Usage: chirp --self-update [--check] [--force] [--output PATH] [--base URL] [--key PEM]"))
     (++ i))
   opts)
 
@@ -200,7 +259,8 @@
              key-pem))
   (def user-agent (string "chirp/" version))
   (def target (target-name targets))
-  (when (and (not (opts :check)) (pre-release? version) (not (opts :force)))
+  # --output leaves the running build alone, so a pre-release may use it freely.
+  (when (and (not (opts :check)) (not (opts :output)) (pre-release? version) (not (opts :force)))
     (die "this is chirp " version ", a pre-release build from main, not a release. "
          "Releases are what --self-update installs; use --force to replace it anyway"))
   (def sums-text (verified-sums base key user-agent))
@@ -217,15 +277,32 @@
     (print "chirp " version " is up to date (latest release: " latest ")")
 
     (do
-      (def exe (running-binary))
-      # A leftover from an earlier Windows update; it may still be locked.
-      (when (windows?) (protect (when (os/stat (string exe ".old")) (os/rm (string exe ".old")))))
-      (def bytes (fetch (string base "/download/v" latest "/" name) user-agent))
-      (def got (sha256-hex bytes))
-      (unless (= got sha)
-        (die name " does not match the signed checksum (got " got ", expected " sha ")"))
-      (install exe bytes)
-      (print "updated chirp " version " -> " latest " at " exe))))
+      (defn download []
+        (def bytes (fetch (string base "/download/v" latest "/" name) user-agent))
+        (def got (sha256-hex bytes))
+        (unless (= got sha)
+          (die name " does not match the signed checksum (got " got ", expected " sha ")"))
+        bytes)
+      (if-let [out (opts :output)]
+        (let [path (output-path out name)]
+          (save path (download))
+          (print "saved chirp " latest " at " path))
+        (let [exe (running-binary)
+              dir (dir-of exe)]
+          # A leftover from an earlier Windows update; it may still be locked.
+          (when (windows?) (protect (when (os/stat (string exe ".old")) (os/rm (string exe ".old")))))
+          (if (can-create? (string exe ".new"))
+            (do
+              (install exe (download))
+              (print "updated chirp " version " -> " latest " at " exe))
+            (let [bytes (download)
+                  path (string (temp-dir) "/" name)]
+              (save path bytes)
+              (die "cannot replace " exe ": its directory " dir " is not writable, and a running "
+                   "chirp can only be replaced by a new file renamed over it. "
+                   "chirp " latest " is verified and saved at " path "; to install it, run\n"
+                   "  " (install-command path exe) "\n"
+                   "`chirp --self-update --output PATH` saves a release without trying to replace chirp."))))))))
 
 (defn run
   "Run `chirp --self-update`. args are the words after it; config has :version,

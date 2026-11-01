@@ -14,7 +14,7 @@ chirp -h | --help                  # this text, the help topics, then Janet's op
 chirp --help query '<words>'       # search the offline docs
 chirp --help read <id> [--source]  # print one result, with a binding's source
 chirp --help serve [--host H] [--port N]   # browse the help at http://127.0.0.1:3111/
-chirp --self-update [--check] [--force]   # replace chirp with the latest release
+chirp --self-update [--check] [--force] [--output PATH]   # replace chirp with the latest release
 chirp --dev-proc                   # the dev-proc agent skill: options
 chirp --dev-proc --install [-g] [--copy] [--force]   # write it into this project, or ~ with -g
 ```
