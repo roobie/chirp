@@ -138,3 +138,32 @@ jobs:
             --notes-file dl/notes.md \
             --verify-tag \
             $flags
+
+  # An issue that landed on main closes when the release carrying it ships: the
+  # open issues on the milestone named for the version, then the milestone.
+  # A version with no milestone has nothing to close.
+  close-milestone:
+    needs: [package, publish]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    steps:
+      - name: Close the milestone's issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          milestone=$(gh api "repos/$GH_REPO/milestones?state=open&per_page=100" \
+            --jq ".[] | select(.title == \"$VERSION\") | .number")
+          if [ -z "$milestone" ]; then
+            echo "no open milestone $VERSION"
+            exit 0
+          fi
+          url="https://github.com/$GH_REPO/releases/tag/$TAG"
+          for issue in $(gh issue list --milestone "$VERSION" --state open --limit 500 --json number --jq '.[].number'); do
+            gh issue close "$issue" --reason completed --comment "Shipped in [chirp $VERSION]($url)."
+          done
+          gh api -X PATCH "repos/$GH_REPO/milestones/$milestone" -f state=closed --jq '"closed milestone \(.title)"'
