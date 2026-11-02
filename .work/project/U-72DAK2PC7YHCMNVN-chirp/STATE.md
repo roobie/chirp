@@ -30,6 +30,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
+- BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
 - Reply on #4 and #6 with spork/misc/print-table and spork/schema, per the triage
 - Then pick the next bug or backlog item with BR
 
