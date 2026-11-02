@@ -105,3 +105,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-02 cutting 0.7.0: merged the two help-query changelog entries
 - 2026-11-02 0.7.0 published by BR's tag; release run 41373678975 green, close-milestone closed #5, #7 and the milestone, self-update 0.6.0 -> 0.7.0 verified; main moves to 0.8.0-dev
 - 2026-11-02 task mingw-notices done: B-RUMT answered (no LGPL), gdtoa and winpthreads notices added
+- 2026-11-02 jsec still has no LICENSE upstream; issue draft given to BR
