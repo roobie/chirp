@@ -26,7 +26,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.6.0 is published. Main carries 0.7.0-dev; Unreleased holds the self-update read-only-directory fix with --output, the hyphenated help query fix, os/spawn :cd on linux, dev-proc's -- terminator, help search snippets as plain text with highlighted matches, help queries for any punctuated name (os/spawn), and REPL line editing through spork/getline. Milestone 0.7.0 holds #7 and #5; release.yml's close-milestone job closes them and the milestone when v0.7.0 is tagged.
+0.6.0 is published. Main carries 0.7.0-dev; Unreleased holds the self-update read-only-directory fix with --output, the hyphenated help query fix, os/spawn :cd on linux, dev-proc's -- terminator, help search snippets as plain text with highlighted matches, help queries for any punctuated name (os/spawn), REPL line editing through spork/getline, and the gzip and tar modules (D-2NTKYO5CXJFCPDKW). Milestone 0.7.0 holds #7 and #5; release.yml's close-milestone job closes them and the milestone when v0.7.0 is tagged.
 
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
@@ -102,3 +102,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-02 task release-closes-milestone delivered; first live run at v0.7.0
 - 2026-11-02 tasks help-query-punctuation and repl-line-editing delivered
 - 2026-11-02 milestone 0.5.0 closed by BR
+- 2026-11-02 slice gzip-tar done: gzip native and tar module, CI green on all targets

@@ -112,9 +112,10 @@ From 0.7.0, `gzip` reads and writes `.gz` data and `tar` lists, extracts and cre
 ```janet
 (import spork-https :as https)
 (import tar)
-(def res (https/get "https://codeload.github.com/roobie/chirp/tar.gz/refs/heads/main"))
-(tar/extract (res :body) "chirp-main" {:strip 1})   # refuses entries that would land outside
-(tar/create "notes.tar.gz" ["notes"])               # gzipped, from the name
+(def s (https/open-stream "https://github.com/roobie/chirp/archive/refs/heads/main.tar.gz"))
+(tar/extract s "chirp-main" {:strip 1})   # streamed; refuses entries that would land outside
+(:close s)
+(tar/create "notes.tar.gz" ["notes"])     # gzipped, from the name
 ```
 
 `chirp --help read archives` covers both, including what extraction refuses.

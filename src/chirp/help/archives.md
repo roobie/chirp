@@ -39,7 +39,16 @@ Data that arrives in pieces, or is too large to hold twice, goes through a compr
 (tar/create "backup.tar.gz" ["notes" "config.toml"] {:dir (os/getenv "HOME")})
 ```
 
-The source of `tar/list` and `tar/extract` is a path (a string), the archive's bytes (a buffer), or an open file or stream. An HTTP body is a buffer, so a download unpacks without a temporary file; bytes held in a string must be passed as `(buffer s)`, because a string is a path. `tar/create` writes to a path, appends to a buffer, or writes to a file or stream, and adds directories with everything under them, in sorted order.
+The source of `tar/list` and `tar/extract` is a path (a string), the archive's bytes (a buffer), or anything with a `:read` method, such as an open file or a `spork-https/open-stream` response, which unpacks a download while it arrives:
+
+```janet
+(import spork-https :as https)
+(def s (https/open-stream "https://github.com/roobie/chirp/archive/refs/heads/main.tar.gz"))
+(tar/extract s "chirp-main" {:strip 1})
+(:close s)
+```
+
+Bytes held in a string must be passed as `(buffer s)`, because a string is a path. `tar/create` writes to a path, appends to a buffer, or writes to a file or stream, and adds directories with everything under them, in sorted order.
 
 Reading understands ustar, pax headers and GNU long names, which covers what GNU tar, bsdtar, Python and Go write. Writing produces ustar, with a pax header only for a name, link or size that ustar cannot hold, and stores owners as 0. Files, directories and symlinks are stored; hard links are stored as copies.
 
