@@ -26,7 +26,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.7.0 is published (2026-11-02) and main carries 0.8.0-dev. 0.7.0 held the self-update read-only-directory fix with --output, the hyphenated help query fix, os/spawn :cd on linux, dev-proc's -- terminator, help search snippets as plain text with highlighted matches, help queries for any punctuated name (os/spawn), REPL line editing through spork/getline, and the gzip and tar modules (D-2NTKYO5CXJFCPDKW). close-milestone's first live run closed #5, #7 and milestone 0.7.0.
+0.7.0 is published (2026-11-02) and main carries 0.8.0-dev. 0.7.0 held the self-update read-only-directory fix with --output, the hyphenated help query fix, os/spawn :cd on linux, dev-proc's -- terminator, help search snippets as plain text with highlighted matches, help queries for any punctuated name (os/spawn), REPL line editing through spork/getline, and the gzip and tar modules (D-2NTKYO5CXJFCPDKW). close-milestone's first live run closed #5, #7 and milestone 0.7.0. Unreleased holds the windows notices fix: gdtoa and winpthreads, the only non-ZPL mingw-w64 parts windows-x64 links (no LGPL; L-A75ZR5MHIETRGB4I).
 
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
@@ -104,3 +104,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-02 slice gzip-tar done: gzip native and tar module, CI green on all targets
 - 2026-11-02 cutting 0.7.0: merged the two help-query changelog entries
 - 2026-11-02 0.7.0 published by BR's tag; release run 41373678975 green, close-milestone closed #5, #7 and the milestone, self-update 0.6.0 -> 0.7.0 verified; main moves to 0.8.0-dev
+- 2026-11-02 task mingw-notices done: B-RUMT answered (no LGPL), gdtoa and winpthreads notices added
