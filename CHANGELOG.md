@@ -6,6 +6,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Added
 
+- `gzip` and `tar` modules (`chirp --help read archives`). `gzip` compresses and decompresses gzip data, whole or in pieces; `tar` lists, extracts and creates tar archives, gzipped or not, without a `tar` on the host. Extraction refuses entries that would land outside the target directory.
 - The REPL edits lines: history, cursor movement, Tab completion and Ctrl-G docstrings, through the bundled spork/getline.
 - The help topic `subprocess` (`chirp --help read subprocess`): running a program in another directory, and changing one environment variable without losing the rest.
 - The dev-proc skill takes `--` to end its options, so text that starts with `--` can follow: `note <unit> log -- "--force was needed"`.

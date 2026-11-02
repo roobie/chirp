@@ -36,7 +36,9 @@
                # chirp-owned natives (md4c, pcre2, lexbor, omap, yaml) compile from the repo.
                {:prefix "./src/" :base :repo :dir "src/" :show "chirp/"}
                # The container mounts the repo at /chirp-src.
-               {:prefix "/chirp-src/src/chirp/" :base :repo :dir "src/chirp/" :show "chirp/"}]
+               {:prefix "/chirp-src/src/chirp/" :base :repo :dir "src/chirp/" :show "chirp/"}
+               # chirp-owned Janet modules (tar), like the natives above.
+               {:prefix "/chirp-src/src/" :base :repo :dir "src/" :show "chirp/"}]
  # Agent skills that `chirp --<name> --install` can write, name -> directory from
  # this directory. The repo's own copy stays the source of truth.
  :skills {"dev-proc" "../../.agents/skills/dev-proc"}
@@ -62,4 +64,5 @@
            "spork/temple" "spork/test" "spork/utf8" "spork/zip"
            "jsec/utils" "jsec/tls-stream" "jsec/dtls-stream" "jsec/tls"
            "jsec/cert" "jsec/bio" "jsec/crypto" "jsec/ca"
-           "spork-https" "sqlite3" "tomlin" "yaml" "pcre2" "md4c" "lexbor" "omap" "json-omap"]}
+           "spork-https" "sqlite3" "tomlin" "yaml" "pcre2" "md4c" "lexbor" "omap" "json-omap"
+           "gzip" "tar"]}

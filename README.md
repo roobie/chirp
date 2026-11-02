@@ -107,6 +107,18 @@ From 0.4.0, `lexbor` parses HTML the way a browser does and finds elements with 
 
 A node is a handle into its document, so it can be searched in turn (`(lexbor/select node "li")`), and `lexbor/html` gives its markup back. `chirp --help query lexbor` lists the functions.
 
+From 0.7.0, `gzip` reads and writes `.gz` data and `tar` lists, extracts and creates tar archives, gzipped or not, so a release can be fetched and unpacked on a host without `tar`:
+
+```janet
+(import spork-https :as https)
+(import tar)
+(def res (https/get "https://codeload.github.com/roobie/chirp/tar.gz/refs/heads/main"))
+(tar/extract (res :body) "chirp-main" {:strip 1})   # refuses entries that would land outside
+(tar/create "notes.tar.gz" ["notes"])               # gzipped, from the name
+```
+
+`chirp --help read archives` covers both, including what extraction refuses.
+
 ## Help
 
 `chirp -h` lists the help topics, `chirp --help query '<words>'` searches them and the docstrings of every bundled module offline, and `chirp --help read <id>` prints a result in full. The text is inside the binary. `chirp --help serve` shows the same help in a browser at `http://127.0.0.1:3111/`.
@@ -127,6 +139,7 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [PCRE2](https://github.com/PCRE2Project/pcre2) | `pcre2`, Perl-style regular expressions: chirp's own small binding over PCRE2 10.49 (interpreter only, no JIT), with named groups, replacement with group references and split; from 0.4.0 | BSD-3-Clause with the PCRE2 exception |
 | [md4c](https://github.com/mity/md4c) | `md4c`, Markdown to HTML: chirp's own small binding over md4c 0.6.0's renderer, CommonMark by default with GitHub's extensions on request; from 0.4.0 | MIT |
 | [lexbor](https://github.com/lexbor/lexbor) | `lexbor`, HTML parsing and CSS selectors: chirp's own small binding over lexbor 3.0.1's HTML, DOM and selectors modules; from 0.4.0 | Apache-2.0 |
+| chirp itself | `gzip`, gzip framing over spork's miniz, whole or in pieces, and `tar`, tar archives in Janet, extracted safely; from 0.7.0 | MIT |
 | chirp itself | `omap`, an insertion-ordered map that `yaml` and `json` can decode to and encode from; written in C for chirp, with `json-omap`, a copy of spork's JSON decoder that builds it; from 0.3.0 | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |
 

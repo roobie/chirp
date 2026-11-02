@@ -22,7 +22,8 @@
   (array/push module/paths [(string "src/" name "/:all:.janet") :source]))
 (array/push module/paths ["modpath/:all:.so" :native])
 (each {:name name :pin pin :file file} (get config :janet-modules [])
-  (array/push module/paths [|(when (= $ name) (string "src/" pin "/" file)) :source]))
+  (def path (if (= pin :repo) (string repo "/" file) (string "src/" pin "/" file)))
+  (array/push module/paths [|(when (= $ name) path) :source]))
 
 (import spork/build-rules)
 (import spork/cc)

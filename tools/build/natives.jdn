@@ -63,6 +63,11 @@
   :repo-sources ["src/lexbor/lexbor.c"]
   :defines {"CHIRP_LEXBOR_VERSION" "\"3.0.1\"" "LEXBOR_STATIC" true}}
 
+ # gzip framing over the pin's miniz, compiled into the binding with every miniz
+ # function static, so it cannot clash with spork/zip's copy.
+ {:name "gzip" :pin :spork :includes ["deps/miniz"] :sources []
+  :repo-sources ["src/gzip/gzip.c"]}
+
  # Natives that are wholly chirp's own have no :pin and build from Janet's checkout.
  # omap.h is shared by all three below; each carries its own copy and they find
  # one another's type by name, so none needs another to be linked or loaded.

@@ -10,7 +10,7 @@
  {:title "chirp" :root :repo :path "LICENSE"}
  {:title "Janet" :root :janet :path "LICENSE"}
  {:title "spork" :root :spork :path "LICENSE"}
- {:title "miniz (in spork/zip)" :root :spork :path "deps/miniz/LICENSE"
+ {:title "miniz (in spork/zip and gzip)" :root :spork :path "deps/miniz/LICENSE"
   :url "https://github.com/richgel999/miniz"}
  {:title "jsec" :root :repo :path "tools/build/notices/jsec-LICENSE.txt" :pin :jsec}
  {:title "spork-https" :root :spork-https :path "LICENSE"}
