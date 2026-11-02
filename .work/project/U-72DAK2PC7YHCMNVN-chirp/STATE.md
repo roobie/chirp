@@ -103,3 +103,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-02 tasks help-query-punctuation and repl-line-editing delivered
 - 2026-11-02 milestone 0.5.0 closed by BR
 - 2026-11-02 slice gzip-tar done: gzip native and tar module, CI green on all targets
+- 2026-11-02 cutting 0.7.0: merged the two help-query changelog entries

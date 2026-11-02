@@ -14,10 +14,9 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Fixed
 
-- `chirp --help query os/spawn`, and any name with punctuation such as `spork/getline` or `table?`, finds that binding first. It used to fail with an FTS5 syntax error, as hyphenated names did before.
+- `chirp --help query` and the `--help serve` search box find a name with punctuation, such as `dev-proc`, `spork-https`, `os/spawn` or `table?`, and list the bindings and topics whose id or title hold it first. Such names used to fail with an FTS5 error (`no such column` or a syntax error) unless quoted.
 - Search results from the help topics quote their text, not their Markdown, so `chirp --help query` and the `--help serve` results no longer show backticks and code fences; the `--help serve` results also highlight the matched words.
 - `os/execute` and `os/spawn` take `:cd` in their options table on linux, to run the child in that directory without moving the whole script with `os/cd` (#5). Janet has the option, but on linux it only turned it on for glibc, so chirp's musl build failed with `:cd argument not supported on this system`. windows and macOS already had it.
-- `chirp --help query dev-proc` and the `--help serve` search box find a hyphenated name such as `dev-proc`, `self-update` or `spork-https`. They used to fail with `no such column`, because FTS5 reads the hyphen as an operator, so the name had to be quoted. Entries whose id or title hold the name now come first, so `spork-https` lists the spork-https bindings before spork/http.
 - `chirp --self-update` where the binary is writable but its directory is not (#7). It used to stop with `cannot write …/chirp.new`. A running chirp can only be replaced by a new file renamed over it, which needs the directory, so it now saves the verified release in a new temporary directory, exits non-zero, and prints the path and a command that installs it.
 
 ## 0.6.0
