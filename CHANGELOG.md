@@ -4,6 +4,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Fixed
+
+- `NOTICES-windows-x64.txt` includes the licenses of gdtoa and winpthreads, two parts of mingw-w64 that the windows binary links and whose terms its mingw-w64 notice does not cover. Releases up to 0.7.0 lacked them.
+
 ## 0.7.0
 
 Released 2026-11-02.

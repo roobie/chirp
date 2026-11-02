@@ -308,13 +308,46 @@
 
 # Everything linked into the executable has to ship its license text. Only
 # file contents and config data go in, so the file is the same in any directory.
-(defn- notice-section [{:title title :root root :path path :pin pin :url url}]
+# The first /* */ comment of a C source, without its frame: the leading " * "
+# or "*" of each line, rows of asterisks, the indent, blank edges and doubled
+# blank lines. Some
+# upstream licenses exist only as such a header.
+(defn- first-comment [file text]
+  (def start (string/find "/*" text))
+  (def end (and start (string/find "*/" text start)))
+  (unless end (errorf "notices: %s has no /* */ comment" file))
+  # The text after "/*" on its first line is not indented like the rest.
+  (def lines (string/split "\n" (string/slice text (+ start 2) end)))
+  (put lines 0 (string/triml (lines 0)))
+  (def rows
+    (seq [line :in lines
+          :let [l (string/trimr line)
+                body (if-let [m (peg/match ~(* (any (set " \t")) "*" (any " ") (<- (any 1))) l)]
+                       (first m)
+                       l)]]
+      (if (peg/match ~(* (any "*") -1) body) "" body)))
+  (def indent (min-of (seq [r :in rows :when (not= "" r)]
+                        (length (first (peg/match ~(<- (any " ")) r))))))
+  # A row of asterisks next to a blank row would leave two blank lines.
+  (def kept (seq [i :range [0 (length rows)]
+                  :let [r (rows i)]
+                  :unless (and (= "" r) (> i 0) (= "" (rows (- i 1))))]
+              (if (= "" r) "" (string/slice r indent))))
+  (def filled (seq [i :range [0 (length kept)] :when (not= "" (kept i))] i))
+  (when (empty? filled) (errorf "notices: the first comment of %s is empty" file))
+  (string (string/join (array/slice kept (first filled) (+ 1 (last filled))) "\n") "\n"))
+
+(defn- notice-section [{:title title :root root :path path :comments comments
+                        :pin pin :url url}]
   (def base (case root
               :repo repo
               :zig zig-dir
               (string "src/" root)))
   # Some upstream files use CRLF; the output is LF whatever the source was.
-  (def text (string/replace-all "\r\n" "\n" (slurp (string base "/" path))))
+  (defn read [f] (string/replace-all "\r\n" "\n" (slurp (string base "/" f))))
+  (def text (if comments
+              (string/join (map |(first-comment $ (read $)) comments) "\n")
+              (read path)))
   (def link (or url
                 (when-let [p (pins (or pin root))
                            u (p :url)]
