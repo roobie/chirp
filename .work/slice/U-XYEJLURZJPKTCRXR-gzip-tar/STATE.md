@@ -66,3 +66,4 @@ Implementation committed; waiting for CI on all four targets.
 - 2026-11-02 initialized
 - 2026-11-02 phase initialize → execute
 - 2026-11-02 implemented gzip native, tar module, smoke checks and docs; linux and wine-windows smoke green
+- 2026-11-02 CI 41368400965: windows smoke failed on MAX_PATH in the test's long-name tree; shortened, pax still asserted

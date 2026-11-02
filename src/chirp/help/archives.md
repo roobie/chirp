@@ -52,6 +52,6 @@ Reading understands ustar, pax headers and GNU long names, which covers what GNU
 - would be written through a symlink, even one that points inside;
 - is a hard link to a name that is not a file it already extracted.
 
-An earlier file or symlink at an entry's path is replaced, never written through. Entries before a refused one stay extracted. Devices and fifos cannot be extracted, and neither can links on Windows, where Janet cannot make them.
+An earlier file or symlink at an entry's path is replaced, never written through. Entries before a refused one stay extracted. Devices and fifos cannot be extracted, and neither can links on Windows, where Janet cannot make them. Windows also refuses to create a path longer than 260 characters.
 
 Modes are applied less the umask and modification times are kept, as `tar` does for a user who is not root. On Windows only files keep their times.

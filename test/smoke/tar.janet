@@ -80,20 +80,24 @@
 
     # Creating: plain or gzipped, read back by us and by the system's tar.
     (def src (string tmp "/src"))
-    (sh/create-dirs (string src "/sub/" (string/repeat "s" 120)))
+    # A 101-byte name cannot be split into ustar's prefix and name, so it needs
+    # pax, and the whole path stays under Windows' 260-character limit.
+    (def deep (string "sub/" (string/repeat "s" 20) "/" (string/repeat "f" 101)))
+    (sh/create-dirs (string src "/sub/" (string/repeat "s" 20)))
     (def big (string/repeat "0123456789" 20000))
     (spit (string src "/big.txt") big)
-    (spit (string src "/sub/" (string/repeat "s" 120) "/" (string/repeat "f" 120)) "deep")
+    (spit (string src "/" deep) "deep")
     (def out (string tmp "/out.tar.gz"))
     (assert (= out (tar/create out ["."] {:dir src})) "create returns dest")
     (assert (= "\x1f\x8b" (string/slice (slurp out) 0 2)) ".tar.gz is gzipped")
     (def mem (tar/create @"" ["big.txt" "sub"] {:dir src}))
     (assert (not= "\x1f\x8b" (string/slice mem 0 2)) "a buffer is plain by default")
+    (assert (string/find "PaxHeaders/" mem) "a long name gets a pax header")
     (assert (deep= (map |($ :name) (tar/list out)) (map |($ :name) (tar/list mem))) "same entries")
     (def back (string tmp "/back"))
     (tar/extract out back)
     (assert (= big (string (slurp (string back "/big.txt")))) "round trip")
-    (assert (= "deep" (string (slurp (string back "/sub/" (string/repeat "s" 120) "/" (string/repeat "f" 120)))))
+    (assert (= "deep" (string (slurp (string back "/" deep))))
             "a pax long name round trip")
     (assert (deep= (slurp out) (do (tar/create out ["."] {:dir src}) (slurp out))) "same tree, same bytes")
     (fails |(tar/create @"" ["../x"] {:dir src}) "relative and inside")
@@ -103,7 +107,7 @@
                        [(os/proc-wait p) listing]))
     (when found
       (assert (= 0 (sys 0)) "system tar rejects our archive")
-      (assert (string/find (string/repeat "f" 120) (sys 1)) "system tar reads the pax name"))
+      (assert (string/find deep (sys 1)) "system tar reads the pax name"))
 
     # Untrusted archives: each is refused, and nothing lands outside.
     (def jail (string tmp "/jail"))
