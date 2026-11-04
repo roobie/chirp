@@ -82,21 +82,28 @@ static struct {
     CFTypeRef key_result, key_policy, key_oid, oid_ssl;
 } sec;
 
-static int chirp_osroots_load(void) {
-    static int loaded = -1;
-    if (loaded >= 0) return loaded;
-    loaded = 0;
+/* NULL once Security.framework is usable, else what is missing. */
+static const char *chirp_osroots_load(void) {
+    static int loaded = 0;
+    static const char *failed = NULL;
+    if (loaded) return failed;
+    loaded = 1;
     void *cf = dlopen("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
                       RTLD_LAZY);
     void *s = dlopen("/System/Library/Frameworks/Security.framework/Security", RTLD_LAZY);
-    if (!cf || !s) return 0;
+    if (!cf) return failed = "cannot open CoreFoundation";
+    if (!s) return failed = "cannot open Security.framework";
+    CFTypeRef (*cfstring)(CFTypeRef, const char *, uint32_t) = NULL;
 #define SYM(lib, field, name) \
-    if (!(*(void **)&sec.field = dlsym(lib, name))) return 0;
-#define KEY(field, name)                                        \
-    {                                                           \
-        CFTypeRef *p = (CFTypeRef *)dlsym(s, name);             \
-        if (!p || !*p) return 0;                                \
-        sec.field = *p;                                         \
+    if (!(*(void **)&sec.field = dlsym(lib, name))) return failed = "no " name;
+/* SecTrustSettings.h makes its keys CFSTR literals, not exported symbols. */
+#define STR(field, text) \
+    if (!(sec.field = cfstring(NULL, text, 0x08000100 /* UTF-8 */))) return failed = "no " text;
+#define KEY(field, name)                                                  \
+    {                                                                     \
+        CFTypeRef *p = (CFTypeRef *)dlsym(s, name);                       \
+        if (!p || !*p) return failed = "no " name;                        \
+        sec.field = *p;                                                   \
     }
     SYM(s, copy_certificates, "SecTrustSettingsCopyCertificates")
     SYM(s, copy_trust_settings, "SecTrustSettingsCopyTrustSettings")
@@ -110,14 +117,16 @@ static int chirp_osroots_load(void) {
     SYM(cf, number_get, "CFNumberGetValue")
     SYM(cf, equal, "CFEqual")
     SYM(cf, release, "CFRelease")
-    KEY(key_result, "kSecTrustSettingsResult")
-    KEY(key_policy, "kSecTrustSettingsPolicy")
+    if (!(*(void **)&cfstring = dlsym(cf, "CFStringCreateWithCString")))
+        return failed = "no CFStringCreateWithCString";
+    STR(key_result, "kSecTrustSettingsResult")
+    STR(key_policy, "kSecTrustSettingsPolicy")
     KEY(key_oid, "kSecPolicyOid")
     KEY(oid_ssl, "kSecPolicyAppleSSL")
 #undef SYM
+#undef STR
 #undef KEY
-    loaded = 1;
-    return 1;
+    return NULL;
 }
 
 /* The first decisive setting of cert in domain for the SSL policy, or
@@ -156,7 +165,8 @@ static int chirp_osroots_decision(CFTypeRef cert, uint32_t domain) {
 typedef struct { CFTypeRef data; int decision; } chirp_osroots_seen;
 
 static Janet chirp_osroots_export(int *count) {
-    if (!chirp_osroots_load()) return janet_wrap_nil();
+    const char *failed = chirp_osroots_load();
+    if (failed) janet_panicf("keychain: %s", failed);
     chirp_osroots_seen *seen = NULL;
     size_t nseen = 0, cap = 0;
     const uint32_t domains[] = {DOMAIN_USER, DOMAIN_ADMIN, DOMAIN_SYSTEM};
@@ -212,7 +222,8 @@ static Janet chirp_osroots_export(int *count) {
         sec.release(seen[k].data);
     }
     free(seen);
-    return *count ? janet_stringv(b->data, b->count) : janet_wrap_nil();
+    if (!*count) janet_panic("keychain: no roots trusted for TLS servers");
+    return janet_stringv(b->data, b->count);
 }
 
 #elif defined(_WIN32)
@@ -243,7 +254,7 @@ static int chirp_osroots_server_auth(PCCERT_CONTEXT c) {
 
 static Janet chirp_osroots_export(int *count) {
     HCERTSTORE root = CertOpenSystemStoreA(0, "ROOT");
-    if (!root) return janet_wrap_nil();
+    if (!root) janet_panicf("windows store: cannot open ROOT (error %lu)", (unsigned long)GetLastError());
     HCERTSTORE denied = CertOpenSystemStoreA(0, "Disallowed");
     JanetBuffer *b = janet_buffer(256 * 1024);
     PCCERT_CONTEXT c = NULL;
@@ -262,7 +273,8 @@ static Janet chirp_osroots_export(int *count) {
     }
     if (denied) CertCloseStore(denied, 0);
     CertCloseStore(root, 0);
-    return *count ? janet_stringv(b->data, b->count) : janet_wrap_nil();
+    if (!*count) janet_panic("windows store: no roots trusted for TLS servers");
+    return janet_stringv(b->data, b->count);
 }
 
 #else
@@ -278,7 +290,8 @@ JANET_FN(chirp_osroots_fn_export,
          "(osroots/export)",
          "The roots the OS trusts for TLS servers as [pem count]: the macOS keychain's "
          "trust settings or the windows ROOT store. nil where the OS keeps no such "
-         "store (Linux and the BSDs keep files) or it holds no roots.") {
+         "store (Linux and the BSDs keep files). Errors, naming what failed, when the "
+         "store cannot be read or trusts no roots.") {
     janet_fixarity(argc, 0);
     (void)argv;
     int count = 0;

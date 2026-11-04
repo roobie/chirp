@@ -31,5 +31,5 @@
     (assert (= ca inherited) (string "inherited: " inherited))
     (print "ok ca-roots " n " roots from the " ca ", chirp -v in " ms " ms"))
   (unless store
-    (assert (not= ca "none found") "no CA bundle found")
+    (assert (not (string/has-prefix? "none found" ca)) (string "no CA bundle: " ca))
     (print "ok ca-roots " ca ", chirp -v in " ms " ms")))

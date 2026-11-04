@@ -41,24 +41,36 @@
   (holds? path pem))
 
 (defn- export
-  "Write the OS store's roots to the export file and return it, or nil."
+  "Write the OS store's roots to the export file. Returns [path nil], or
+  [nil why] when it cannot, why being nil where the OS has no store."
   []
-  (when-let [path (export-path)
-             [pem _] (osroots/export)]
-    (when (or (holds? path pem) (write-file path pem))
-      path)))
+  (def [ok res] (protect (osroots/export)))
+  (def path (export-path))
+  (cond
+    (not ok) [nil res]
+    (nil? res) [nil nil]
+    (nil? path) [nil (string (store-name) ": no cache directory to export to")]
+    (or (holds? path (res 0)) (write-file path (res 0))) [path nil]
+    [nil (string (store-name) ": cannot write " path)]))
 
 (defn setup
-  "Point SSL_CERT_FILE at the trust store and return how to describe it, or nil
-  when the OS offers none. SSL_CERT_FILE, when set, wins. Otherwise the first
-  file of paths that exists is used, paths being keyed by (os/which) with
-  :default for the rest, and then the OS's own store."
+  "Point SSL_CERT_FILE at the trust store and return how to describe it. That
+  is nil when there is none, or starts with \"none found\" and says why when
+  the OS store could not be used. SSL_CERT_FILE, when set, wins. Otherwise the
+  first file of paths that exists is used, paths being keyed by (os/which)
+  with :default for the rest, and then the OS's own store."
   [paths]
   (def env (os/getenv "SSL_CERT_FILE"))
   (defn choose [path description] (os/setenv "SSL_CERT_FILE" path) description)
+  (defn from-store []
+    (def [f why] (export))
+    (cond
+      f (choose f (string (store-name) " (" f ")"))
+      why (string "none found (" why ")")))
   (cond
     # A chirp started by chirp inherits the export its parent just wrote.
     (and env (= env (export-path))) (string (store-name) " (" env ")")
     env env
-    (or (when-let [p (find os/stat (get paths (os/which) (paths :default)))] (choose p p))
-        (when-let [f (export)] (choose f (string (store-name) " (" f ")"))))))
+    (if-let [p (find os/stat (get paths (os/which) (paths :default)))]
+      (choose p p)
+      (from-store))))

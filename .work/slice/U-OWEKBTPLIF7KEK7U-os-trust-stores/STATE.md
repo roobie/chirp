@@ -43,7 +43,7 @@ Since 2026-11-04, smoke macos-arm64 fails https-get with "certificate verify fai
 
 
 ## Now
-osroots native and src/chirp/ca.janet written; local linux, Wine checks pass. CI on branch os-trust-stores for the real macOS keychain and windows store.
+Fixed: kSecTrustSettingsResult/Policy are CFSTR literals in SecTrustSettings.h, not exported symbols, so the dlsym failed silently; they are now made with CFStringCreateWithCString. Failures now name what failed (chirp -v shows none found (why)). CI rerun pending.
 
 ## Next
 - CI: macOS ca-roots must report the keychain with many roots, https-get must pass; note the startup cost the export adds on macOS
@@ -54,6 +54,7 @@ osroots native and src/chirp/ca.janet written; local linux, Wine checks pass. CI
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - Cause confirmed (diag run 41919522154, macOS 15.8.2): /etc/ssl/cert.pem holds 126 certs and neither SSL.com TLS ECC Root CA 2022 nor AAA Certificate Services, which example.com chains to; the system keychain holds the root, and curl gets 200.
 - Local builds of linux-x64, macos-arm64 and windows-x64 compile osroots cleanly. linux: ca-roots reports the system bundle, chirp -v 11 ms; in busybox with no /etc/ssl, chirp -v says none found and https-get fails verification (no trust in the binary). Wine: ca-roots exports 84 roots from the windows store to %LOCALAPPDATA%/chirp/os-roots.pem, https-get 200 with no SSL_CERT_FILE; chirp -v 174 ms under Wine. dev-proc-install fails under Wine only because the ad-hoc run mounts test/smoke alone.
+- CI run 41935128855 on 30b1d87: windows smoke green with no SSL_CERT_FILE (417 roots from the store, chirp -v 55 ms, https-get 200); all double builds identical. macOS: none found, silently: the export returned nil.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
