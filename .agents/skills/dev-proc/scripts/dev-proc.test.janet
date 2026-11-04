@@ -398,6 +398,77 @@
           (ok (run-with {:env env} dir "init"))
           (check (os/stat (string home "/notes/work/.gitkeep"))))))))
 
+(test ".dev-proc.toml work_dir renames the work dir of its own directory only"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (spit (string dir "/.dev-proc.toml") "work_dir = \".tasks\"\n")
+        (check (string/find "created .tasks/" ((ok (run dir "init")) :stdout)))
+        (def task (new-id dir "task" "renamed" "--execute"))
+        (check (os/stat (string dir "/.tasks/task/" task "-renamed/STATE.md")))
+        (check (string/has-prefix? "root: .tasks\n" ((ok (run dir "status")) :stdout)))
+        # the old .work beside it is no longer read, and check says so
+        (def c (ok (run dir "check")))
+        (check (string/find ".work: not read, since .dev-proc.toml names .tasks" (c :stdout)) (c :stdout))
+        (check (string/find "no decisions or learnings match" ((run dir "find" "changing a shader") :stdout)))
+        # the hooks and trailers follow the renamed dir
+        (git-in dir "add" ".tasks" ".dev-proc.toml")
+        (check (= (string "Work: " task "\n") ((ok (run dir "trailers")) :stdout)))
+        # a subdirectory keeps .work unless it has a file of its own
+        (os/mkdir (string dir "/sub"))
+        (ok (run (string dir "/sub") "init" "."))
+        (check (os/stat (string dir "/sub/.work/.gitkeep")))
+        (spit (string dir "/sub/.dev-proc.toml") "# sub's own\nwork_dir = \"_w\"\n")
+        (ok (run (string dir "/sub") "init"))
+        (check (string/has-prefix? "root: sub/_w\n" ((ok (run (string dir "/sub") "status")) :stdout)))
+        (check (string/find "sub/.work: not read" ((run dir "check") :stdout)))))))
+
+(test "a bad .dev-proc.toml is an error naming it, and an empty one means .work"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def file (string dir "/.dev-proc.toml"))
+        (each [text want] [["work_dir = \"a/b\"\n" "work_dir must be one directory name"]
+                           ["work_dir = \"..\"\n" "work_dir must be one directory name"]
+                           ["work_dir = 3\n" "work_dir must be one directory name"]
+                           ["workdir = \".x\"\n" "unknown key \"workdir\""]
+                           ["work_dir = \n" "input is not valid TOML"]]
+          (spit file text)
+          (each cmd [["status"] ["check"]]
+            (def r (run dir ;cmd))
+            (check (not= 0 (r :status)) text)
+            (check (string/find (string ".dev-proc.toml: " want) (r :stderr)) (r :stderr))))
+        (spit file "")
+        (check (string/has-prefix? "root: .work\n" ((ok (run dir "status")) :stdout)))))))
+
+(test "a git-ignored .dev-proc.toml is skipped with a warning"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (spit (string dir "/.dev-proc.toml") "work_dir = \".tasks\"\n")
+        (spit (string dir "/.git/info/exclude") ".dev-proc.toml\n")
+        (def s (ok (run dir "status")))
+        (check (string/has-prefix? "root: .work\n" (s :stdout)) (s :stdout))
+        (check (string/find ".dev-proc.toml is git-ignored, so it is skipped" (s :stderr)) (s :stderr))))))
+
+(test "dig finds a record deleted before the work dir was renamed"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (git-in dir "config" "user.name" "t")
+        (git-in dir "config" "user.email" "t@example.invalid")
+        (def b (string/trim ((ok (run dir "record" "backlog" "Gone soon" "--id")) :stdout)))
+        (git-in dir "add" ".work")
+        (git-in dir "commit" "-qm" "add")
+        (git-in dir "rm" "-q" (string ".work/backlog/" (first (os/dir (string dir "/.work/backlog")))))
+        (git-in dir "commit" "-qm" "drop")
+        (git-in dir "mv" ".work" ".tasks")
+        (spit (string dir "/.dev-proc.toml") "work_dir = \".tasks\"\n")
+        (git-in dir "add" ".dev-proc.toml")
+        (git-in dir "commit" "-qm" "rename")
+        (def r (ok (run dir "dig" b)))
+        (check (string/find (string "===== .work/backlog/" b "-gone-soon.md") (r :stdout)) (r :stdout))))))
+
 (when (> failures 0)
   (eprint failures " test(s) failed")
   (os/exit 1))

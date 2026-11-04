@@ -36,13 +36,15 @@ TODO
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+implemented and tested; finalizing
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- dev-proc.test.janet: four new tests cover the rename at the top (init, new, status, trailers, leftover .work warning), a subdirectory with and without its own file, bad files (path, .., non-string, unknown key, invalid TOML) failing status and check with the file named, an empty file meaning .work, an ignored file skipped with a warning, and dig finding a record deleted before a rename; all suites pass
+- SKILL.md Work dir name bullet, help text and CHANGELOG describe it
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -51,6 +53,8 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] decision: .dev-proc.toml names a directory's work dir; committed, own dir only, ignored copies skipped, dig searches by id repo-wide
+- [ ] process: the --help test failed once (unhelpful 'assertion failed') and passed in six reruns; not reproduced
 
 ## Log
 - 2026-11-04 initialized

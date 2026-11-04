@@ -7,6 +7,7 @@
 (import ./frontmatter :as fm)
 (import ./find)
 (import spork/sh)
+(import tomlin)
 
 (def TYPES ["project" "milestone" "wave" "slice" "task"]) # high → low
 (def PHASES ["initialize" "execute" "finalize"])
@@ -452,6 +453,35 @@
 
 (defn- ignored? [top p] (= 0 ((run-git ["check-ignore" "-q" p] top) 0)))
 
+# A directory may name its own work dir: work_dir in <dir>/.dev-proc.toml, a file the team commits.
+# Without the file the name is .work. The setting covers that directory only, not those below it.
+(def CONFIG ".dev-proc.toml")
+(def DEFAULT-WORK ".work")
+
+(defn- read-config [top file]
+  (def where (shown top file))
+  (def [ok cfg] (protect (tomlin/toml->janet (read-file file))))
+  (unless ok (die (string where ": " cfg)))
+  (each k (keys cfg)
+    (unless (= (string k) "work_dir") (die (string where ": unknown key \"" k "\"; the only one is work_dir"))))
+  (def w (get cfg :work_dir))
+  (cond
+    (nil? w) DEFAULT-WORK
+    (and (string? w) (not (empty? w)) (not (index-of w ["." ".."]))
+         (not (string/find "/" w)) (not (string/find "\\" w))) w
+    (die (string where ": work_dir must be one directory name, such as \".work\""))))
+
+# A git-ignored file is skipped, as `git ls-files` (all-roots) would skip it: the setting is shared,
+# and honouring it in one command but not another would split the commands' view of the repo.
+(defn- work-name [top d]
+  (def file (pjoin d CONFIG))
+  (cond
+    (not (exists? file)) DEFAULT-WORK
+    (and (inside? top file) (ignored? top file))
+    (do (eprint "dev-proc: warn  " (shown top file) " is git-ignored, so it is skipped; commit it to rename the work dir")
+        DEFAULT-WORK)
+    (read-config top file)))
+
 (defn- root-desc [dir top configured]
   (cond
     (or (= dir configured) (not (inside? top dir))) {:dir dir :base top :oob true}
@@ -461,15 +491,19 @@
 # configured root, if any.
 (defn- all-roots [top]
   (def configured (configured-root top))
-  (def seen @{})
-  (def roots @[])
+  (def names @{}) # dir -> its work dir name, read once
+  (defn name-of [d] (unless (names d) (put names d (work-name top d))) (names d))
+  (def roots @{})
   (each f (string/split "\0" (git ["ls-files" "-z" "--cached" "--others" "--exclude-standard"] top))
     (def segs (string/split "/" f))
-    (when-let [i (index-of ".work" segs)]
-      (def r (pjoin top ;(slice segs 0 (+ i 1))))
-      (unless (seen r) (put seen r true) (array/push roots r))))
+    (when (= (last segs) CONFIG)
+      (def d (pjoin top ;(slice segs 0 -2)))
+      (put roots (pjoin d (name-of d)) true))
+    (when-let [i (index-of DEFAULT-WORK segs)]
+      (def d (pjoin top ;(slice segs 0 i)))
+      (when (= DEFAULT-WORK (name-of d)) (put roots (pjoin d DEFAULT-WORK) true))))
   (def out (map |(root-desc $ top configured)
-                (sort (filter |(and (exists? $) (not= $ configured)) roots))))
+                (sort (filter |(and (exists? $) (not= $ configured)) (keys roots)))))
   (when (and configured (exists? configured))
     (array/push out (root-desc configured top configured)))
   out)
@@ -478,7 +512,8 @@
   (var d cwd)
   (var res nil)
   (while true
-    (when (exists? (pjoin d ".work")) (set res (pjoin d ".work")) (break))
+    (def w (pjoin d (work-name top d)))
+    (when (exists? w) (set res w) (break))
     (when (or (= d top) (= d (dirname d))) (break))
     (set d (dirname d)))
   res)
@@ -584,8 +619,8 @@
 
 (defn- cmd-init [ctx args]
   (def dir (if-let [d (first (args :pos))]
-             (resolve (ctx :cwd) d ".work")
-             (or (configured-root (ctx :top)) (resolve (ctx :cwd) ".work"))))
+             (let [p (resolve (ctx :cwd) d)] (pjoin p (work-name (ctx :top) p)))
+             (or (configured-root (ctx :top)) (pjoin (ctx :cwd) (work-name (ctx :top) (ctx :cwd))))))
   (if (exists? dir)
     (print "exists: " dir)
     (do
@@ -987,11 +1022,18 @@
 
 (defn- cmd-check [ctx args]
   # The hooks guard what is committed, so they leave out-of-band roots alone.
+  (def configured (configured-root (ctx :top)))
   (def roots (filter |(not (and (args "hook") ($ :oob))) (map load-root (all-roots (ctx :top)))))
   (def errors @[])
   (def warns @[])
   (each root roots
     (def where (shown (ctx :top) (root :dir)))
+    # A .work left beside a renamed work dir is no longer read, so whatever is in it is lost from view.
+    (unless (= (root :dir) configured)
+      (def old (pjoin (dirname (root :dir)) DEFAULT-WORK))
+      (when (and (not= old (root :dir)) (exists? old))
+        (array/push warns (string (shown (ctx :top) old) ": not read, since " CONFIG " names "
+                                  (basename (root :dir)) " as the work dir; move what it holds and remove it"))))
     (when (and (root :oob) (inside? (ctx :top) (root :dir)) (not (ignored? (ctx :top) (root :dir))))
       (array/push warns (string where ": out-of-band root is inside the repo but not git-ignored, so its files"
                                 " would be committed; add it to .git/info/exclude")))
@@ -1122,17 +1164,17 @@ match the words, best first. --backlog also searches backlog items. --json is fo
              (let [[code out] (run-git ["rev-parse" "--show-toplevel"] (root :dir))]
                (if (= code 0) (fm/jtrim out) (die (string (root :dir) " is not in a git repository, so it has no history"))))
              (ctx :top)))
-  (def root-rel (let [r (rel top (root :dir))] (if (empty? r) "." r)))
+  # Ids are unique, so the whole repo is searched: a work dir renamed or moved since keeps its history.
   (def rec (peg/match record-id-peg id))
   (var pathspec nil)
   (var matches nil)
   (if rec
-    (let [spec (find |(= ($ :prefix) (rec 0)) (map |(RECORDS $) RECORD-KINDS))]
-      (set pathspec (string root-rel "/" (spec :dir) "/"))
+    (do
+      (set pathspec [(string ":(glob)**/" id "-*.md") (string ":(glob)**/" id ".md")])
       (set matches (fn [f] (or (string/has-prefix? (string id "-") (basename f)) (= (basename f) (string id ".md"))))))
     (do
       (unless (peg/match unit-id-peg id) (die "dig takes an id (U-…, D-…, L-…, B-…); names are reused, ids are not"))
-      (set pathspec (string root-rel "/"))
+      (set pathspec [(string ":(glob)**/" id "-*/**")])
       # Any type dir: the unit may have been rescoped between commits.
       (set matches (fn [f] (some |(string/has-prefix? (string id "-") $) (string/split "/" f))))))
 
@@ -1143,7 +1185,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
            (string/join (map |(string "  " $) (string/split "\n" trail)) "\n") "\n"))
 
   (def log (try-git ["log" "--all" "--no-renames" "--diff-filter=D" "--format=@@%H %h %ad" "--date=short"
-                     "--name-only" "--" pathspec] top))
+                     "--name-only" "--" ;pathspec] top))
   (def deletions
     (filter |(not (empty? ($ :files)))
             (seq [block :in (string/split "@@" log) :unless (empty? block)]
@@ -1151,7 +1193,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
               (def [full short date] (string/split " " head))
               {:full full :short short :date date :files (filter |(and (not= $ "") (matches $)) files)})))
   (when (empty? deletions)
-    (when (empty? trail) (die (string "no history found for " id " under " root-rel)))
+    (when (empty? trail) (die (string "no history found for " id " in " top)))
     (break))
   (def [last-d & older] deletions)
   (print "deleted in " (last-d :short) " (" (last-d :date) "); last version from " (last-d :short) "^:\n")
@@ -1187,7 +1229,8 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 
 (def HELP
   (string "dev-proc — units (" (string/join TYPES " > ") ") moving " (string/join PHASES " → ") "\n\n"
-    `  init [dir]                               create <dir>/.work/, or with no dir the dev-proc.root dir if set
+    `  init [dir]                               create <dir>'s work dir (cwd if no dir), or with no dir the
+                                           dev-proc.root dir if set
   <unit> is a unit id (U-…) or, for active units, its <type>/<name> label
 
   status [<unit>] [--json]                 tree of units, or one unit's mode + gate
@@ -1221,6 +1264,10 @@ match the words, best first. --backlog also searches backlog items. --json is fo
                  repo top, absolute, or ~/…); it is used before the nearest .work/, find and check cover it
                  too, and the commit hooks and trailers never ask for it. Keep it outside the repo or ignored
                  (.git/info/exclude); check warns otherwise
+
+  <dir>/.dev-proc.toml   optional and committed: work_dir = ".name" makes <dir>'s work dir .name instead
+                 of .work, for every clone; it covers <dir> only, not the directories below it. work_dir is
+                 one directory name and the only key
   --             end of options: later arguments are text even if they start with --
                  (note <unit> log -- "--force was needed")`))
 
@@ -1278,7 +1325,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
          (when (or (not dir) (not (exists? dir)))
            (die (if (and configured (= dir configured))
                   (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`")
-                  "no .work/ found from here up to the repo root — run `dev-proc init`")))
+                  (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to the repo root — run `dev-proc init`"))))
          (load-root (root-desc dir top configured))))
   (f ctx args)
   (ctx :exit))
