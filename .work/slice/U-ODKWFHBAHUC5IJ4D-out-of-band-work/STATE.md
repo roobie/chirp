@@ -26,13 +26,16 @@ TODO: what is already true, what must stay true, resources available.
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+implemented and tested; finalizing
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- dev-proc.test.janet: three new tests (outside repo, ignored .mine with leak warning, ~ expansion) cover use, find/check coverage, refs against the repo, silent trailers/check-msg/--hook check, close without trailer; all suites pass
+- manual: dig finds history when the root is its own git repo, and says why not otherwise
+- SKILL.md Out-of-band root bullet, help text and CHANGELOG describe it
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -41,6 +44,8 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] decision: out-of-band root is set in git config, not a committed file or env var
+- [ ] backlog: a team-wide name for .work would need a committed setting; not built
 
 ## Log
 - 2026-11-04 initialized

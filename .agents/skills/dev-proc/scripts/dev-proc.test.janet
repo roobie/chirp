@@ -329,6 +329,75 @@
         (check (string/find "needs text" ((run dir "note" "task/noted" "now") :stderr)))
         (check (string/find "no active unit" ((run dir "note" "task/none" "now" "x") :stderr)))))))
 
+(defn ok [r] (check (= 0 (r :status)) (string (r :stdout) (r :stderr))) r)
+
+(test "dev-proc.root outside the repo is used, covered by find and check, and kept out of commits"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def mine (tmp-dir))
+        (defer (sh/rm mine)
+          (def root (string mine "/my-work"))
+          (git-in dir "config" "dev-proc.root" root)
+          (check (string/find (string "dev-proc.root is " root) ((run dir "status") :stderr)))
+          (check (string/find root ((ok (run dir "init")) :stdout)))
+          (check (os/stat (string root "/.gitkeep")))
+          (check (not (os/stat (string dir "/.work/task"))))
+          (def task (new-id dir "task" "private" "--execute"))
+          (check (os/stat (string root "/task/" task "-private/STATE.md")))
+          (def s (ok (run dir "status")))
+          (check (string/has-prefix? (string "root: " root "  (out-of-band)\n") (s :stdout)) (s :stdout))
+          (check (string/find task (s :stdout)))
+          # refs resolve against the repo, and find sees the team's records and mine
+          (spit (string dir "/code.txt") "defn thing\n")
+          (ok (run dir "record" "decision" "Private shader call" "--read-if" "changing a shader privately" "--ref" "code.txt#thing"))
+          (ok (run dir "check"))
+          (def hits (json/decode (string ((run dir "find" "changing a shader" "--json") :stdout))))
+          (check (= 2 (length hits)) (string/format "%q" hits))
+          (check (find |(= root ($ "root")) hits))
+          # code staged in the repo neither asks for nor names the private unit
+          (git-in dir "add" "code.txt")
+          (def t (ok (run dir "trailers")))
+          (check (= "" (t :stdout) (t :stderr)) (string (t :stdout) (t :stderr)))
+          (def h (ok (run-with {:env {"DEV_PROC_STRICT" "1" "PATH" (os/getenv "PATH")}} dir "check" "--staged" "--hook")))
+          (check (not (string/find "STATE.md" (h :stdout))) (h :stdout))
+          (check (not (string/find root (h :stdout))) (h :stdout))
+          (spit (string dir "/msg") "x\n")
+          (check (= "" ((run dir "check-msg" "msg") :stdout)))
+          # --root still reaches the team's tree
+          (check (string/has-prefix? "root: .work\n" ((ok (run dir "status" "--root" ".work")) :stdout)))
+          # closing names no trailer to put in a team commit
+          (ok (run dir "phase" task "finalize"))
+          (def c (ok (run dir "close" task)))
+          (check (not (string/find "Work:" (c :stdout))) (c :stdout))
+          (check (not (os/stat (string root "/task/" task "-private")))))))))
+
+(test "dev-proc.root inside the repo takes any name, and check warns unless it is ignored"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (git-in dir "config" "dev-proc.root" ".mine")
+        (ok (run dir "init"))
+        (new-id dir "task" "private" "--execute")
+        (check (string/has-prefix? "root: .mine  (out-of-band)\n" ((ok (run dir "status")) :stdout)))
+        (check (string/find ".mine: out-of-band root is inside the repo but not git-ignored" ((run dir "check") :stdout)))
+        (spit (string dir "/.git/info/exclude") ".mine/\n")
+        (check (not (string/find "out-of-band" ((ok (run dir "check")) :stdout))))
+        # from a subdirectory too
+        (os/mkdir (string dir "/sub"))
+        (check (string/has-prefix? "root: .mine  (out-of-band)\n" ((ok (run (string dir "/sub") "status")) :stdout)))))))
+
+(test "dev-proc.root expands ~"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def home (tmp-dir))
+        (defer (sh/rm home)
+          (def env {"HOME" home "PATH" (os/getenv "PATH")})
+          (git-in dir "config" "dev-proc.root" "~/notes/work")
+          (ok (run-with {:env env} dir "init"))
+          (check (os/stat (string home "/notes/work/.gitkeep"))))))))
+
 (when (> failures 0)
   (eprint failures " test(s) failed")
   (os/exit 1))

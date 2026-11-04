@@ -4,6 +4,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Added
+
+- The dev-proc skill takes an out-of-band work dir of your own: `git config dev-proc.root <path>`, with any name, inside the repo (git-ignored) or anywhere else. The CLI uses it before the nearest `.work/`. `find` and `check` cover it too, but the commit hooks and `trailers` never ask for it or name it, so it stays out of the team's commits.
+
 ### Fixed
 
 - `NOTICES-windows-x64.txt` includes the licenses of gdtoa and winpthreads, two parts of mingw-w64 that the windows binary links and whose terms its mingw-w64 notice does not cover. Releases up to 0.7.0 lacked them.

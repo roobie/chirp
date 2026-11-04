@@ -100,6 +100,12 @@
   (while (and (< i (length a)) (< i (length b)) (= (a i) (b i))) (++ i))
   (string/join [;(map (fn [_] "..") (slice a i)) ;(slice b i)] "/"))
 
+(defn- inside? [top p] (let [r (rel top p)] (not (or (= r "..") (string/has-prefix? "../" r)))))
+
+# A path as the person reads it: relative to the repo when inside it, absolute when not.
+(defn- shown [top p]
+  (if (inside? top p) (let [r (rel top p)] (if (empty? r) "." r)) p))
+
 (defn- exists? [p] (not (nil? (os/stat p))))
 (defn- dir? [p] (= :directory (os/stat p :mode)))
 
@@ -372,7 +378,11 @@
 
 # ---------- model
 
-(defn- load-root [dir]
+# A root is described by {:dir :base :oob}. :base is the project dir its refs resolve against and
+# whose files it owns in commits. An out-of-band (:oob) root is one person's own: it sits outside the
+# repo or is git-ignored, and the commit hooks and trailers never ask for it or name it.
+(defn- load-root [desc]
+  (def dir (desc :dir))
   (def units @[])
   (each type TYPES
     (def tdir (pjoin dir type))
@@ -415,7 +425,7 @@
                   (unless (d :fm) (array/push problems "no front matter")))
               (array/push problems (string d))))
           (array/push records r)))))
-  @{:dir dir :base (dirname dir) :units units :records records})
+  @{:dir dir :base (desc :base) :oob (desc :oob) :units units :records records})
 
 (defn- parent-of [u]
   (def p (fm/fm-get (u :fm) "parent"))
@@ -434,8 +444,23 @@
   (or (when id (find |(= ($ :id) id) (root :records)))
       (die (string "no record \"" (jstr id) "\" in " (root :dir)))))
 
-# Every .work/ root in the repo, honouring .gitignore; includes untracked ones.
+# The person's own root, from `git config dev-proc.root`: clone-local (or global) git config, so it
+# never lands in the repo. A relative path is taken from the repo top; git expands a leading ~.
+(defn- configured-root [top]
+  (def v (fm/jtrim (try-git ["config" "--type=path" "--get" "dev-proc.root"] top)))
+  (when (some-str v) (resolve top v)))
+
+(defn- ignored? [top p] (= 0 ((run-git ["check-ignore" "-q" p] top) 0)))
+
+(defn- root-desc [dir top configured]
+  (cond
+    (or (= dir configured) (not (inside? top dir))) {:dir dir :base top :oob true}
+    {:dir dir :base (dirname dir) :oob (ignored? top dir)}))
+
+# Every .work/ root in the repo, honouring .gitignore; includes untracked ones, then the
+# configured root, if any.
 (defn- all-roots [top]
+  (def configured (configured-root top))
   (def seen @{})
   (def roots @[])
   (each f (string/split "\0" (git ["ls-files" "-z" "--cached" "--others" "--exclude-standard"] top))
@@ -443,7 +468,11 @@
     (when-let [i (index-of ".work" segs)]
       (def r (pjoin top ;(slice segs 0 (+ i 1))))
       (unless (seen r) (put seen r true) (array/push roots r))))
-  (sort (filter exists? roots)))
+  (def out (map |(root-desc $ top configured)
+                (sort (filter |(and (exists? $) (not= $ configured)) roots))))
+  (when (and configured (exists? configured))
+    (array/push out (root-desc configured top configured)))
+  out)
 
 (defn- nearest-root [cwd top]
   (var d cwd)
@@ -554,13 +583,15 @@
 # ---------- commands
 
 (defn- cmd-init [ctx args]
-  (def dir (resolve (ctx :cwd) (or (first (args :pos)) ".") ".work"))
+  (def dir (if-let [d (first (args :pos))]
+             (resolve (ctx :cwd) d ".work")
+             (or (configured-root (ctx :top)) (resolve (ctx :cwd) ".work"))))
   (if (exists? dir)
     (print "exists: " dir)
     (do
       (mkdirp dir)
       (spit (pjoin dir ".gitkeep") "")
-      (print "created " (rel (ctx :top) dir) "/"))))
+      (print "created " (shown (ctx :top) dir) "/"))))
 
 (defn- unit-line [u]
   (def front (u :fm))
@@ -607,7 +638,7 @@
   (def units (root :units))
   (if (args "json")
     (print-json
-      (jobj "root" (rel (ctx :top) (root :dir))
+      (jobj "root" (shown (ctx :top) (root :dir))
             "units" (map (fn [u]
                            (def front (u :fm))
                            (jobj "id" (u :id) "label" (u :label) "phase" (or (fm/fm-get front "phase") :null)
@@ -618,7 +649,7 @@
                                   "read_if" (list-of (fm/fm-get ($ :fm) "read_if")))
                            (root :records))))
     (do
-      (print "root: " (let [r (rel (ctx :top) (root :dir))] (if (empty? r) ".work" r)))
+      (print "root: " (shown (ctx :top) (root :dir)) (if (root :oob) "  (out-of-band)" ""))
       (when (empty? units) (print "mode: idle — no active units (curate the backlog, or `new`)"))
       (def ids (tabseq [u :in units] (u :id) true))
       (defn walk [u depth]
@@ -756,13 +787,13 @@
   # --execute runs the gate of `phase <unit> execute`; the unit exists either way.
   (def gate
     (when (args "execute")
-      (def fresh (load-root (root :dir)))
+      (def fresh (load-root root))
       (protect (move-phase fresh (find-unit fresh id) "execute" false))))
   (report args id
-          (jobj "id" id "label" lbl "type" type "name" name "path" (rel (ctx :top) dir)
+          (jobj "id" id "label" lbl "type" type "name" name "path" (shown (ctx :top) dir)
                 "phase" (if (and gate (gate 0)) "execute" "initialize")
                 "files" created "consumed" (some-str (args "from")))
-          (string "created " id " " lbl ": " (rel (ctx :top) dir) "/ {" (string/join created ", ") "}  mode: initialize")
+          (string "created " id " " lbl ": " (shown (ctx :top) dir) "/ {" (string/join created ", ") "}  mode: initialize")
           ;(if backlog [(string "consumed backlog " (args "from"))] [])
           ;(if (and gate (gate 0)) [(gate 1)] []))
   (when (and gate (not (gate 0))) (error (gate 1))))
@@ -843,6 +874,10 @@
   (unless (empty? problems)
     (die (string "cannot close " (show u) ":\n  ✗ " (string/join problems "\n  ✗ "))))
   (sh/rm (u :dir))
+  (when (root :oob)
+    # Out-of-band work stays out of the team's commits, trailers included.
+    (print "deleted " (shown (ctx :top) (u :dir)) "/")
+    (break))
   (print "deleted " (rel (ctx :top) (u :dir)) "/ — stage it in the closing commit, e.g.:\n")
   (print "  " (u :type) " " (u :name) ": " (if (args "scrap") "scrap" "finalize") "\n")
   (print "  Work: " (u :id))
@@ -874,9 +909,9 @@
   (spit file (dump-doc front text))
   (each r old (os/rm (r :file)))
   (report args id
-          (jobj "id" id "kind" kind "path" (rel (ctx :top) file)
+          (jobj "id" id "kind" kind "path" (shown (ctx :top) file)
                 "superseded" (unless (empty? old) (map |($ :id) old)))
-          (string "created " (rel (ctx :top) file))
+          (string "created " (shown (ctx :top) file))
           ;(if (empty? old)
              []
              [(string "deleted " (string/join (map |($ :id) old) ", ") " — add to the commit message:")
@@ -920,7 +955,7 @@
 # Each staged file belongs to the deepest .work root whose project dir contains it.
 (defn- owning-root [roots top file]
   (var best nil)
-  (each r roots
+  (each r (filter |(not ($ :oob)) roots)
     (def base-rel (rel top (r :base)))
     (when (and (or (= base-rel "") (string/has-prefix? (string base-rel "/") file))
                (or (nil? best) (> (length (r :base)) (length (best :base)))))
@@ -931,7 +966,7 @@
 # pre-commit check rejects. Each is {:root-rel … :executing [units whose STATE.md would satisfy it]}.
 (defn- state-gaps [roots top staged]
   (def out @[])
-  (each root roots
+  (each root (filter |(not ($ :oob)) roots)
     (def root-rel (rel top (root :dir)))
     (def executing (filter |(= (fm/fm-get ($ :fm) "phase") "execute") (root :units)))
     (unless (empty? executing)
@@ -951,11 +986,15 @@
   out)
 
 (defn- cmd-check [ctx args]
-  (def roots (map load-root (all-roots (ctx :top))))
+  # The hooks guard what is committed, so they leave out-of-band roots alone.
+  (def roots (filter |(not (and (args "hook") ($ :oob))) (map load-root (all-roots (ctx :top)))))
   (def errors @[])
   (def warns @[])
   (each root roots
-    (def where (rel (ctx :top) (root :dir)))
+    (def where (shown (ctx :top) (root :dir)))
+    (when (and (root :oob) (inside? (ctx :top) (root :dir)) (not (ignored? (ctx :top) (root :dir))))
+      (array/push warns (string where ": out-of-band root is inside the repo but not git-ignored, so its files"
+                                " would be committed; add it to .git/info/exclude")))
     (each u (root :units)
       (def at (string where "/" (u :label) " " (u :id)))
       (each p (u :problems) (array/push errors (string at ": " p)))
@@ -976,7 +1015,7 @@
             (array/push errors (string at ": owner empty past initialize"))))))
     (def seen @{})
     (each r (root :records)
-      (def at (rel (ctx :top) (r :file)))
+      (def at (shown (ctx :top) (r :file)))
       (each p (r :problems) (array/push errors (string at ": " p)))
       (when (r :id)
         (when (seen (r :id))
@@ -1020,10 +1059,10 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (def kinds @{"decision" true "learning" true})
   (when (args "backlog") (put kinds "backlog" true))
   (def records
-    (seq [dir :in (all-roots (ctx :top))
-          r :in ((load-root dir) :records)
+    (seq [d :in (all-roots (ctx :top))
+          r :in ((load-root d) :records)
           :when (and (kinds (r :kind)) (r :id) (r :fm))]
-      {:id (r :id) :kind (r :kind) :root (rel (ctx :top) dir)
+      {:id (r :id) :kind (r :kind) :root (shown (ctx :top) (d :dir))
        :title (let [t (title-of (r :body)) m (peg/match record-title-peg t)]
                 (if m (m 0) t))
        :read-if (list-of (fm/fm-get (r :fm) "read_if"))}))
@@ -1078,7 +1117,12 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 (defn- cmd-dig [ctx args]
   (def id (or (first (args :pos)) (die "usage: dig <U-… | D-… | L-… | B-…>")))
   (def root ((ctx :root)))
-  (def root-rel (rel (ctx :top) (root :dir)))
+  # An out-of-band root has no history in this repo; when it sits in a repo of its own, dig there.
+  (def top (if (root :oob)
+             (let [[code out] (run-git ["rev-parse" "--show-toplevel"] (root :dir))]
+               (if (= code 0) (fm/jtrim out) (die (string (root :dir) " is not in a git repository, so it has no history"))))
+             (ctx :top)))
+  (def root-rel (let [r (rel top (root :dir))] (if (empty? r) "." r)))
   (def rec (peg/match record-id-peg id))
   (var pathspec nil)
   (var matches nil)
@@ -1092,7 +1136,6 @@ match the words, best first. --backlog also searches backlog items. --json is fo
       # Any type dir: the unit may have been rescoped between commits.
       (set matches (fn [f] (some |(string/has-prefix? (string id "-") $) (string/split "/" f))))))
 
-  (def top (ctx :top))
   (def trail (fm/jtrim (try-git ["log" "--all" "--date=short" "--format=%h %ad %s" "-E"
                                  (string "--grep=^(Work|Supersedes|Decision): " id "$")] top)))
   (unless (empty? trail)
@@ -1144,7 +1187,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 
 (def HELP
   (string "dev-proc — units (" (string/join TYPES " > ") ") moving " (string/join PHASES " → ") "\n\n"
-    `  init [dir]                               create <dir>/.work/
+    `  init [dir]                               create <dir>/.work/, or with no dir the dev-proc.root dir if set
   <unit> is a unit id (U-…) or, for active units, its <type>/<name> label
 
   status [<unit>] [--json]                 tree of units, or one unit's mode + gate
@@ -1172,7 +1215,12 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   dig <U-…|D-…|L-…|B-…>                    show deleted docs from git history
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
-  --root <dir>   use this .work/ instead of the nearest one above cwd
+  --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
+
+  git config dev-proc.root <path>   your own out-of-band work dir, any name and place (relative to the
+                 repo top, absolute, or ~/…); it is used before the nearest .work/, find and check cover it
+                 too, and the commit hooks and trailers never ask for it. Keep it outside the repo or ignored
+                 (.git/info/exclude); check warns otherwise
   --             end of options: later arguments are text even if they start with --
                  (note <unit> log -- "--force was needed")`))
 
@@ -1223,10 +1271,15 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (def ctx @{:cwd cwd :top top :exit 0})
   (put ctx :root
        (fn []
-         (def dir (if (some-str (args "root")) (resolve cwd (args "root")) (nearest-root cwd top)))
+         (def configured (configured-root top))
+         (def dir (cond (some-str (args "root")) (resolve cwd (args "root"))
+                        configured configured
+                        (nearest-root cwd top)))
          (when (or (not dir) (not (exists? dir)))
-           (die "no .work/ found from here up to the repo root — run `dev-proc init`"))
-         (load-root dir)))
+           (die (if (and configured (= dir configured))
+                  (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`")
+                  "no .work/ found from here up to the repo root — run `dev-proc init`")))
+         (load-root (root-desc dir top configured))))
   (f ctx args)
   (ctx :exit))
 

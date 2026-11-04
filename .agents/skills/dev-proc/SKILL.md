@@ -30,6 +30,7 @@ Then follow the section for that unit's mode below. `$DP help` lists every comma
 - **Recursion:** every unit runs initialize → execute → finalize. A parent's execute loop mostly spawns, steers and closes its children.
 - **Owner:** a person and/or an agent, listed in `owner`.
 - **Several roots:** a repo may have several `.work/` directories (e.g. one per project in a monorepo). The CLI uses the nearest one above the current directory (`--root` overrides). `check` covers all of them.
+- **Out-of-band root:** for work of your own that the team should never see, set `git config dev-proc.root <path>`. The path can have any name and sit anywhere: relative to the repo top, absolute, or `~/…`. It is clone-local (or global) git config, so it never lands in the repo. The CLI then uses that root before the nearest `.work/`, and `find` and `check` cover it alongside the team's roots. Refs in it resolve against the repo. The commit hooks and `trailers` never ask for it or name it, and `close` prints no trailer for it, so its ids stay out of team commits. Keep it outside the repo or git-ignored (`.git/info/exclude`); `check` warns otherwise. `dig` searches the root's own repo if it is in one.
 
 ## Files
 
