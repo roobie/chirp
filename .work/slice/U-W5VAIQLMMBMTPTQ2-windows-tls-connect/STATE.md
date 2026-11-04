@@ -39,7 +39,7 @@ GitHub #10: on windows 11, chirp 0.7.0 cannot fetch over HTTPS. `chirp --self-up
 
 
 ## Now
-A/B on the windows CI runner: ab/wtc-red carries only the tls-connect-wait check (expected to fail with 10057); windows-tls-connect adds the jsec ConnectEx patch (expected to pass)
+Full CI on windows-tls-connect with the reworked check; then merge to main, upstream draft, reply on #10
 
 ## Next
 - Confirm the cause (net/connect to the same host works; tls/connect fails only with latency)
@@ -49,6 +49,7 @@ A/B on the windows CI runner: ab/wtc-red carries only the tls-connect-wait check
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - Wine, 300 ms netem, +winsock trace: the fixed build binds, ConnectEx pends, the completion arrives, SO_UPDATE_CONNECT_CONTEXT, then the first send succeeds; GET github.com and example.com return 200; a refused port reports "Connection refused." (build/wtc, local)
+- Real windows A/B (windows-2025, throwaway dbg run 41898860507): the final tls-connect-wait check run twice on each CI-built binary; without the patch (run 41895975615) it fails with 'Write syscall error: WSA error 10057', the error in #10; with it (run 41895971206) it passes
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -60,6 +61,7 @@ A/B on the windows CI runner: ab/wtc-red carries only the tls-connect-wait check
 - [ ] - [ ] learning: on windows a send on a socket whose non-blocking connect is in progress fails WSAENOTCONN, Wine answers would-block, and SO_ERROR reads 0 meanwhile; Wine cannot show the bug, SO_CONDITIONAL_ACCEPT on real windows can
 - [ ] - [ ] backlog: upstream the ConnectEx patch to jsec, in the B-5AUA2Q7IH5DP2ZME conversation
 - [ ] - [ ] backlog: smoke macos-arm64 https-get fails 'certificate verify failed' for example.com on both A/B branches (runs 41893476794, 41893562405), unrelated to this slice
+- [ ] - [ ] backlog: on windows, ev/cancel of a fiber blocked in a jsec TLS read (probe in flight) makes chirp exit 127 with stdout lost, after main returns; seen in the dbg runs, belongs with the TLSState overlapped audit in B-5AUA2Q7IH5DP2ZME
 
 ## Log
 - 2026-11-04 initialized

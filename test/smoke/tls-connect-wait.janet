@@ -52,19 +52,21 @@
   (assert (zero? (listen lsock 4)) "listen failed")
 
   # The client's write starts the handshake. No server ever answers it, so on a
-  # fixed build the write waits; the broken build fails it at once.
-  (def client-error @[])
-  (def client
-    (ev/go (fn []
-             (try
-               (let [c (tls/connect "127.0.0.1" (string port) {:verify false})]
-                 (:write c "hello"))
-               ([err] (array/push client-error err))))))
+  # fixed build the write waits; the broken build fails it at once. Its outcome
+  # goes to `done`.
+  (def done (ev/chan 1))
+  (ev/go (fn []
+           (ev/give done
+                    (try
+                      (let [c (tls/connect "127.0.0.1" (string port) {:verify false})]
+                        (:write c "hello")
+                        :written)
+                      ([err] err)))))
 
   (ev/sleep 0.5)
-  (assert (empty? client-error)
-          (string/format "tls/connect did not wait for the TCP connect: %s"
-                         (first client-error)))
+  (when (pos? (ev/count done))
+    (error (string/format "tls/connect did not wait for the TCP connect: %s"
+                          (ev/take done))))
 
   # Now let the TCP handshake finish; the ClientHello should follow it.
   (def conn (wsa-accept lsock nil nil nil nil))
@@ -75,11 +77,11 @@
     (ev/sleep 0.05)
     (set got (recv conn buf 16 0))
     (when (pos? got) (break)))
+  # Closing resets the client's handshake, so it ends on its own. Cancelling it
+  # instead, with jsec's read in flight, crashes the process at exit on windows.
   (closesocket conn)
   (closesocket lsock)
-  (ev/cancel client "done")
-  (assert (empty? client-error)
-          (string/format "client failed: %s" (first client-error)))
+  (ev/with-deadline 10 (ev/take done))
   (assert (pos? got) "no ClientHello arrived after the connect was accepted")
   # A TLS record of type handshake (22) opens the ClientHello.
   (assert (= 0x16 (get buf 0)) (string/format "first byte %d, not a TLS handshake" (get buf 0)))
