@@ -59,8 +59,10 @@ A/B on the windows CI runner: ab/wtc-red carries only the tls-connect-wait check
 -->
 - [ ] - [ ] learning: on windows a send on a socket whose non-blocking connect is in progress fails WSAENOTCONN, Wine answers would-block, and SO_ERROR reads 0 meanwhile; Wine cannot show the bug, SO_CONDITIONAL_ACCEPT on real windows can
 - [ ] - [ ] backlog: upstream the ConnectEx patch to jsec, in the B-5AUA2Q7IH5DP2ZME conversation
+- [ ] - [ ] backlog: smoke macos-arm64 https-get fails 'certificate verify failed' for example.com on both A/B branches (runs 41893476794, 41893562405), unrelated to this slice
 
 ## Log
 - 2026-11-04 initialized
 - 2026-11-04 phase initialize → execute
 - 2026-11-04 2026-11-04 cause confirmed: pristine 0.7.0 under Wine with 300 ms netem shows connect pending, SO_ERROR 0 read at once, first send before the connect completes; Wine answers that send would-block (so it works), real windows answers WSAENOTCONN
+- 2026-11-04 2026-11-04 first CI A/B (runs 41893476794, 41893562405) was void: the check called ev/write on a jsec tls-stream, which wants (:write c ...); fixed

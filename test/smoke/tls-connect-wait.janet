@@ -58,7 +58,7 @@
     (ev/go (fn []
              (try
                (let [c (tls/connect "127.0.0.1" (string port) {:verify false})]
-                 (ev/write c "hello"))
+                 (:write c "hello"))
                ([err] (array/push client-error err))))))
 
   (ev/sleep 0.5)
