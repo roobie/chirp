@@ -39,7 +39,7 @@ GitHub #10: on windows 11, chirp 0.7.0 cannot fetch over HTTPS. `chirp --self-up
 
 
 ## Now
-Reproducing with the released 0.7.0 chirp.exe under Wine, with netem latency on the container's interface.
+A/B on the windows CI runner: ab/wtc-red carries only the tls-connect-wait check (expected to fail with 10057); windows-tls-connect adds the jsec ConnectEx patch (expected to pass)
 
 ## Next
 - Confirm the cause (net/connect to the same host works; tls/connect fails only with latency)
@@ -48,6 +48,7 @@ Reproducing with the released 0.7.0 chirp.exe under Wine, with netem latency on 
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- Wine, 300 ms netem, +winsock trace: the fixed build binds, ConnectEx pends, the completion arrives, SO_UPDATE_CONNECT_CONTEXT, then the first send succeeds; GET github.com and example.com return 200; a refused port reports "Connection refused." (build/wtc, local)
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -56,6 +57,8 @@ Reproducing with the released 0.7.0 chirp.exe under Wine, with netem latency on 
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] - [ ] learning: on windows a send on a socket whose non-blocking connect is in progress fails WSAENOTCONN, Wine answers would-block, and SO_ERROR reads 0 meanwhile; Wine cannot show the bug, SO_CONDITIONAL_ACCEPT on real windows can
+- [ ] - [ ] backlog: upstream the ConnectEx patch to jsec, in the B-5AUA2Q7IH5DP2ZME conversation
 
 ## Log
 - 2026-11-04 initialized

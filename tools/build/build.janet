@@ -78,6 +78,11 @@
 # accept state, wiping the accepted socket, so every TLS server dies on its
 # first connection.
 (patch :jsec "jsec-iocp-accept-state-padding.patch")
+# On windows, jsec's tls/connect started the handshake before its non-blocking
+# connect finished, so the first send failed with WSAENOTCONN (10057) whenever
+# the server was more than a few milliseconds away. It now uses ConnectEx and
+# waits for the completion, like Janet's net/connect.
+(patch :jsec "jsec-windows-connectex.patch")
 
 # Everything the image build loads is built for the build machine; everything
 # linked into the executable is built again by zig for the target.

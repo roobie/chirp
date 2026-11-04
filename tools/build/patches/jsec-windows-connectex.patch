@@ -1,0 +1,187 @@
+diff --git a/src/jtls/api/connect.c b/src/jtls/api/connect.c
+index 257f186..1d7e1d5 100644
+--- a/src/jtls/api/connect.c
++++ b/src/jtls/api/connect.c
+@@ -414,6 +414,15 @@ Janet cfun_upgrade(int32_t argc, Janet *argv) {
+ 
+ /* State for async TLS connect operation */
+ typedef struct {
++#ifdef JANET_WINDOWS
++    /* Windows connects with ConnectEx and waits for its IOCP completion.
++     * Janet's completion loop finds the fiber by comparing ev_state with the
++     * OVERLAPPED, so it must come first, and Janet treats ev_state as its
++     * JanetOverlapped and writes a uint32_t byte count right after it, so
++     * that slot is reserved. */
++    WSAOVERLAPPED overlapped;
++    uint32_t janet_bytes_transferred;
++#endif
+     char *hostname; /* Hostname for SNI (owned, must free) */
+     Janet opts;     /* TLS options (must mark for GC) */
+ } TLSConnectState;
+@@ -447,10 +456,32 @@ static void tls_connect_callback(JanetFiber *fiber, JanetAsyncEvent event) {
+ 
+ #ifdef JANET_WINDOWS
+         case JANET_ASYNC_EVENT_INIT:
+-            /* Windows IOCP: Check connect status immediately since Windows
+-             * doesn't support readiness-based async connect the same way.
+-             * Fall through to WRITE case to check getsockopt for connect
+-             * result. */
++            /* ConnectEx was started in cfun_connect. Wait for its
++             * completion: reading SO_ERROR now would give 0 while the
++             * connect is still in progress, and the handshake's first send
++             * would then fail with WSAENOTCONN (10057). */
++            janet_async_in_flight(fiber);
++            return;
++
++        case JANET_ASYNC_EVENT_FAILED: {
++            DWORD bytes = 0, flags = 0;
++            int err = WSAECONNREFUSED;
++            if (!WSAGetOverlappedResult((SOCKET)stream->handle,
++                                        &state->overlapped, &bytes, FALSE,
++                                        &flags)) {
++                err = WSAGetLastError();
++            }
++            janet_cancel(fiber, janet_cstringv(jsec_socket_strerror(err)));
++            stream->flags |= JANET_STREAM_TOCLOSE;
++            janet_async_end(fiber);
++            return;
++        }
++
++        case JANET_ASYNC_EVENT_COMPLETE:
++            /* Give the socket its connected state, so that getpeername,
++             * shutdown and SO_ERROR work as after connect(). */
++            setsockopt((SOCKET)stream->handle, SOL_SOCKET,
++                       SO_UPDATE_CONNECT_CONTEXT, NULL, 0);
+ #if defined(__GNUC__) || defined(__clang__)
+             __attribute__((fallthrough));
+ #endif
+@@ -677,6 +708,12 @@ Janet cfun_connect(int32_t argc, Janet *argv) {
+ 
+     jsec_socket_t fd = JSEC_INVALID_SOCKET;
+     int status;
++#ifdef JANET_WINDOWS
++    /* The stream and state of a ConnectEx in flight */
++    JanetStream *win_stream = NULL;
++    TLSConnectState *win_state = NULL;
++    LPFN_CONNECTEX connect_ex = NULL;
++#endif
+ 
+ #ifndef JANET_WINDOWS
+     if (is_unix) {
+@@ -811,15 +848,70 @@ Janet cfun_connect(int32_t argc, Janet *argv) {
+ #endif
+             if (fd == JSEC_INVALID_SOCKET) continue;
+ 
+-            /* Attempt non-blocking connect */
+ #ifdef JANET_WINDOWS
+-            status = WSAConnect(fd, rp->ai_addr, (int)rp->ai_addrlen, NULL,
+-                                NULL, NULL, NULL);
++            /* Connect with ConnectEx, as Janet's net/connect does, so that
++             * the IOCP loop reports when the connection is made. A plain
++             * non-blocking connect gives no completion to wait for. */
++            if (!win_state) {
++                win_state = janet_malloc(sizeof(TLSConnectState));
++                if (!win_state) {
++                    jsec_close_socket(fd);
++                    freeaddrinfo(ai);
++                    tls_panic_config("failed to allocate TLS connect state");
++                }
++                memset(win_state, 0, sizeof(TLSConnectState));
++                size_t host_len = strlen(host);
++                win_state->hostname = janet_malloc(host_len + 1);
++                if (!win_state->hostname) {
++                    janet_free(win_state);
++                    jsec_close_socket(fd);
++                    freeaddrinfo(ai);
++                    tls_panic_config("failed to allocate hostname buffer");
++                }
++                memcpy(win_state->hostname, host, host_len + 1);
++            }
++            memset(&win_state->overlapped, 0, sizeof(win_state->overlapped));
++            if (!connect_ex) {
++                GUID guid = WSAID_CONNECTEX;
++                DWORD len = 0;
++                if (WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid,
++                             sizeof(guid), &connect_ex, sizeof(connect_ex),
++                             &len, NULL, NULL) != 0) {
++                    connect_ex = NULL;
++                }
++            }
++            /* ConnectEx needs a bound socket: any address, any port. */
++            struct sockaddr_storage local;
++            memset(&local, 0, sizeof(local));
++            local.ss_family = (ADDRESS_FAMILY)rp->ai_family;
++            if (!connect_ex || bind(fd, (struct sockaddr *)&local,
++                                    (int)rp->ai_addrlen) != 0) {
++                jsec_close_socket(fd);
++                fd = JSEC_INVALID_SOCKET;
++                continue;
++            }
++            /* The stream registers the socket with the IOCP, which must
++             * happen before the operation starts. */
++            win_stream = janet_stream(
++                (JanetHandle)fd,
++                JANET_STREAM_SOCKET | JANET_STREAM_READABLE |
++                    JANET_STREAM_WRITABLE,
++                NULL);
++            if (connect_ex(fd, rp->ai_addr, (int)rp->ai_addrlen, NULL, 0,
++                           NULL, &win_state->overlapped) ||
++                WSAGetLastError() == ERROR_IO_PENDING) {
++                /* In flight; a completion follows even on success. */
++                break;
++            }
++            /* This address failed immediately, try next */
++            janet_stream_close(win_stream);
++            win_stream = NULL;
++            fd = JSEC_INVALID_SOCKET;
+ #else
++            /* Attempt non-blocking connect */
+             do {
+                 status = connect(fd, rp->ai_addr, rp->ai_addrlen);
+             } while (status == -1 && jsec_socket_errno == JSEC_EINTR);
+-#endif
+ 
+             if (status == 0) {
+                 /* Connected immediately (rare, but possible on localhost) */
+@@ -847,12 +939,18 @@ Janet cfun_connect(int32_t argc, Janet *argv) {
+                 jsec_close_socket(fd);
+                 fd = JSEC_INVALID_SOCKET;
+             }
++#endif
+         }
+         freeaddrinfo(ai);
+     }
+ 
+     if (fd == JSEC_INVALID_SOCKET) {
+-#ifndef JANET_WINDOWS
++#ifdef JANET_WINDOWS
++        if (win_state) {
++            janet_free(win_state->hostname);
++            janet_free(win_state);
++        }
++#else
+         if (is_unix) {
+             jsec_panic(JSEC_MOD_TLS, "SOCKET",
+                        "could not connect to unix socket %s", unix_path);
+@@ -864,6 +962,13 @@ Janet cfun_connect(int32_t argc, Janet *argv) {
+         }
+     }
+ 
++#ifdef JANET_WINDOWS
++    /* ConnectEx is in flight on win_stream, with win_state as its
++     * overlapped; nothing may fail between here and janet_async_start. */
++    JanetStream *stream = win_stream;
++    TLSConnectState *state = win_state;
++    state->opts = opts;
++#else
+     /* Create stream for async connect completion */
+     JanetStream *stream = janet_stream(
+         (JanetHandle)fd,
+@@ -885,6 +990,7 @@ Janet cfun_connect(int32_t argc, Janet *argv) {
+     }
+     memcpy(state->hostname, host, host_len + 1);
+     state->opts = opts;
++#endif
+ 
+     /* Start async wait for connect completion */
+     janet_async_start(stream, JANET_ASYNC_LISTEN_WRITE, tls_connect_callback,

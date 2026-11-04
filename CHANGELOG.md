@@ -15,6 +15,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Fixed
 
+- HTTPS on windows works when the server is more than a few milliseconds away. jsec's `tls/connect` started the TLS handshake before the TCP connection was made, so requests and `chirp --self-update` failed with `Write syscall error: WSA error 10057` (#10). An older chirp on windows that hits this cannot self-update to the fix; download the new release by hand.
 - `NOTICES-windows-x64.txt` includes the licenses of gdtoa and winpthreads, two parts of mingw-w64 that the windows binary links and whose terms its mingw-w64 notice does not cover. Releases up to 0.7.0 lacked them.
 
 ## 0.7.0
