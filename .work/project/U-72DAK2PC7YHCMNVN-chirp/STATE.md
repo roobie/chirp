@@ -31,10 +31,12 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
-- Open GitHub issues are triaged into backlog (2026-11-04): #10 B-62UNE2BYIJ5SUDQC, #8 B-S3NXI7Y7RE7GGQPI, #9 B-IURYPGJRZ7Z2SMYA, #4 and #6 B-LXVEZMLKF5VJOQZQ
-- Pick which of them to work on with BR; #10 (windows HTTPS broken) is the candidate first
+- #10 (windows HTTPS) is fixed on main by slice windows-tls-connect (D-UIMRRBBCKA7OIVBU); a release ships it and closes #10. Windows 0.7.0 users must download it by hand
+- macOS smoke https-get is red since 2026-11-04 (B-TTPZLCTY2HOLUCFZ); fix it before the next release
+- Remaining triaged issues: #8 B-S3NXI7Y7RE7GGQPI, #9 B-IURYPGJRZ7Z2SMYA, #4 and #6 B-LXVEZMLKF5VJOQZQ
 
 ## Evidence
+- Windows-tls-connect (U-W5VAIQLMMBMTPTQ2): run 41898980038 (dcf6c0f) builds all four targets twice with matching sha256; windows smoke passes, tls-connect-wait included, which fails with #10's WSA error 10057 on the unpatched build (real windows A/B).
 - Build-matrix (U-EP6NS3X66GBL2AQL): run 40095901156 builds all four targets twice with matching sha256, and smoke-runs each one on its native runner, HTTPS client and server included.
 - Release-0-1-0 (U-ROTWPYUJJW5Q45E2): https://github.com/roobie/chirp/releases/tag/v0.1.0 (run 40103776646) ships the four binaries, notices and SHA256SUMS with provenance attestation; the binary and README mark chirp unofficial. This meets the release, reproducibility, provenance and unofficial criteria; SQLite and TOML remain.
 - Bundle-sqlite-toml (U-OPXF3E6S7PBCFAHC): run 40107147500 builds all four targets twice with matching sha256, and the new sqlite and toml smoke checks pass on each target's native runner. They are not in a release yet.
