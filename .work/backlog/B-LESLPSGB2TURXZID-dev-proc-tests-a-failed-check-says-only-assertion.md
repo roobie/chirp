@@ -9,3 +9,5 @@ In the work-dir-name slice the --help test failed once and passed in six reruns.
 
 ## Notes
 TODO
+
+The same session saw `dev-proc report` print nothing once on its first run (exit code unknown), then sixty clean reruns. That may be a separate flake, in chirp or the shell, so it is worth capturing stderr and the exit code when it happens again.
