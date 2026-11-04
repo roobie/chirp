@@ -26,13 +26,16 @@ TODO: what is already true, what must stay true, resources available.
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+implemented and tested; finalizing
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- dev-proc.test.janet report test: last-tag default, delivered/scrapped (Decision: trailer)/open, a rescope counted as neither start nor close and labelled by its new name, parents, record counts, <rev> meaning <rev>..HEAD, JSON, no-tag fallback, bad range error; all suites pass
+- on this repo: report gives v0.7.0..HEAD in 0.4s over the whole 160-commit history; units named only by old trailers show (no STATE.md in history)
+- dig and report share work-path for recognising unit and record paths; trailer-values generalises work-trailers for Decision:
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -41,6 +44,8 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] process: report printed nothing once on its first run (exit unknown), like the --help test flake; 60 reruns clean — add to B-LESLPSGB2TURXZID
+- [ ] decision: report reads only git, defaults to last tag..HEAD, outcome from STATE.md add/delete and the Decision: trailer
 
 ## Log
 - 2026-11-04 initialized

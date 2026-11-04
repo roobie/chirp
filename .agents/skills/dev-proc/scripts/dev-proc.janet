@@ -335,15 +335,15 @@
       (do (buffer/push-byte out (s i)) (++ i))))
   (string out))
 
-# /^Work:\s*(\S+)\s*$/gm : the captured ids
-(defn- work-trailers [s]
+# /^<key>\s*(\S+)\s*$/gm : the captured values, e.g. for key "Work:"
+(defn- trailer-values [s key]
   (def n (length s))
   (def out @[])
   (var i 0)
   (while (< i n)
     (var next (+ i 1))
-    (when (and (line-start? s i) (fm/at? s i "Work:"))
-      (def w1 (skip-ws s (+ i 5)))
+    (when (and (line-start? s i) (fm/at? s i key))
+      (def w1 (skip-ws s (+ i (length key))))
       (when (< w1 n)
         (var e1 w1)
         (while (and (< e1 n) (not (fm/ws? (s e1)))) (++ e1))
@@ -355,6 +355,8 @@
           (set next (max p (+ i 1))))))
     (set i next))
   out)
+
+(defn- work-trailers [s] (trailer-values s "Work:"))
 
 # /^(#{2,}) /gm → '#$1 '
 (defn- demote-headings [s]
@@ -1156,6 +1158,24 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (when (and (empty? found) (some |(not (empty? ($ :units))) (touched-roots roots top staged)))
     (eprint "warn  staged changes fall under active units, but no unit file is staged to name one")))
 
+# What a repo path is to dev-proc, wherever its work dir sits or was: a unit's file
+# ({:unit :type :name :file}, from <type>/U-…-<name>/<file>), a record ({:record :kind}, from
+# <kind dir>/X-….md), or nil. dig and report recognise history through this alone.
+(defn- work-path [f]
+  (def segs (string/split "/" f))
+  (var res nil)
+  (for i 0 (- (length segs) 2)
+    (unless res
+      (when-let [_ (index-of (segs i) TYPES) m (peg/match unit-dir-peg (segs (+ i 1)))]
+        (set res {:unit (m 0) :type (segs i) :name (m 1) :file (string/join (slice segs (+ i 2)) "/")}))))
+  (or res
+      (when (>= (length segs) 2)
+        (def m (peg/match file-id-peg (last segs)))
+        (def kind (find |(= ((RECORDS $) :dir) (segs (- (length segs) 2))) RECORD-KINDS))
+        (when (and m kind (string/has-suffix? ".md" (last segs))
+                   (= (string/slice (m 0) 0 1) ((RECORDS kind) :prefix)))
+          {:record (m 0) :kind kind}))))
+
 (defn- cmd-dig [ctx args]
   (def id (or (first (args :pos)) (die "usage: dig <U-… | D-… | L-… | B-…>")))
   (def root ((ctx :root)))
@@ -1171,12 +1191,12 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (if rec
     (do
       (set pathspec [(string ":(glob)**/" id "-*.md") (string ":(glob)**/" id ".md")])
-      (set matches (fn [f] (or (string/has-prefix? (string id "-") (basename f)) (= (basename f) (string id ".md"))))))
+      (set matches (fn [f] (= id (get (work-path f) :record)))))
     (do
       (unless (peg/match unit-id-peg id) (die "dig takes an id (U-…, D-…, L-…, B-…); names are reused, ids are not"))
       (set pathspec [(string ":(glob)**/" id "-*/**")])
       # Any type dir: the unit may have been rescoped between commits.
-      (set matches (fn [f] (some |(string/has-prefix? (string id "-") $) (string/split "/" f))))))
+      (set matches (fn [f] (= id (get (work-path f) :unit))))))
 
   (def trail (fm/jtrim (try-git ["log" "--all" "--date=short" "--format=%h %ad %s" "-E"
                                  (string "--grep=^(Work|Supersedes|Decision): " id "$")] top)))
@@ -1227,6 +1247,105 @@ match the words, best first. --backlog also searches backlog items. --json is fo
         (print "wrote " (let [r (rel top file)] (if (empty? r) file r))))))
   (print "hooks warn by default; set DEV_PROC_STRICT=1 to make them block"))
 
+(def REPORT-HELP
+  `usage: report [<range>] [--since <date>] [--json]
+
+What dev-proc work a stretch of git history holds: the units delivered, scrapped or still open, with
+the commits each carries a Work: trailer on, and the records added and removed. <range> is a git range
+(a..b), or a revision meaning <rev>..HEAD; with neither <range> nor --since it is <last tag>..HEAD, or
+all of HEAD's history when there is no tag. --since takes what git log --since takes. Read from git
+alone, so uncommitted work is left out (status shows it).`)
+
+# A unit as of revision `tip`: its type, name and parent, from the last version of its STATE.md.
+(defn- unit-at [top tip id]
+  (def log (fm/jtrim (try-git ["log" "-1" "--no-renames" "--format=%h" "--name-status" tip "--"
+                               (string ":(glob)**/" id "-*/STATE.md")] top)))
+  (def lines (string/split "\n" log))
+  # A rescope deletes the old path and adds the new one in one commit; the new one is the unit.
+  (def changes (filter |(string/find "\t" $) lines))
+  (def change (or (find |(not (string/has-prefix? "D" $)) changes) (first changes)))
+  (when change
+    (def [st f] (string/split "\t" change))
+    (def w (work-path f))
+    (def rev (if (= st "D") (string (lines 0) "^") (lines 0)))
+    (def [ok d] (protect (fm/parse-doc (try-git ["show" (string rev ":" f)] top))))
+    (def p (when ok (fm/fm-get (d :fm) "parent")))
+    {:type (w :type) :name (w :name) :label (string (w :type) "/" (w :name)) :parent (when (string? p) p)}))
+
+(defn- cmd-report [ctx args]
+  (when (or (args "help") (index-of "-h" (args :pos))) (print REPORT-HELP) (break))
+  (def top (ctx :top))
+  (def arg (some-str (first (args :pos))))
+  (def since (some-str (args "since")))
+  (def range (cond arg (if (string/find ".." arg) arg (string arg "..HEAD"))
+                   since "HEAD"
+                   (if-let [t (some-str (fm/jtrim (try-git ["describe" "--tags" "--abbrev=0"] top)))]
+                     (string t "..HEAD")
+                     "HEAD")))
+  (def tip (let [i (string/find ".." range)] (if i (let [t (string/slice range (+ i 2))] (if (empty? t) "HEAD" t)) range)))
+  (def [code out] (run-git ["log" "--reverse" "--no-renames" "--date=short" "--name-status"
+                            "--format=%x1e%h%x1f%ad%x1f%B%x1f" ;(if since [(string "--since=" since)] []) range "--"] top))
+  (unless (= code 0) (die (string "git log " range " failed; is it a range or revision of this repo?")))
+
+  (def units @{})
+  (def order @[])
+  (defn unit [id] (unless (units id) (array/push order id) (put units id @{:id id :commits 0})) (units id))
+  (def recs (tabseq [k :in RECORD-KINDS] k @{:added 0 :removed 0}))
+  (def dates @[])
+  (each block (string/split "\x1e" out)
+    (unless (empty? (fm/jtrim block))
+      (def [_ date msg files] (string/split "\x1f" block))
+      (array/push dates date)
+      (each t (work-trailers msg) (when (peg/match unit-id-peg t) (update (unit t) :commits inc)))
+      # A unit's STATE.md added starts it and deleted closes it; both in one commit is a rescope.
+      (def adds @{})
+      (def dels @{})
+      (each line (string/split "\n" (or files ""))
+        (def [st f] (string/split "\t" line))
+        (when-let [_ f w (work-path f)]
+          (cond
+            (and (w :unit) (= (w :file) "STATE.md"))
+            (case st "A" (put adds (w :unit) true) "D" (put dels (w :unit) true))
+            (w :record)
+            (case st "A" (update-in recs [(w :kind) :added] inc) "D" (update-in recs [(w :kind) :removed] inc)))))
+      (def scrap (not (empty? (trailer-values msg "Decision:"))))
+      (eachk id adds (unless (dels id) (put (unit id) :started true)))
+      (eachk id dels (unless (adds id) (put (unit id) :outcome (if scrap "scrapped" "delivered"))))))
+
+  (def info @{})
+  (defn info-of [id] (unless (info id) (put info id (or (unit-at top tip id) {}))) (info id))
+  (def rows (seq [id :in order :let [u (units id) i (info-of id)]]
+              @{:id id :label (i :label) :type (i :type) :name (i :name)
+                :outcome (or (u :outcome) "open") :started (truthy? (u :started)) :commits (u :commits)
+                :parent (i :parent) :parent-label (when (i :parent) ((info-of (i :parent)) :label))}))
+  (def from (first dates))
+  (def to (last dates))
+  (if (args "json")
+    (print-json
+      (jobj "range" range "since" (or since :null) "commits" (length dates) "from" (or from :null) "to" (or to :null)
+            "units" (map |(jobj "id" ($ :id) "label" (or ($ :label) :null) "outcome" ($ :outcome) "started" ($ :started)
+                                "commits" ($ :commits) "parent" (or ($ :parent) :null) "parentLabel" (or ($ :parent-label) :null))
+                         rows)
+            "records" (jobj ;(mapcat |[$ (jobj "added" (get-in recs [$ :added]) "removed" (get-in recs [$ :removed]))]
+                                     RECORD-KINDS))))
+    (do
+      (print range (if since (string " since " since) "") ": " (length dates) " commit" (if (= 1 (length dates)) "" "s")
+             (cond (nil? from) "" (= from to) (string ", " from) (string ", " from " – " to)))
+      (each outcome ["delivered" "scrapped" "open"]
+        (def these (filter |(= ($ :outcome) outcome) rows))
+        (unless (empty? these)
+          (print outcome)
+          (each r these
+            (print "  " (r :id) " " (or (r :label) "(no STATE.md in history)") "  " (r :commits) " commit" (if (= 1 (r :commits)) "" "s")
+                   (if (and (= outcome "open") (r :started)) "  new" "")
+                   (if (r :parent-label) (string "  in " (r :parent-label)) "")))))
+      (when (empty? rows) (print "no units"))
+      (print "records  "
+             (string/join (map (fn [k] (def c (recs k))
+                                 (string ((RECORDS k) :dir) " +" (c :added) (if (> (c :removed) 0) (string " −" (c :removed)) "")))
+                               RECORD-KINDS)
+                          "  ")))))
+
 (def HELP
   (string "dev-proc — units (" (string/join TYPES " > ") ") moving " (string/join PHASES " → ") "\n\n"
     `  init [dir]                               create <dir>'s work dir (cwd if no dir), or with no dir the
@@ -1256,6 +1375,9 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   trailers                                 print Work: lines for the units whose files are staged, most specific
                                            first; warns on stderr when the pre-commit check would want a STATE.md
   dig <U-…|D-…|L-…|B-…>                    show deleted docs from git history
+  report [<range>] [--since <date>] [--json]
+                                           units delivered, scrapped and open, and records added, over a git
+                                           range (default: last tag..HEAD)
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
@@ -1274,7 +1396,8 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 (def COMMANDS
   {"init" cmd-init "status" cmd-status "find" cmd-find "new" cmd-new "phase" cmd-phase
    "rescope" cmd-rescope "close" cmd-close "record" cmd-record "check" cmd-check
-   "check-msg" cmd-check-msg "trailers" cmd-trailers "note" cmd-note "dig" cmd-dig "hooks" cmd-hooks})
+   "check-msg" cmd-check-msg "trailers" cmd-trailers "note" cmd-note "dig" cmd-dig "hooks" cmd-hooks
+   "report" cmd-report})
 (def BOOLEAN {"id" true "execute" true "json" true "scrap" true "staged" true "hook" true "force" true "help" true "backlog" true})
 (def REPEATABLE {"read-if" true "ref" true "criterion" true})
 

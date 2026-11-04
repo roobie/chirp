@@ -111,6 +111,8 @@ Choose a branch: **deliver** or **scrap**.
 
 Deleted documents stay in git history. `$DP dig <U-… | D-… | L-… | B-…>` lists commits carrying that id's trailer and prints the last version of the deleted files. A superseded decision is found the same way, through the `supersedes:` field and the `Supersedes:` trailer.
 
+For an overview of a stretch of history, `$DP report [<range>] [--since <date>]` lists the units delivered, scrapped and still open, with their commit counts and parents, and the records added and removed. The default range is the last tag to HEAD. It reads only git, so uncommitted work is left out.
+
 ## Skillset contract
 
 dev-proc is the router of a skillset. Sibling skills (e.g. design, decide, review, finalize helpers) must:

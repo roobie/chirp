@@ -469,6 +469,54 @@
         (def r (ok (run dir "dig" b)))
         (check (string/find (string "===== .work/backlog/" b "-gone-soon.md") (r :stdout)) (r :stdout))))))
 
+(test "report sums up the units and records of a range, the last tag..HEAD by default"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (git-in dir "config" "user.name" "t")
+        (git-in dir "config" "user.email" "t@example.invalid")
+        (defn commit [msg & ids]
+          (git-in dir "add" "-A")
+          (git-in dir "commit" "-qm" (string msg "\n\n" (string/join (map |(string "Work: " $) ids) "\n"))))
+        (commit "base")
+        (git-in dir "tag" "v1")
+        (def s (new-id dir "slice" "outer" "--execute"))
+        (def t (new-id dir "task" "done" "--parent" s "--execute"))
+        (def x (new-id dir "task" "dropped" "--parent" s "--execute"))
+        (def y (new-id dir "task" "moved" "--parent" s))
+        (commit "start" t x y s)
+        (ok (run dir "phase" t "finalize"))
+        (ok (run dir "close" t))
+        (commit "finish t" t)
+        (def d (string/trim ((ok (run dir "record" "decision" "Why x stopped" "--read-if" "x" "--id")) :stdout)))
+        (ok (run dir "phase" x "finalize"))
+        (ok (run dir "close" x "--scrap" "--decision" d))
+        (git-in dir "add" "-A")
+        (git-in dir "commit" "-qm" (string "scrap x\n\nWork: " x "\nDecision: " d))
+        (ok (run dir "rescope" y "--name" "renamed"))
+        (commit "rescope y" y)
+        (def r (ok (run dir "report")))
+        (def lines (string/split "\n" (r :stdout)))
+        (check (string/has-prefix? "v1..HEAD: 4 commits, " (lines 0)) (r :stdout))
+        (check (= (string/slice (r :stdout) (length (lines 0)))
+                  (string "\ndelivered\n  " t " task/done  2 commits  in slice/outer\n"
+                          "scrapped\n  " x " task/dropped  2 commits  in slice/outer\n"
+                          "open\n  " y " task/renamed  2 commits  new  in slice/outer\n"
+                          "  " s " slice/outer  1 commit  new\n"
+                          "records  decisions +1  learnings +0  backlog +0\n"))
+               (r :stdout))
+        # a revision means <rev>..HEAD; JSON carries the same
+        (def j (json/decode (string ((ok (run dir "report" "HEAD~1" "--json")) :stdout))))
+        (check (= "HEAD~1..HEAD" (j "range")))
+        (check (= 1 (j "commits")))
+        (check (deep= (j "units") @[@{"id" y "label" "task/renamed" "outcome" "open" "started" false "commits" 1
+                                      "parent" s "parentLabel" "slice/outer"}])
+               (string/format "%q" (j "units")))
+        # without a tag it is all of HEAD's history, which holds the scratch records
+        (git-in dir "tag" "-d" "v1")
+        (check (string/find "decisions +2  learnings +1" ((ok (run dir "report")) :stdout)))
+        (check (string/find "is it a range" ((run dir "report" "nope..HEAD") :stderr)))))))
+
 (when (> failures 0)
   (eprint failures " test(s) failed")
   (os/exit 1))
