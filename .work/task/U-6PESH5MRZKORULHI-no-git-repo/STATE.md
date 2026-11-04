@@ -28,13 +28,17 @@ Out: an env var or config file for dev-proc.root; discovering every root under a
 
 
 ## Now
-Waiting on task oob-without-history.
+Criteria met; ready to finalize.
 
 ## Next
-- make ctx :top optional and fall back to the root's parent
+- finalize: record the decision, close, then finalize the slice
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- run: repo-top returns nil outside git; the work dir is the nearest up to / or --root and its parent stands in for top; NEEDS-GIT plus check --staged/--hook refuse; configured-root and all-roots take ctx and give nothing extra without git
+- tests: 'outside a git repo the unit and record commands work against the nearest work dir' (init, new, note, rescope, status, record, check, find, supersede, dig, close to closed/, --root), 'the git-only commands say they need git', 'a global dev-proc.root is not used'; all three suites pass
+- manual: /tmp dir with no repo, init from a parent and new/status/check from a child, trailers refuses, a .dev-proc.toml above does not crash discovery
+- SKILL.md Outside a git repo bullet, help, CHANGELOG
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -43,6 +47,7 @@ Waiting on task oob-without-history.
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] decision: outside a git repo dev-proc uses only the nearest work dir or --root, reads no dev-proc.root, and the commit commands refuse
 
 ## Log
 - 2026-11-04 initialized

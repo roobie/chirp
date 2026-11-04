@@ -105,7 +105,7 @@
 
 # A path as the person reads it: relative to the repo when inside it, absolute when not.
 (defn- shown [top p]
-  (if (inside? top p) (let [r (rel top p)] (if (empty? r) "." r)) p))
+  (if (and top (inside? top p)) (let [r (rel top p)] (if (empty? r) "." r)) p))
 
 (defn- exists? [p] (not (nil? (os/stat p))))
 (defn- dir? [p] (= :directory (os/stat p :mode)))
@@ -139,9 +139,10 @@
   (def [code out] (run-git args dir))
   (if (= code 0) out ""))
 
+# The repo's top, or nil outside a git repo.
 (defn- repo-top [cwd]
   (def [code out] (run-git ["rev-parse" "--show-toplevel"] cwd))
-  (if (= code 0) (fm/jtrim out) (die "not inside a git repository")))
+  (when (= code 0) (fm/jtrim out)))
 
 # ---------- front matter
 
@@ -449,9 +450,12 @@
 
 # The person's own root, from `git config dev-proc.root`: clone-local (or global) git config, so it
 # never lands in the repo. A relative path is taken from the repo top; git expands a leading ~.
-(defn- configured-root [top]
-  (def v (fm/jtrim (try-git ["config" "--type=path" "--get" "dev-proc.root"] top)))
-  (when (some-str v) (resolve top v)))
+# Outside a git repo there is none: a global setting is meant for the person's repos, and a second
+# way to set it would be a second thing to keep in step.
+(defn- configured-root [ctx]
+  (when (ctx :git)
+    (def v (fm/jtrim (try-git ["config" "--type=path" "--get" "dev-proc.root"] (ctx :top))))
+    (when (some-str v) (resolve (ctx :top) v))))
 
 (defn- ignored? [top p] (= 0 ((run-git ["check-ignore" "-q" p] top) 0)))
 
@@ -499,7 +503,7 @@
   (def file (pjoin d CONFIG))
   (cond
     (not (exists? file)) DEFAULT-WORK
-    (and (inside? top file) (ignored? top file))
+    (and top (inside? top file) (ignored? top file))
     (do (eprint "dev-proc: warn  " (shown top file) " is git-ignored, so it is skipped; commit it to rename the work dir")
         DEFAULT-WORK)
     (read-config top file)))
@@ -510,9 +514,12 @@
     {:dir dir :base (dirname dir) :oob (ignored? top dir)}))
 
 # Every .work/ root in the repo, honouring .gitignore; includes untracked ones, then the
-# configured root, if any.
-(defn- all-roots [top]
-  (def configured (configured-root top))
+# configured root, if any. Outside a git repo, only the root the command runs against: finding the
+# rest would mean walking the tree with git's ignore rules rebuilt by hand.
+(defn- all-roots [ctx]
+  (unless (ctx :git) (break @[((ctx :root-desc))]))
+  (def top (ctx :top))
+  (def configured (configured-root ctx))
   (def names @{}) # dir -> its work dir name, read once
   (defn name-of [d] (unless (names d) (put names d (work-name top d))) (names d))
   (def roots @{})
@@ -642,7 +649,7 @@
 (defn- cmd-init [ctx args]
   (def dir (if-let [d (first (args :pos))]
              (let [p (resolve (ctx :cwd) d)] (pjoin p (work-name (ctx :top) p)))
-             (or (configured-root (ctx :top)) (pjoin (ctx :cwd) (work-name (ctx :top) (ctx :cwd))))))
+             (or (configured-root ctx) (pjoin (ctx :cwd) (work-name (ctx :top) (ctx :cwd))))))
   (if (exists? dir)
     (print "exists: " dir)
     (do
@@ -1055,8 +1062,8 @@
 
 (defn- cmd-check [ctx args]
   # The hooks guard what is committed, so they leave out-of-band roots alone.
-  (def configured (configured-root (ctx :top)))
-  (def roots (filter |(not (and (args "hook") ($ :oob))) (map load-root (all-roots (ctx :top)))))
+  (def configured (configured-root ctx))
+  (def roots (filter |(not (and (args "hook") ($ :oob))) (map load-root (all-roots ctx))))
   (def errors @[])
   (def warns @[])
   (each root roots
@@ -1134,7 +1141,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (def kinds @{"decision" true "learning" true})
   (when (args "backlog") (put kinds "backlog" true))
   (def records
-    (seq [d :in (all-roots (ctx :top))
+    (seq [d :in (all-roots ctx)
           r :in ((load-root d) :records)
           :when (and (kinds (r :kind)) (r :id) (r :fm))]
       {:id (r :id) :kind (r :kind) :root (shown (ctx :top) (d :dir))
@@ -1155,7 +1162,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 (defn- cmd-check-msg [ctx args]
   (def file (or (first (args :pos)) (die "usage: check-msg <commit-msg-file>")))
   (def msg (strip-comments (read-file (resolve (ctx :cwd) file))))
-  (def roots (map load-root (all-roots (ctx :top))))
+  (def roots (map load-root (all-roots ctx)))
   (def active (some |(not (empty? ($ :units))) (touched-roots roots (ctx :top) (staged-files (ctx :top)))))
   (def trailers (work-trailers msg))
   (def out @[])
@@ -1169,7 +1176,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 
 (defn- cmd-trailers [ctx args]
   (def top (ctx :top))
-  (def roots (map load-root (all-roots top)))
+  (def roots (map load-root (all-roots ctx)))
   (def staged (staged-files top))
   # A unit is named by the directory of any staged file, so a unit deleted by `close` counts too.
   (def found @[])
@@ -1434,6 +1441,10 @@ alone, so uncommitted work is left out (status shows it).`)
 
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
 
+  outside a git repo   the nearest work dir up to /, or --root, is the only root and its parent stands
+                 in for the repo top; dev-proc.root is not read, and trailers, check-msg, check --staged,
+                 hooks and report refuse
+
   git config dev-proc.root <path>   your own out-of-band work dir, any name and place (relative to the
                  repo top, absolute, or ~/…); it is used before the nearest .work/, find and check cover it
                  too, and the commit hooks and trailers never ask for it. Keep it outside the repo or ignored
@@ -1481,6 +1492,9 @@ alone, so uncommitted work is left out (status shows it).`)
     (++ i))
   args)
 
+# The commands that read or write commits, the index or hooks.
+(def NEEDS-GIT {"trailers" true "check-msg" true "hooks" true "report" true})
+
 (defn- run [argv]
   (def cmd (first argv))
   (when (or (nil? cmd) (= cmd "") (= cmd "help") (= cmd "--help") (= cmd "-h"))
@@ -1489,19 +1503,31 @@ alone, so uncommitted work is left out (status shows it).`)
   (def f (or (COMMANDS cmd) (die (string "unknown command \"" cmd "\"\n\n" HELP))))
   (def args (parse-args (slice argv 1)))
   (def cwd (os/cwd))
-  (def top (repo-top cwd))
-  (def ctx @{:cwd cwd :top top :exit 0})
-  (put ctx :root
+  (def git-top (repo-top cwd))
+  (when (and (nil? git-top) (or (NEEDS-GIT cmd) (and (= cmd "check") (or (args "staged") (args "hook")))))
+    (die (string (if (= cmd "check") "check --staged" cmd) " needs a git repository, and " cwd " is not in one")))
+  # Outside a git repo the work dir is the nearest one up to the filesystem root, or --root, and its
+  # parent stands in for the repo top: refs resolve against it and paths are shown from it.
+  (def loose (unless git-top
+               (if (some-str (args "root")) (resolve cwd (args "root")) (nearest-root cwd nil))))
+  (def top (or git-top (if loose (dirname loose) cwd)))
+  (def ctx @{:cwd cwd :top top :git (not (nil? git-top)) :exit 0})
+  (put ctx :root-desc
        (fn []
-         (def configured (configured-root top))
-         (def dir (cond (some-str (args "root")) (resolve cwd (args "root"))
+         (def configured (configured-root ctx))
+         (def dir (cond (not git-top) loose
+                        (some-str (args "root")) (resolve cwd (args "root"))
                         configured configured
                         (nearest-root cwd top)))
          (when (or (not dir) (not (exists? dir)))
-           (die (if (and configured (= dir configured))
+           (die (cond
+                  (and configured (= dir configured))
                   (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`")
-                  (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to the repo root — run `dev-proc init`"))))
-         (load-root (root-desc dir top configured))))
+                  git-top
+                  (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to the repo root — run `dev-proc init`")
+                  (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to / — run `dev-proc init`"))))
+         (root-desc dir top configured)))
+  (put ctx :root (fn [] (load-root ((ctx :root-desc)))))
   (f ctx args)
   (ctx :exit))
 

@@ -447,6 +447,65 @@
           (check (not (string/find "Supersedes:" (r :stdout))) (r :stdout))
           (check (not (os/stat (string mine "/closed")))))))))
 
+(test "outside a git repo the unit and record commands work against the nearest work dir"
+  (fn []
+    (def dir (tmp-dir))
+    (defer (sh/rm dir)
+      (check (string/find "found from here up to /" ((run dir "status") :stderr)))
+      (ok (run dir "init"))
+      (check (os/stat (string dir "/.work/.gitkeep")))
+      (os/mkdir (string dir "/sub"))
+      (def sub (string dir "/sub"))
+      (def task (new-id sub "task" "loose" "--execute"))
+      (check (os/stat (string dir "/.work/task/" task "-loose/STATE.md")))
+      (ok (run sub "note" task "now" "working"))
+      (ok (run sub "rescope" task "--name" "looser"))
+      (def s (ok (run sub "status")))
+      (check (string/has-prefix? "root: .work\n" (s :stdout)) (s :stdout))
+      (check (string/find "task/looser" (s :stdout)) (s :stdout))
+      # refs resolve against the work dir's parent
+      (spit (string dir "/code.txt") "defn thing\n")
+      (def old (string/trim ((ok (run sub "record" "decision" "Loose call" "--read-if" "loose work" "--ref" "code.txt#thing" "--id")) :stdout)))
+      (ok (run sub "check"))
+      (check (string/find old ((ok (run sub "find" "loose work")) :stdout)))
+      (ok (run sub "record" "decision" "Looser call" "--read-if" "x" "--supersedes" old))
+      (check (string/find old ((ok (run sub "dig" old)) :stdout)))
+      # no history, so close keeps the unit and names no trailer
+      (ok (run sub "phase" task "finalize"))
+      (def c (ok (run sub "close" task)))
+      (check (not (string/find "Work:" (c :stdout))) (c :stdout))
+      (check (os/stat (string dir "/.work/closed/task/" task "-looser/STATE.md")))
+      (check (string/find "# task/looser" ((ok (run sub "dig" task)) :stdout)))
+      # --root reaches a work dir elsewhere
+      (def other (tmp-dir))
+      (defer (sh/rm other)
+        (ok (run other "init"))
+        (new-id other "task" "elsewhere")
+        (check (string/find "task/elsewhere" ((ok (run sub "status" "--root" (string other "/.work"))) :stdout)))))))
+
+(test "outside a git repo the git-only commands say they need git"
+  (fn []
+    (def dir (tmp-dir))
+    (defer (sh/rm dir)
+      (ok (run dir "init"))
+      (spit (string dir "/msg") "x\n")
+      (each args [["trailers"] ["check-msg" "msg"] ["hooks" "install"] ["report"] ["check" "--staged"]]
+        (def r (run dir ;args))
+        (check (not= 0 (r :status)) (string/join args " "))
+        (check (string/find "needs a git repository" (r :stderr)) (r :stderr)))
+      (check (not (os/stat (string dir "/.git")))))))
+
+(test "outside a git repo a global dev-proc.root is not used"
+  (fn []
+    (def dir (tmp-dir))
+    (def home (tmp-dir))
+    (defer (do (sh/rm dir) (sh/rm home))
+      (spit (string home "/.gitconfig") (string "[dev-proc]\n\troot = " home "/mine\n"))
+      (def env {"HOME" home "PATH" (os/getenv "PATH")})
+      (ok (run-with {:env env} dir "init"))
+      (check (os/stat (string dir "/.work")))
+      (check (not (os/stat (string home "/mine")))))))
+
 (test "dev-proc.root expands ~"
   (fn []
     (with-repo

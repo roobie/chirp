@@ -9,6 +9,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 - The dev-proc skill takes an out-of-band work dir of your own: `git config dev-proc.root <path>`, with any name, inside the repo (git-ignored) or anywhere else. The CLI uses it before the nearest `.work/`. `find` and `check` cover it too, but the commit hooks and `trailers` never ask for it or name it, so it stays out of the team's commits.
 - A committed `.dev-proc.toml` with `work_dir = ".tasks"` renames that directory's dev-proc work dir for every clone; without the file it stays `.work`. `dev-proc dig` searches the whole repo by id, so records from before a rename are still found.
 - A dev-proc work dir without git history (in no repo, or git-ignored in the one it sits in) keeps what `close` and `record --supersedes` remove: they move it to the work dir's `closed/` instead of deleting it, and `dig` reads it from there. `record --supersedes` no longer prints a `Supersedes:` trailer for an out-of-band work dir.
+- The dev-proc skill runs in a directory that is not in a git repo: it uses the nearest work dir up to `/`, or `--root`, and the commands that need git (`trailers`, `check-msg`, `check --staged`, `hooks`, `report`) say so.
 - `dev-proc report [<range>] [--since <date>] [--json]` sums up a stretch of git history: the units delivered, scrapped and still open, with commit counts and parents, and the records added and removed. With no range it covers the last tag to HEAD.
 
 ### Fixed
