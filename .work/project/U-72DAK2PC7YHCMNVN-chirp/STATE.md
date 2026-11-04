@@ -31,8 +31,8 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
-- Reply on #4 and #6 with spork/misc/print-table and spork/schema, per the triage
-- Then pick the next bug or backlog item with BR
+- Open GitHub issues are triaged into backlog (2026-11-04): #10 B-62UNE2BYIJ5SUDQC, #8 B-S3NXI7Y7RE7GGQPI, #9 B-IURYPGJRZ7Z2SMYA, #4 and #6 B-LXVEZMLKF5VJOQZQ
+- Pick which of them to work on with BR; #10 (windows HTTPS broken) is the candidate first
 
 ## Evidence
 - Build-matrix (U-EP6NS3X66GBL2AQL): run 40095901156 builds all four targets twice with matching sha256, and smoke-runs each one on its native runner, HTTPS client and server included.
