@@ -649,7 +649,9 @@
 (defn- cmd-init [ctx args]
   (def dir (if-let [d (first (args :pos))]
              (let [p (resolve (ctx :cwd) d)] (pjoin p (work-name (ctx :top) p)))
-             (or (configured-root ctx) (pjoin (ctx :cwd) (work-name (ctx :top) (ctx :cwd))))))
+             (or (when (some-str (args "root")) (resolve (ctx :cwd) (args "root")))
+                 (configured-root ctx)
+                 (pjoin (ctx :cwd) (work-name (ctx :top) (ctx :cwd))))))
   (if (exists? dir)
     (print "exists: " dir)
     (do
@@ -1405,7 +1407,7 @@ alone, so uncommitted work is left out (status shows it).`)
 (def HELP
   (string "dev-proc — units (" (string/join TYPES " > ") ") moving " (string/join PHASES " → ") "\n\n"
     `  init [dir]                               create <dir>'s work dir (cwd if no dir), or with no dir the
-                                           dev-proc.root dir if set
+                                           --root (or DEV_PROC_ROOT) dir, else the dev-proc.root dir, if set
   <unit> is a unit id (U-…) or, for active units, its <type>/<name> label
 
   status [<unit>] [--json]                 tree of units, or one unit's mode + gate
@@ -1440,6 +1442,10 @@ alone, so uncommitted work is left out (status shows it).`)
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
+  DEV_PROC_ROOT=<abs dir>   the default for --root, so a directory can pin its work dir (e.g. an
+                 .envrc with export DEV_PROC_ROOT=$PWD/.mine); it works in and out of a git repo, and
+                 --root on the command line wins. Each option that holds for every command takes its
+                 default from a DEV_PROC_<NAME> variable like this
 
   outside a git repo   the nearest work dir up to /, or --root, is the only root and its parent stands
                  in for the repo top; dev-proc.root is not read, and trailers, check-msg, check --staged,
@@ -1492,6 +1498,24 @@ alone, so uncommitted work is left out (status shows it).`)
     (++ i))
   args)
 
+# The options that hold for every command, and the environment variable that gives each its default,
+# so a directory can pin them (with direnv, say) in or out of a git repo. The command line wins. A
+# :path value must be absolute: a relative one would mean something else in each subdirectory.
+(def ENV-OPTIONS {"root" {:env "DEV_PROC_ROOT" :path true}})
+
+# Fills args from ENV-OPTIONS where the command line left an option out; records under :from which
+# variable set it, for error messages.
+(defn- env-defaults [args]
+  (put args :from @{})
+  (eachp [opt {:env name :path path}] ENV-OPTIONS
+    (def v (some-str (os/getenv name)))
+    (when (and v (nil? (args opt)))
+      (when (and path (not (string/has-prefix? "/" v)))
+        (die (string name " is " v ", which is not an absolute path")))
+      (put args opt v)
+      (put (args :from) opt name)))
+  args)
+
 # The commands that read or write commits, the index or hooks.
 (def NEEDS-GIT {"trailers" true "check-msg" true "hooks" true "report" true})
 
@@ -1501,7 +1525,7 @@ alone, so uncommitted work is left out (status shows it).`)
     (print HELP)
     (break 0))
   (def f (or (COMMANDS cmd) (die (string "unknown command \"" cmd "\"\n\n" HELP))))
-  (def args (parse-args (slice argv 1)))
+  (def args (env-defaults (parse-args (slice argv 1))))
   (def cwd (os/cwd))
   (def git-top (repo-top cwd))
   (when (and (nil? git-top) (or (NEEDS-GIT cmd) (and (= cmd "check") (or (args "staged") (args "hook")))))
@@ -1521,6 +1545,8 @@ alone, so uncommitted work is left out (status shows it).`)
                         (nearest-root cwd top)))
          (when (or (not dir) (not (exists? dir)))
            (die (cond
+                  (some-str (args "root"))
+                  (string (or ((args :from) "root") "--root") " is " dir ", which does not exist — run `dev-proc init`")
                   (and configured (= dir configured))
                   (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`")
                   git-top

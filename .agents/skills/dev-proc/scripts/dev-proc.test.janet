@@ -506,6 +506,36 @@
       (check (os/stat (string dir "/.work")))
       (check (not (os/stat (string home "/mine")))))))
 
+(test "DEV_PROC_ROOT is the default for --root, in and out of a git repo"
+  (fn []
+    (def plain (tmp-dir))
+    (def mine (tmp-dir))
+    (defer (do (sh/rm plain) (sh/rm mine))
+      (def root (string mine "/.mine"))
+      (defn env [v] {:env {"DEV_PROC_ROOT" v "PATH" (os/getenv "PATH") "HOME" (os/getenv "HOME")}})
+      (check (string/find "DEV_PROC_ROOT is " ((run-with (env root) plain "status") :stderr)))
+      (ok (run-with (env root) plain "init"))
+      (check (os/stat (string root "/.gitkeep")))
+      (check (not (os/stat (string plain "/.work"))))
+      (ok (run plain "init"))
+      (new-id plain "task" "elsewhere")
+      (def t (string/trim ((ok (run-with (env root) plain "new" "task" "pinned" "--id")) :stdout)))
+      (check (os/stat (string root "/task/" t "-pinned/STATE.md")))
+      (check (string/find "task/pinned" ((ok (run-with (env root) plain "status")) :stdout)))
+      # --root on the command line wins
+      (def s (ok (run-with (env root) plain "status" "--root" (string plain "/.work"))))
+      (check (string/find "task/elsewhere" (s :stdout)) (s :stdout))
+      (check (not (string/find "task/pinned" (s :stdout))) (s :stdout))
+      # in a git repo it comes before the nearest .work/
+      (with-repo
+        (fn [dir]
+          (def r (ok (run-with (env root) dir "status")))
+          (check (string/find "task/pinned" (r :stdout)) (r :stdout))))
+      # a relative value is refused: it would mean something else in each subdirectory
+      (def r (run-with (env ".mine") mine "status"))
+      (check (not= 0 (r :status)))
+      (check (string/find "not an absolute path" (r :stderr)) (r :stderr)))))
+
 (test "dev-proc.root expands ~"
   (fn []
     (with-repo
