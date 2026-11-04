@@ -28,13 +28,16 @@ Out: running outside a git repo (task no-git-repo).
 
 
 ## Now
-Not started.
+Criteria met; ready to finalize.
 
 ## Next
-- has-history? helper; close and supersede archive; dig fallback; tests; SKILL.md
+- finalize: record the decision and the backlog item, close
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- history-top decides; close and record --supersedes archive to <root>/closed/ in a root without history (outside any repo, or git-ignored); dig reads closed/ through work-path; status/find/check never see closed/ since load-root reads only type and record dirs
+- tests: 'a root without git history keeps closed units and superseded records in closed/' and 'a git-ignored root in the repo has no history; one in a repo of its own does'; chirp dev-proc.test.janet, find and frontmatter suites all pass
+- SKILL.md scopes Every commit to team roots and adds a No history bullet; close help and CHANGELOG updated
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -43,7 +46,10 @@ Not started.
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] decision: a work dir without git history archives closed units and superseded records in closed/ rather than deleting them or refusing to close
+- [ ] backlog: offer the closed/ archive and the out-of-band Supersedes fix upstream to spartan's dev-proc (D-VZIDK5O2VNATQDCP)
 
 ## Log
 - 2026-11-04 initialized
 - 2026-11-04 phase initialize → execute
+- 2026-11-04 record --supersedes stopped printing a Supersedes: trailer for out-of-band roots, which D-6RKLCVKL6N2QK75E already said they never name

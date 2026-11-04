@@ -31,7 +31,8 @@ Then follow the section for that unit's mode below. `$DP help` lists every comma
 - **Owner:** a person and/or an agent, listed in `owner`.
 - **Several roots:** a repo may have several `.work/` directories (e.g. one per project in a monorepo). The CLI uses the nearest one above the current directory (`--root` overrides). `check` covers all of them.
 - **Work dir name:** a directory can rename its work dir for everyone with a committed `.dev-proc.toml` holding `work_dir = ".tasks"`. The setting covers that directory only, not the ones below it. Without the file the name is `.work`; wherever this skill says `.work/`, read that directory's name. `check` warns about a `.work` left beside the renamed dir. A git-ignored `.dev-proc.toml` is skipped, with a warning.
-- **Out-of-band root:** for work of your own that the team should never see, set `git config dev-proc.root <path>`. The path can have any name and sit anywhere: relative to the repo top, absolute, or `~/…`. It is clone-local (or global) git config, so it never lands in the repo. The CLI then uses that root before the nearest `.work/`, and `find` and `check` cover it alongside the team's roots. Refs in it resolve against the repo. The commit hooks and `trailers` never ask for it or name it, and `close` prints no trailer for it, so its ids stay out of team commits. Keep it outside the repo or git-ignored (`.git/info/exclude`); `check` warns otherwise. `dig` searches the root's own repo if it is in one.
+- **Out-of-band root:** for work of your own that the team should never see, set `git config dev-proc.root <path>`. The path can have any name and sit anywhere: relative to the repo top, absolute, or `~/…`. It is clone-local (or global) git config, so it never lands in the repo. The CLI then uses that root before the nearest `.work/`, and `find` and `check` cover it alongside the team's roots. Refs in it resolve against the repo. The commit hooks and `trailers` never ask for it or name it, and `close` and `record --supersedes` print no trailer for it, so its ids stay out of team commits. Keep it outside the repo or git-ignored (`.git/info/exclude`); `check` warns otherwise. The commit rules (Every commit, the closing commit, Archaeology) are for team roots; an out-of-band root is committed only if it sits in a repo of its own, and then however you like. `dig` searches that repo.
+- **No history:** a work dir in no git repo, or git-ignored in the one it sits in, has no history to keep what `close` and `record --supersedes` remove. There they move the files to the work dir's `closed/` instead of deleting them, and `dig` reads them from there. `status`, `find` and `check` never look in `closed/`.
 
 ## Files
 
@@ -88,9 +89,11 @@ Choose a branch: **deliver** or **scrap**.
 3. **Scrap** always gets a decision record saying why the work was abandoned; that is the most valuable "why" there is. What happens to the code (revert, delete the branch, keep it) is decided case by case with the owner, never automatically.
 4. **Package and hand off:** make sure the artefacts are usable and the parent's `STATE.md` reflects the outcome.
 5. **Retrospective (optional, never forced):** briefly ask whether anything about *how* we worked should change: the process, this skill, `CLAUDE.md`, tooling, agent roles. Start from any `process:` items in Harvest. Act only on what is genuinely worth changing: make a small change now in its own commit, or record a backlog item for a bigger one. If nothing comes to mind, skip this step and write nothing; ritual reflections are noise.
-6. **Remove:** `$DP close <id>` (or `close <id> --scrap --decision D-…`). It refuses while children are open, the phase isn't finalize, or Harvest has unchecked items. Commit the deletion together with the harvested records.
+6. **Remove:** `$DP close <id>` (or `close <id> --scrap --decision D-…`). It refuses while children are open, the phase isn't finalize, or Harvest has unchecked items. In a team root, commit the deletion together with the harvested records; in a work dir without history, `close` moves the unit to `closed/` instead.
 
 ## Every commit
+
+These rules hold for the team's roots. Out-of-band work never appears in team commits (see Out-of-band root above).
 
 - **Docs are current in the same commit as the code.** If code under an executing unit changes, that unit's `STATE.md` changes too.
 - **Trailers** make history searchable. `Work:` takes the unit id, never the label. Use one per unit the commit advances, most specific first:

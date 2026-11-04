@@ -387,6 +387,66 @@
         (os/mkdir (string dir "/sub"))
         (check (string/has-prefix? "root: .mine  (out-of-band)\n" ((ok (run (string dir "/sub") "status")) :stdout)))))))
 
+# Closes a unit and supersedes a decision in the configured root; returns [task-id old-decision-id].
+(defn close-and-supersede [dir]
+  (def task (new-id dir "task" "private" "--execute"))
+  (ok (run dir "phase" task "finalize"))
+  (def old (string/trim ((ok (run dir "record" "decision" "Old call" "--read-if" "x" "--id")) :stdout)))
+  [task old])
+
+(test "a root without git history keeps closed units and superseded records in closed/"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def mine (tmp-dir))
+        (defer (sh/rm mine)
+          (def root (string mine "/w"))
+          (git-in dir "config" "dev-proc.root" root)
+          (ok (run dir "init"))
+          (def [task old] (close-and-supersede dir))
+          (def c (ok (run dir "close" task)))
+          (check (string/find (string "moved " task) (c :stdout)) (c :stdout))
+          (check (not (string/find "Work:" (c :stdout))) (c :stdout))
+          (check (os/stat (string root "/closed/task/" task "-private/STATE.md")))
+          (def r (ok (run dir "record" "decision" "New call" "--read-if" "x" "--supersedes" old)))
+          (check (not (string/find "Supersedes:" (r :stdout))) (r :stdout))
+          (check (= 1 (length (filter |(string/has-prefix? old $) (os/dir (string root "/closed/decisions"))))))
+          (check (empty? (filter |(string/has-prefix? old $) (os/dir (string root "/decisions")))))
+          # closed/ is out of view, but dig reads it
+          (def s (ok (run dir "status")))
+          (check (not (string/find task (s :stdout))) (s :stdout))
+          (ok (run dir "check"))
+          (check (empty? (json/decode (string ((ok (run dir "find" "Old" "--json")) :stdout)))))
+          (def d (ok (run dir "dig" task)))
+          (check (string/find "# task/private" (d :stdout)) (d :stdout))
+          (check (string/find "# D-" ((ok (run dir "dig" old)) :stdout)))
+          (check (string/find "no closed copy" ((run dir "dig" "U-AAAAAAAAAAAAAAAA") :stderr))))))))
+
+(test "a git-ignored root in the repo has no history; one in a repo of its own does"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (git-in dir "config" "dev-proc.root" ".mine")
+        (spit (string dir "/.git/info/exclude") ".mine/\n")
+        (ok (run dir "init"))
+        (def [task _] (close-and-supersede dir))
+        (ok (run dir "close" task))
+        (check (os/stat (string dir "/.mine/closed/task/" task "-private")))))
+    (with-repo
+      (fn [dir]
+        (def mine (tmp-dir))
+        (defer (sh/rm mine)
+          (git-in mine "init" "-q")
+          (git-in dir "config" "dev-proc.root" mine)
+          (ok (run dir "init"))
+          (def [task old] (close-and-supersede dir))
+          (def c (ok (run dir "close" task)))
+          (check (string/find "deleted" (c :stdout)) (c :stdout))
+          (check (not (os/stat (string mine "/closed"))))
+          (def r (ok (run dir "record" "decision" "New call" "--read-if" "x" "--supersedes" old)))
+          (check (not (string/find "Supersedes:" (r :stdout))) (r :stdout))
+          (check (not (os/stat (string mine "/closed")))))))))
+
 (test "dev-proc.root expands ~"
   (fn []
     (with-repo

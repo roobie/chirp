@@ -455,6 +455,26 @@
 
 (defn- ignored? [top p] (= 0 ((run-git ["check-ignore" "-q" p] top) 0)))
 
+# The top of the git repo that keeps a root's history, or nil: none when the root is in no repo or
+# is git-ignored in the one it sits in. close and record --supersedes delete files on the premise
+# that history keeps them, so a root without it archives them in closed/ instead.
+(defn- history-top [dir]
+  (def [code out] (run-git ["rev-parse" "--show-toplevel"] dir))
+  (when (= code 0)
+    (def top (fm/jtrim out))
+    (unless (ignored? top dir) top)))
+
+# Where a root without history keeps what close and record --supersedes remove. load-root reads only
+# the type and record dirs, so nothing in here is seen by status, find or check.
+(def CLOSED "closed")
+
+(defn- archive [root path & sub]
+  (def dest (pjoin (root :dir) CLOSED ;sub (basename path)))
+  (when (exists? dest) (die (string dest " already exists")))
+  (mkdirp (dirname dest))
+  (os/rename path dest)
+  dest)
+
 # A directory may name its own work dir: work_dir in <dir>/.dev-proc.toml, a file the team commits.
 # Without the file the name is .work. The setting covers that directory only, not those below it.
 (def CONFIG ".dev-proc.toml")
@@ -910,6 +930,11 @@
       (array/push problems (string "decision " (args "decision") " not found"))))
   (unless (empty? problems)
     (die (string "cannot close " (show u) ":\n  ✗ " (string/join problems "\n  ✗ "))))
+  (unless (history-top (root :dir))
+    # Nothing would keep a deleted copy, so it is kept here, and there is no commit to name it in.
+    (def dest (archive root (u :dir) (u :type)))
+    (print "moved " (show u) " to " (shown (ctx :top) dest) "/ — the work dir has no git history to keep it")
+    (break))
   (sh/rm (u :dir))
   (when (root :oob)
     # Out-of-band work stays out of the team's commits, trailers included.
@@ -944,14 +969,20 @@
   (def text (apply-body ctx args (template (string kind ".md") {"id" id "title" title "date" (today)}) []))
   (mkdirp (dirname file))
   (spit file (dump-doc front text))
-  (each r old (os/rm (r :file)))
+  (def kept (unless (or (empty? old) (history-top (root :dir))) true))
+  (each r old (if kept (archive root (r :file) (spec :dir)) (os/rm (r :file))))
+  (def ids (string/join (map |($ :id) old) ", "))
   (report args id
           (jobj "id" id "kind" kind "path" (shown (ctx :top) file)
                 "superseded" (unless (empty? old) (map |($ :id) old)))
           (string "created " (shown (ctx :top) file))
-          ;(if (empty? old)
-             []
-             [(string "deleted " (string/join (map |($ :id) old) ", ") " — add to the commit message:")
+          ;(cond
+             (empty? old) []
+             kept [(string "moved " ids " to " (shown (ctx :top) (pjoin (root :dir) CLOSED (spec :dir)))
+                           "/ — the work dir has no git history to keep it")]
+             # Out-of-band ids stay out of the team's commits.
+             (root :oob) [(string "deleted " ids)]
+             [(string "deleted " ids " — add to the commit message:")
               ;(map |(string "  Supersedes: " ($ :id)) old)])))
 
 (defn- check-ref [ref base top]
@@ -1176,14 +1207,32 @@ match the words, best first. --backlog also searches backlog items. --json is fo
                    (= (string/slice (m 0) 0 1) ((RECORDS kind) :prefix)))
           {:record (m 0) :kind kind}))))
 
+(defn- dig-closed [ctx root id]
+  (def closed (pjoin (root :dir) CLOSED))
+  (def hits @[])
+  (defn walk [d]
+    (each e (sort (os/dir d))
+      (def p (pjoin d e))
+      (cond
+        (dir? p) (walk p)
+        (let [w (work-path (rel closed p))] (= id (or (get w :unit) (get w :record)))) (array/push hits p))))
+  (when (exists? closed) (walk closed))
+  (when (empty? hits)
+    (die (string "no closed copy of " id " in " (shown (ctx :top) closed) "; the work dir has no git history")))
+  (print "closed; the work dir has no git history, so the last version is kept in "
+         (shown (ctx :top) closed) "/:\n")
+  (each f hits
+    (print "===== " (shown (ctx :top) f))
+    (print (read-file f))))
+
 (defn- cmd-dig [ctx args]
   (def id (or (first (args :pos)) (die "usage: dig <U-… | D-… | L-… | B-…>")))
   (def root ((ctx :root)))
   # An out-of-band root has no history in this repo; when it sits in a repo of its own, dig there.
-  (def top (if (root :oob)
-             (let [[code out] (run-git ["rev-parse" "--show-toplevel"] (root :dir))]
-               (if (= code 0) (fm/jtrim out) (die (string (root :dir) " is not in a git repository, so it has no history"))))
-             (ctx :top)))
+  # A root with no history at all kept what it closed in closed/.
+  (def htop (history-top (root :dir)))
+  (unless htop (break (dig-closed ctx root id)))
+  (def top (if (root :oob) htop (ctx :top)))
   # Ids are unique, so the whole repo is searched: a work dir renamed or moved since keeps its history.
   (def rec (peg/match record-id-peg id))
   (var pathspec nil)
@@ -1365,7 +1414,10 @@ alone, so uncommitted work is left out (status shows it).`)
                                            now/next replace that section; evidence/harvest/log append one line
                                            (log gets today's date, harvest "backlog: …" becomes "- [ ] backlog: …")
   rescope <unit> [--type t] [--name n] [--parent <unit>|none]
-  close <unit> [--scrap --decision D-…]   delete a finalized unit's docs
+  close <unit> [--scrap --decision D-…]   delete a finalized unit's docs; a work dir with no git history
+                                           (in no repo, or git-ignored) moves them to its closed/ instead,
+                                           as record --supersedes does with the old decision, and dig reads
+                                           them from there
   record <decision|learning|backlog> <title> [--read-if "…"]… [--ref path#symbol]… [--supersedes D-…,…]
       [--id|--json] [body]
   [body] = --body-file <path> | --body -   (stdin). Markdown of "## Heading" blocks; each replaces the
