@@ -31,9 +31,8 @@ base=$(sed -n 's/^{\{0,1\} *:image "\([^"]*\)".*/\1/p' "$root/pins.jdn")
 docker build -q --build-arg "BASE=$base" -t chirp-wine:smoke "$here/wine" >/dev/null
 docker run --rm chirp-wine:smoke apk info -v wine ca-certificates
 
-# The embedded CA roots are not built yet, so verification uses the container's
-# bundle through SSL_CERT_FILE; verification itself stays on.
+# No SSL_CERT_FILE: chirp.exe exports the ROOT store, which Wine fills from
+# the container's CA bundle.
 docker run --rm \
   -v "$one/bin:/exe:ro" -v "$here:/checks:ro" \
-  -e SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
   chirp-wine:smoke wine64 /exe/chirp.exe /checks/run.janet

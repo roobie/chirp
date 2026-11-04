@@ -62,11 +62,7 @@
 (def- usage-entry (find |(= "chirp/usage" ($ :id)) help-entries))
 (assert usage-entry "help/chirp.md needs a `## Usage` section")
 
-(defn- find-ca []
-  (or (os/getenv "SSL_CERT_FILE")
-      (when-let [p (find os/stat (config :ca-paths))]
-        (os/setenv "SSL_CERT_FILE" p)
-        p)))
+(import ./ca)
 
 (defn- identity-line [ca]
   (string "chirp " (config :version) " (unofficial build, not a Janet release)"
@@ -104,7 +100,7 @@
 
 (defn main [& argv]
   (eachp [name env] bundled (put module/cache name env))
-  (def ca (find-ca))
+  (def ca (ca/setup (config :ca-paths)))
   (def args (array/slice argv 1))
   (case (first args)
     # A pipe is not a person: no banner, prompts or echoed values, and failures

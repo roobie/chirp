@@ -23,11 +23,13 @@ All other options (`-e`, `-l` and the rest) are Janet's own and are listed below
 
 ## Version and identity
 
-`chirp -v` (or `--version`) prints the chirp version, the Janet version it is built on, and the CA bundle it found, or `none found`. `chirp --changelog` prints what changed in each release; it is also the help topic `changelog`.
+`chirp -v` (or `--version`) prints the chirp version, the Janet version it is built on, and the CA bundle it uses: a path, the OS store and the file it was exported to, or `none found`. `chirp --changelog` prints what changed in each release; it is also the help topic `changelog`.
 
 ## Certificate authorities
 
-TLS verifies certificates by default. At startup chirp uses the file named by `SSL_CERT_FILE` if that is set. Otherwise it takes the first of these that exists and sets `SSL_CERT_FILE` to it: `/etc/ssl/certs/ca-certificates.crt`, `/etc/pki/tls/certs/ca-bundle.crt`, `/etc/ssl/cert.pem`. Windows has no such file, so HTTPS there needs `SSL_CERT_FILE` set by hand; see `chirp --help read https/windows-certificates`.
+TLS verifies certificates by default, against what the OS trusts; chirp ships no trust of its own. At startup chirp uses the file named by `SSL_CERT_FILE` if that is set. Otherwise, on Linux and the BSDs, it takes the first of these that exists and sets `SSL_CERT_FILE` to it: `/etc/ssl/certs/ca-certificates.crt`, `/etc/pki/tls/certs/ca-bundle.crt`, `/etc/ssl/cert.pem`.
+
+macOS and Windows keep trust in stores of their own. There chirp exports the roots the OS trusts for TLS servers (the keychain's system, admin and user trust settings on macOS; the ROOT store, minus Disallowed certificates, on Windows) to `chirp/os-roots.pem` in the user's cache directory (`$HOME/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows), and sets `SSL_CERT_FILE` to that file. macOS's `/etc/ssl/cert.pem` is not used: it is a snapshot the OS does not keep current. When no trust store is found, `chirp -v` says `none found` and verification fails.
 
 ## Running scripts
 

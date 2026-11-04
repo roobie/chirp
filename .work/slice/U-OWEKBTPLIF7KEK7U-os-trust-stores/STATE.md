@@ -43,14 +43,17 @@ Since 2026-11-04, smoke macos-arm64 fails https-get with "certificate verify fai
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+osroots native and src/chirp/ca.janet written; local linux, Wine checks pass. CI on branch os-trust-stores for the real macOS keychain and windows store.
 
 ## Next
-- TODO
+- CI: macOS ca-roots must report the keychain with many roots, https-get must pass; note the startup cost the export adds on macOS
+- if the macOS export is slow, decide whether to keep it per start or reuse a recent export
+- finalize: decision (supersedes D-B2RTYH6CNDO6SRF5), learning, backlog for the OS verifier
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - Cause confirmed (diag run 41919522154, macOS 15.8.2): /etc/ssl/cert.pem holds 126 certs and neither SSL.com TLS ECC Root CA 2022 nor AAA Certificate Services, which example.com chains to; the system keychain holds the root, and curl gets 200.
+- Local builds of linux-x64, macos-arm64 and windows-x64 compile osroots cleanly. linux: ca-roots reports the system bundle, chirp -v 11 ms; in busybox with no /etc/ssl, chirp -v says none found and https-get fails verification (no trust in the binary). Wine: ca-roots exports 84 roots from the windows store to %LOCALAPPDATA%/chirp/os-roots.pem, https-get 200 with no SSL_CERT_FILE; chirp -v 174 ms under Wine. dev-proc-install fails under Wine only because the ad-hoc run mounts test/smoke alone.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:

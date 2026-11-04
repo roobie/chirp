@@ -8,10 +8,16 @@
           :targets {:linux {:x64 "linux-x64" :aarch64 "linux-arm64"}
                     :macos {:aarch64 "macos-arm64"}
                     :windows {:x64 "windows-x64"}}}
- # First existing file becomes the TLS trust store unless SSL_CERT_FILE is set.
- :ca-paths ["/etc/ssl/certs/ca-certificates.crt"
-            "/etc/pki/tls/certs/ca-bundle.crt"
-            "/etc/ssl/cert.pem"]
+ # Unless SSL_CERT_FILE is set, the first existing file becomes the TLS trust
+ # store, keyed by (os/which) with :default for the rest. macOS and windows keep
+ # trust in stores of their own, which chirp exports instead (src/chirp/ca.janet):
+ # macOS's /etc/ssl/cert.pem is a snapshot the OS does not keep current.
+ :ca-paths {:default ["/etc/ssl/certs/ca-certificates.crt"
+                      "/etc/pki/tls/certs/ca-bundle.crt"
+                      "/etc/ssl/cert.pem"]
+            :macos []
+            :windows []
+            :mingw []}
  # Help topics whose text lives outside help/, stem -> path from this directory.
  # The changelog is a repo-root file people read on GitHub; copying it into
  # help/ would let the two drift.

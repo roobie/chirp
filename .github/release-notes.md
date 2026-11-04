@@ -10,5 +10,3 @@ gh attestation verify <file> --repo roobie/chirp
 ```
 
 `SHA256SUMS.sig` is an Ed25519 signature of `SHA256SUMS`. `chirp --self-update` checks it with the key built into chirp before installing a newer release.
-
-On Windows, HTTPS needs `SSL_CERT_FILE` pointing at a PEM CA bundle for now.

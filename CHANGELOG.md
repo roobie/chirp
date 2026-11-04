@@ -13,6 +13,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 - dev-proc takes `DEV_PROC_ROOT=<absolute dir>` as the default for `--root`, in or out of a git repo, so a directory can pin its work dir (with direnv, say); `init` creates it. Any option that holds for every command gets a `DEV_PROC_<NAME>` variable the same way.
 - `dev-proc report [<range>] [--since <date>] [--json]` sums up a stretch of git history: the units delivered, scrapped and still open, with commit counts and parents, and the records added and removed. With no range it covers the last tag to HEAD.
 
+### Changed
+
+- chirp trusts what the OS trusts. On macOS it uses the roots the keychain trusts for TLS (system, admin and user trust settings) instead of `/etc/ssl/cert.pem`, a snapshot the OS does not keep current: sites whose roots it lacked, example.com among them, failed with `certificate verify failed`. On windows it uses the certificate store's trusted roots, so HTTPS no longer needs `SSL_CERT_FILE`. Both are exported at startup to `chirp/os-roots.pem` in the user's cache directory, and `chirp --version` names the store. Linux and the BSDs keep using the system CA bundle file. `SSL_CERT_FILE` still overrides all of them.
+
 ### Fixed
 
 - HTTPS on windows works when the server is more than a few milliseconds away. jsec's `tls/connect` started the TLS handshake before the TCP connection was made, so requests and `chirp --self-update` failed with `Write syscall error: WSA error 10057` (#10). An older chirp on windows that hits this cannot self-update to the fix; download the new release by hand.

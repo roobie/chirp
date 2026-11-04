@@ -39,14 +39,6 @@ Upstream documents `:tls-opts {:ca "ca.pem"}` as a path to a CA file, but jsec's
 (https/get "https://localhost:8443/" :tls-opts {:trusted-cert (slurp "server.pem")})
 ```
 
-## Windows certificates
-
-Windows has no CA bundle file for chirp to find, so HTTPS there needs `SSL_CERT_FILE` set to a PEM bundle, for example the curl CA bundle or the `ca-bundle.crt` that ships with Git for Windows:
-
-```powershell
-$env:SSL_CERT_FILE = "C:\Program Files\Git\ucrt64\etc\ssl\certs\ca-bundle.crt"
-```
-
 ## Minimal HTTPS server
 
 ```janet

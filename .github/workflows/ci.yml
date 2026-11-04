@@ -118,17 +118,6 @@ jobs:
         with:
           name: chirp-${{ matrix.target }}-a
           path: dist
-      # Windows has no OpenSSL cert locations and no embedded roots yet, so
-      # point at the CA bundle that Git for Windows ships. Other runners use
-      # the system store, which chirp finds itself.
-      - name: Use the Git for Windows CA bundle
-        if: runner.os == 'Windows'
-        # Its location moves between Git releases, so search the install.
-        run: |
-          bundle=$(find "$(cygpath -u "$PROGRAMFILES")/Git" -name ca-bundle.crt -path '*ssl*' | head -n1)
-          test -n "$bundle"
-          echo "using $bundle"
-          echo "SSL_CERT_FILE=$(cygpath -m "$bundle")" >> "$GITHUB_ENV"
       # Artifacts do not keep the executable bit.
       - name: Smoke checks
         env:

@@ -73,6 +73,9 @@
  # one another's type by name, so none needs another to be linked or loaded.
  {:name "omap" :sources [] :repo-sources ["src/omap/omap.c"]}
  {:name "json-omap" :sources [] :repo-sources ["src/omap/json.c"]}
+ # The OS's trusted TLS roots on macOS (Security.framework, opened at run time)
+ # and windows (crypt32); elsewhere a stub that finds none.
+ {:name "osroots" :sources [] :repo-sources ["src/osroots/osroots.c"]}
 
  {:name "jsec/utils" :pin :jsec :openssl true :sources ["src/jutils"]}
  {:name "jsec/tls-stream" :pin :jsec :openssl true :sources ["src/jtls" "src/jutils"] :skip ["src/jutils/module.c"]}

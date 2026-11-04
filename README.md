@@ -183,15 +183,12 @@ Because the build is reproducible, you can also rebuild a release from its tag w
 
 ## TLS certificates
 
-chirp checks certificates by default. At startup it uses `SSL_CERT_FILE` if that is set. Otherwise it looks for the system's CA bundle in the usual Linux and macOS locations, and `chirp --version` shows which bundle it found.
+chirp checks certificates by default, against what your OS trusts; it ships no trust of its own. At startup it uses `SSL_CERT_FILE` if that is set. Otherwise:
 
-**Windows has no CA bundle file, so for now HTTPS on Windows needs `SSL_CERT_FILE`.** Point it at a PEM bundle, for example the [curl CA bundle](https://curl.se/ca/cacert.pem) or the `ca-bundle.crt` that ships with Git for Windows (in `ucrt64` in current versions, `mingw64` in older ones):
+- On Linux and the BSDs it uses the system's CA bundle from the usual locations.
+- On macOS it uses the roots your keychain trusts for TLS (system, admin and user trust settings), and on Windows the certificate store's trusted roots, so CAs your organisation installs are trusted too. OpenSSL reads trust from a file, so chirp writes these roots to `chirp/os-roots.pem` in your cache directory (`$HOME/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows) at startup.
 
-```powershell
-$env:SSL_CERT_FILE = "C:\Program Files\Git\ucrt64\etc\ssl\certs\ca-bundle.crt"
-```
-
-A later release will embed a pinned CA bundle as a fallback.
+`chirp --version` shows which one it uses, or `none found`, in which case HTTPS fails until `SSL_CERT_FILE` names a PEM bundle.
 
 ## How chirp's spork-https differs
 
