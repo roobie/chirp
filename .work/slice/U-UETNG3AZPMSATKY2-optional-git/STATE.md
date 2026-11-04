@@ -26,14 +26,14 @@ Out: a second way to configure dev-proc.root (env var or XDG file); a filesystem
 
 
 ## Now
-Slice started; task oob-without-history goes first.
+task oob-without-history done; task no-git-repo next.
 
 ## Next
-- task oob-without-history
 - task no-git-repo
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- task oob-without-history delivered in c1602c4: closed/ archive, dig fallback, SKILL.md scoping; D-3XCALRBERDES5HTA
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
