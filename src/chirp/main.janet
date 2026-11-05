@@ -98,25 +98,38 @@
       (cli-main @["-h"]))
     (help/run help-entries words serve-config)))
 
+# Modules that reach TLS. The OS store is exported only when one of them is
+# first required, so a start that needs no TLS does not pay for reading it.
+(defn- tls-module? [name]
+  (or (string/has-prefix? "jsec/" name) (= "spork-https" name)))
+
+(defn- defer-tls-modules [ensure-ca]
+  (eachp [name env] bundled
+    (unless (tls-module? name) (put module/cache name env)))
+  (put module/loaders :chirp-tls (fn [name &] (ensure-ca) (bundled name)))
+  (array/insert module/paths 0
+                [(fn [name] (when (and (tls-module? name) (bundled name)) name)) :chirp-tls]))
+
 (defn main [& argv]
-  (eachp [name env] bundled (put module/cache name env))
-  (def ca (ca/setup (config :ca-paths)))
+  (def ca-file (ca/setup (config :ca-paths)))
+  (defn ca [] (or ca-file (ca/from-store)))
+  (defer-tls-modules ca)
   (def args (array/slice argv 1))
   (case (first args)
     # A pipe is not a person: no banner, prompts or echoed values, and failures
     # must show in the exit status.
     nil (if (os/isatty stdin)
           (do
-            (print (identity-line ca) " - '(doc)' or 'chirp -h' for help")
+            (print (identity-line (ca)) " - '(doc)' or 'chirp -h' for help")
             (repl/run))
           (run-stdin @["-"]))
     "-" (run-stdin args)
-    "-v" (print (identity-line ca))
-    "--version" (print (identity-line ca))
+    "-v" (print (identity-line (ca)))
+    "--version" (print (identity-line (ca)))
     "--changelog" (prin (extra-topics "changelog"))
     "-h" (print-help (array/slice args 1))
     "--help" (print-help (array/slice args 1))
-    "--self-update" (update/run (array/slice args 1) update-config)
+    "--self-update" (do (ca) (update/run (array/slice args 1) update-config))
     (if-let [flag (first args)
              name (and (string/has-prefix? "--" flag) (string/slice flag 2))
              _ ((skills-config :skills) name)]

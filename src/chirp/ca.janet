@@ -54,23 +54,34 @@
     [nil (string (store-name) ": cannot write " path)]))
 
 (defn setup
-  "Point SSL_CERT_FILE at the trust store and return how to describe it. That
-  is nil when there is none, or starts with \"none found\" and says why when
-  the OS store could not be used. SSL_CERT_FILE, when set, wins. Otherwise the
-  first file of paths that exists is used, paths being keyed by (os/which)
-  with :default for the rest, and then the OS's own store."
+  "Point SSL_CERT_FILE at a trust file that needs no export, and return how to
+  describe it, or nil when only the OS's store is left (see from-store).
+  SSL_CERT_FILE, when set, wins. Otherwise the first file of paths that exists
+  is used, paths being keyed by (os/which) with :default for the rest."
   [paths]
   (def env (os/getenv "SSL_CERT_FILE"))
-  (defn choose [path description] (os/setenv "SSL_CERT_FILE" path) description)
-  (defn from-store []
-    (def [f why] (export))
-    (cond
-      f (choose f (string (store-name) " (" f ")"))
-      why (string "none found (" why ")")))
   (cond
-    # A chirp started by chirp inherits the export its parent just wrote.
+    # A chirp started by chirp inherits the export its parent wrote.
     (and env (= env (export-path))) (string (store-name) " (" env ")")
     env env
-    (if-let [p (find os/stat (get paths (os/which) (paths :default)))]
-      (choose p p)
-      (from-store))))
+    (when-let [p (find os/stat (get paths (os/which) (paths :default)))]
+      (os/setenv "SSL_CERT_FILE" p)
+      p)))
+
+(var- stored nil)
+
+(defn from-store
+  "Export the OS store's roots, point SSL_CERT_FILE at them and return how to
+  describe that: nil where the OS has no store, or a description starting
+  \"none found\" that says why the store could not be used. Reading the
+  macOS keychain takes a few hundred milliseconds, so this runs once, when
+  something first needs TLS."
+  []
+  (unless stored
+    (def [f why] (export))
+    (set stored
+         (cond
+           f (do (os/setenv "SSL_CERT_FILE" f) (string (store-name) " (" f ")"))
+           why (string "none found (" why ")")
+           :none)))
+  (unless (= stored :none) stored))

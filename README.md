@@ -186,7 +186,7 @@ Because the build is reproducible, you can also rebuild a release from its tag w
 chirp checks certificates by default, against what your OS trusts; it ships no trust of its own. At startup it uses `SSL_CERT_FILE` if that is set. Otherwise:
 
 - On Linux and the BSDs it uses the system's CA bundle from the usual locations.
-- On macOS it uses the roots your keychain trusts for TLS (system, admin and user trust settings), and on Windows the certificate store's trusted roots, so CAs your organisation installs are trusted too. OpenSSL reads trust from a file, so chirp writes these roots to `chirp/os-roots.pem` in your cache directory (`$HOME/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows) at startup.
+- On macOS it uses the roots your keychain trusts for TLS (system, admin and user trust settings), and on Windows the certificate store's trusted roots, so CAs your organisation installs are trusted too. OpenSSL reads trust from a file, so chirp writes these roots to `chirp/os-roots.pem` in your cache directory (`$HOME/Library/Caches` on macOS, `%LOCALAPPDATA%` on Windows) the first time a script loads a TLS module, so scripts without TLS start without reading the store.
 
 `chirp --version` shows which one it uses, or `none found`, in which case HTTPS fails until `SSL_CERT_FILE` names a PEM bundle.
 

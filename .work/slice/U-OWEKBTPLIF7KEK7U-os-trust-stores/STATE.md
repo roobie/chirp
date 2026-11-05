@@ -43,7 +43,7 @@ Since 2026-11-04, smoke macos-arm64 fails https-get with "certificate verify fai
 
 
 ## Now
-Fixed: kSecTrustSettingsResult/Policy are CFSTR literals in SecTrustSettings.h, not exported symbols, so the dlsym failed silently; they are now made with CFStringCreateWithCString. Failures now name what failed (chirp -v shows none found (why)). CI rerun pending.
+Lazy export done and checked locally; CI on branch os-trust-stores, then finalize, push main and prepare the 0.8.0 cut.
 
 ## Next
 - CI: macOS ca-roots must report the keychain with many roots, https-get must pass; note the startup cost the export adds on macOS
@@ -56,6 +56,7 @@ Fixed: kSecTrustSettingsResult/Policy are CFSTR literals in SecTrustSettings.h, 
 - Local builds of linux-x64, macos-arm64 and windows-x64 compile osroots cleanly. linux: ca-roots reports the system bundle, chirp -v 11 ms; in busybox with no /etc/ssl, chirp -v says none found and https-get fails verification (no trust in the binary). Wine: ca-roots exports 84 roots from the windows store to %LOCALAPPDATA%/chirp/os-roots.pem, https-get 200 with no SSL_CERT_FILE; chirp -v 174 ms under Wine. dev-proc-install fails under Wine only because the ad-hoc run mounts test/smoke alone.
 - CI run 41935128855 on 30b1d87: windows smoke green with no SSL_CERT_FILE (417 roots from the store, chirp -v 55 ms, https-get 200); all double builds identical. macOS: none found, silently: the export returned nil.
 - CI run 41936945274 on the fix: all green. macOS: 153 roots from the keychain, https-get example.com 200, chirp -v 187 ms (linux 10-15 ms, windows 46 ms). Every macOS start pays the export, so ca-roots now also times a start that inherits it.
+- CI run 41938659883: macOS chirp -v 308 ms with the keychain export, 18 ms without; windows 46 vs 18 ms. Lazy export, local: Wine ca-roots: a start without TLS leaves SSL_CERT_FILE unset (45 ms), importing jsec/tls exports (69 ms), https-get 200; linux unchanged (bundle file set eagerly, https-get 200).
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -72,3 +73,4 @@ Fixed: kSecTrustSettingsResult/Policy are CFSTR literals in SecTrustSettings.h, 
 - 2026-11-05 initialized
 - 2026-11-05 phase initialize → execute
 - 2026-11-05 embedded-roots attempt (branch embedded-ca-roots, CI run 41922503414 green) rejected by BR: trust must not be bundled in the binary; fetching a bundle at run time has no trust anchor but the OS, so read the OS stores directly
+- 2026-11-05 BR chose to export the OS store only when TLS is needed (option A of: lazy, reuse a recent export, accept the cost)

@@ -15,7 +15,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Changed
 
-- chirp trusts what the OS trusts. On macOS it uses the roots the keychain trusts for TLS (system, admin and user trust settings) instead of `/etc/ssl/cert.pem`, a snapshot the OS does not keep current: sites whose roots it lacked, example.com among them, failed with `certificate verify failed`. On windows it uses the certificate store's trusted roots, so HTTPS no longer needs `SSL_CERT_FILE`. Both are exported at startup to `chirp/os-roots.pem` in the user's cache directory, and `chirp --version` names the store. Linux and the BSDs keep using the system CA bundle file. `SSL_CERT_FILE` still overrides all of them.
+- chirp trusts what the OS trusts. On macOS it uses the roots the keychain trusts for TLS (system, admin and user trust settings) instead of `/etc/ssl/cert.pem`, a snapshot the OS does not keep current: sites whose roots it lacked, example.com among them, failed with `certificate verify failed`. On windows it uses the certificate store's trusted roots, so HTTPS no longer needs `SSL_CERT_FILE`. Both are exported to `chirp/os-roots.pem` in the user's cache directory when a script first loads `jsec` or `spork-https` (reading the keychain takes a few hundred milliseconds), and `chirp --version` names the store. Linux and the BSDs keep using the system CA bundle file. `SSL_CERT_FILE` still overrides all of them.
 
 ### Fixed
 

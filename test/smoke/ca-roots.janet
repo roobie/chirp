@@ -1,6 +1,7 @@
 # Which trust store chirp uses. macOS and windows export the OS store's roots
 # to a file, which https-get then proves against a real host; elsewhere the
-# system bundle file is used. Also times a bare start, with and without the export.
+# system bundle file is used. The export happens only once TLS is needed, so a
+# start without TLS must not pay for it.
 (def exe (let [e (dyn *executable*) [ok p] (protect (os/realpath e))] (if ok p e)))
 
 (defn- ca-of
@@ -12,6 +13,18 @@
   (def at (string/find " - ca: " out))
   (assert at (string "no ca in: " out))
   (string/trim (string/slice out (+ at 7))))
+
+(defn- run-e
+  "What chirp -e code prints, run with env as its whole environment, and how
+  many milliseconds it took."
+  [env code]
+  (def t (os/clock :monotonic))
+  (def p (os/spawn [exe "-e" code] :pe (merge env {:out :pipe})))
+  (def out (string/trim (string (ev/read (p :out) :all))))
+  (assert (= 0 (os/proc-wait p)) (string "chirp -e failed: " code))
+  [out (math/round (* 1000 (- (os/clock :monotonic) t)))])
+
+(def- show-env `(print (or (os/getenv "SSL_CERT_FILE") "unset"))`)
 
 (defn main [&]
   (def env (tabseq [[k v] :pairs (os/environ) :unless (= "SSL_CERT_FILE" k)] k v))
@@ -27,13 +40,14 @@
     (def n (length (string/find-all "-----BEGIN CERTIFICATE-----" pem)))
     (assert (> n 20) (string path " holds only " n " certificates"))
     # A chirp started by this one inherits SSL_CERT_FILE and must name it the same.
-    # It skips the export, so the difference in time is what the export costs.
-    (def t1 (os/clock :monotonic))
     (def inherited (ca-of (merge env {"SSL_CERT_FILE" path})))
-    (def ms-inherited (math/round (* 1000 (- (os/clock :monotonic) t1))))
     (assert (= ca inherited) (string "inherited: " inherited))
-    (print "ok ca-roots " n " roots from the " ca ", chirp -v in " ms " ms, "
-           ms-inherited " ms without the export"))
+    (def [plain ms-plain] (run-e env show-env))
+    (assert (= "unset" plain) (string "a start without TLS exported: " plain))
+    (def [tls ms-tls] (run-e env (string "(import jsec/tls) " show-env)))
+    (assert (= path tls) (string "importing jsec/tls gave SSL_CERT_FILE " tls))
+    (print "ok ca-roots " n " roots from the " ca "; a start takes " ms-plain
+           " ms, or " ms-tls " ms with TLS"))
   (unless store
     (assert (not (string/has-prefix? "none found" ca)) (string "no CA bundle: " ca))
     (print "ok ca-roots " ca ", chirp -v in " ms " ms")))
