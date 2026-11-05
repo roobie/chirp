@@ -23,19 +23,19 @@ In: a Janet executable bundling pinned upstream janet and spork (including its n
 Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWHDHHXMIJKCKR is decided.
 
 ## Context & constraints
-- Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-B2RTYH6CNDO6SRF5, D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
+- Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-DGT7DONSVJESO5FV (superseding D-B2RTYH6CNDO6SRF5), D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.7.0 is published (2026-11-02) and main carries 0.8.0-dev. 0.7.0 held the self-update read-only-directory fix with --output, the hyphenated help query fix, os/spawn :cd on linux, dev-proc's -- terminator, help search snippets as plain text with highlighted matches, help queries for any punctuated name (os/spawn), REPL line editing through spork/getline, and the gzip and tar modules (D-2NTKYO5CXJFCPDKW). close-milestone's first live run closed #5, #7 and milestone 0.7.0. Unreleased holds the windows notices fix: gdtoa and winpthreads, the only non-ZPL mingw-w64 parts windows-x64 links (no LGPL; L-A75ZR5MHIETRGB4I).
+0.7.0 is published (2026-11-02) and main carries 0.8.0-dev. 0.7.0 held the self-update read-only-directory fix with --output, the hyphenated help query fix, os/spawn :cd on linux, dev-proc's -- terminator, help search snippets as plain text with highlighted matches, help queries for any punctuated name (os/spawn), REPL line editing through spork/getline, and the gzip and tar modules (D-2NTKYO5CXJFCPDKW). close-milestone's first live run closed #5, #7 and milestone 0.7.0. Unreleased holds the windows notices fix: gdtoa and winpthreads, the only non-ZPL mingw-w64 parts windows-x64 links (no LGPL; L-A75ZR5MHIETRGB4I), the windows HTTPS fix (#10), and OS-store trust on macOS and windows (D-DGT7DONSVJESO5FV), which turned the macOS smoke green again.
 
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
 - #10 (windows HTTPS) is fixed on main by slice windows-tls-connect (D-UIMRRBBCKA7OIVBU); a release ships it and closes #10. Windows 0.7.0 users must download it by hand
-- macOS smoke https-get is red since 2026-11-04 (B-TTPZLCTY2HOLUCFZ); fix it before the next release
 - Remaining triaged issues: #8 B-S3NXI7Y7RE7GGQPI, #9 B-IURYPGJRZ7Z2SMYA, #4 and #6 B-LXVEZMLKF5VJOQZQ
 
 ## Evidence
+- Os-trust-stores (U-OWEKBTPLIF7KEK7U): run 41942352002 builds all four targets twice with matching sha256; every smoke passes, macOS https-get example.com from 153 keychain roots and windows from 417 store roots with no SSL_CERT_FILE; a start without TLS takes 14 ms on both.
 - Windows-tls-connect (U-W5VAIQLMMBMTPTQ2): run 41898980038 (dcf6c0f) builds all four targets twice with matching sha256; windows smoke passes, tls-connect-wait included, which fails with #10's WSA error 10057 on the unpatched build (real windows A/B).
 - Build-matrix (U-EP6NS3X66GBL2AQL): run 40095901156 builds all four targets twice with matching sha256, and smoke-runs each one on its native runner, HTTPS client and server included.
 - Release-0-1-0 (U-ROTWPYUJJW5Q45E2): https://github.com/roobie/chirp/releases/tag/v0.1.0 (run 40103776646) ships the four binaries, notices and SHA256SUMS with provenance attestation; the binary and README mark chirp unofficial. This meets the release, reproducibility, provenance and unofficial criteria; SQLite and TOML remain.
@@ -109,3 +109,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-02 0.7.0 published by BR's tag; release run 41373678975 green, close-milestone closed #5, #7 and the milestone, self-update 0.6.0 -> 0.7.0 verified; main moves to 0.8.0-dev
 - 2026-11-02 task mingw-notices done: B-RUMT answered (no LGPL), gdtoa and winpthreads notices added
 - 2026-11-02 jsec still has no LICENSE upstream; issue draft given to BR
+- 2026-11-05 slice os-trust-stores delivered: TLS trusts the macOS keychain and the windows store, exported when TLS is first needed; no trust ships in the binary (D-DGT7DONSVJESO5FV supersedes D-B2RTYH6CNDO6SRF5, D-3IC4LK7ZRJETEVVU). An embedded-roots attempt was rejected by BR and dropped
