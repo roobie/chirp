@@ -4,7 +4,5 @@
 [{:path "tools/leakcheck/test.janet" :rule "home-path"}
  {:path "tools/leakcheck/test.janet" :rule "tilde-path"}
  {:path "tools/leakcheck/test.janet" :rule "windows-home"}
- # Vendored skill text about pi's own layout, not this host.
- {:path ".claude/skills/asking-astra/SKILL.md" :text "~/.pi"}
  # dev-proc.root ~ expansion test, under a throwaway HOME.
  {:path ".agents/skills/dev-proc/scripts/dev-proc.test.janet" :text "~/notes"}]
