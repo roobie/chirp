@@ -112,3 +112,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-05 slice os-trust-stores delivered: TLS trusts the macOS keychain and the windows store, exported when TLS is first needed; no trust ships in the binary (D-DGT7DONSVJESO5FV supersedes D-B2RTYH6CNDO6SRF5, D-3IC4LK7ZRJETEVVU). An embedded-roots attempt was rejected by BR and dropped
 - 2026-11-05 cutting 0.8.0: cut.janet dropped -dev and dated the changelog; the tag is BR's
 - 2026-11-05 0.8.0 published by BR's tag (annotated; no tag is GPG-signed); release run 42127782352 green after rerunning a GitHub HTTP 500 in publish, close-milestone closed #10 and the milestone, self-update 0.7.0 -> 0.8.0 verified; main moves to 0.9.0-dev
+- 2026-11-06 chirp-release skill written: the full release procedure, preflight to the next -dev, from the 0.7.0 and 0.8.0 releases
