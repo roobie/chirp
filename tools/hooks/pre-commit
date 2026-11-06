@@ -5,6 +5,8 @@ top="$(git rev-parse --show-toplevel)"
 # leakcheck is plain Janet, so chirp runs it too where janet is not installed.
 runner=$(command -v janet || command -v chirp) || { echo "leakcheck: neither janet nor chirp found; refusing an unchecked commit" >&2; exit 1; }
 "$runner" "$top/tools/leakcheck/leakcheck.janet" staged || exit 1
+# Skills are real dirs in .agents/skills, linked from .claude/skills (D-HLIOIUOA4NCCKNJI).
+"$runner" "$top/tools/skillcheck/skillcheck.janet" || exit 1
 
 # dev-proc needs chirp's bundled yaml and sqlite3, which plain janet lacks.
 command -v chirp >/dev/null 2>&1 || { echo "dev-proc: chirp not found, skipping checks" >&2; exit 0; }

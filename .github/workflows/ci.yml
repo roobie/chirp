@@ -145,4 +145,6 @@ jobs:
           chmod +x dist/chirp
           env -i PATH="$PATH" ./dist/chirp tools/leakcheck/leakcheck.janet all
           env -i PATH="$PATH" ./dist/chirp tools/leakcheck/test.janet
+          env -i PATH="$PATH" ./dist/chirp tools/skillcheck/skillcheck.janet
+          env -i PATH="$PATH" ./dist/chirp tools/skillcheck/test.janet
           env -i PATH="$PATH" ./dist/chirp tools/release/cut.test.janet

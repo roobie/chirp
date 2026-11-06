@@ -114,3 +114,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-05 0.8.0 published by BR's tag (annotated; no tag is GPG-signed); release run 42127782352 green after rerunning a GitHub HTTP 500 in publish, close-milestone closed #10 and the milestone, self-update 0.7.0 -> 0.8.0 verified; main moves to 0.9.0-dev
 - 2026-11-06 chirp-release skill written: the full release procedure, preflight to the next -dev, from the 0.7.0 and 0.8.0 releases
 - 2026-11-06 asking-astra skill deleted; every repo skill lives in .agents/skills with a .claude/skills link (D-HLIOIUOA4NCCKNJI supersedes D-RFOFYVBEDCXF6BZW)
+- 2026-11-06 skillcheck added to pre-commit and CI: enforces D-HLIOIUOA4NCCKNJI's skill layout on the index
