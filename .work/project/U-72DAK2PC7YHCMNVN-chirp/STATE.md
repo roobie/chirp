@@ -58,6 +58,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Repl-line-editing (U-7DWRIEYIJVLADLTE): run 41360301722 (ceb79f2) builds all four targets twice with matching sha256; the repl check drives a pty on both linux runners and passes.
 - Help-snippets (U-7NTYGOQFXGEEDBHL): run 41359062211 (9c289e3) builds all four targets twice with matching sha256, and the help and help-serve smoke checks pass on each native runner.
 - Spawn-cd (U-ADROWBCLHGO3WS3X): run 41356904368 (d319217) builds all four targets twice with matching sha256, and the spawn-cd smoke check passes on each native runner.
+- Janet-1-43 (U-UJ6VC4JRORZAL3L5): run 42423791827 (7373448) builds all four targets twice with matching sha256 on the v1.43.0 janet pin; every smoke check passes on each native runner.
 
 ## Harvest
 
@@ -115,3 +116,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-06 chirp-release skill written: the full release procedure, preflight to the next -dev, from the 0.7.0 and 0.8.0 releases
 - 2026-11-06 asking-astra skill deleted; every repo skill lives in .agents/skills with a .claude/skills link (D-HLIOIUOA4NCCKNJI supersedes D-RFOFYVBEDCXF6BZW)
 - 2026-11-06 skillcheck added to pre-commit and CI: enforces D-HLIOIUOA4NCCKNJI's skill layout on the index
+- 2026-11-08 slice janet-1-43 (U-UJ6VC4JRORZAL3L5) delivered: janet pinned at the v1.43.0 tag
