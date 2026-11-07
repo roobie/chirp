@@ -117,3 +117,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-06 asking-astra skill deleted; every repo skill lives in .agents/skills with a .claude/skills link (D-HLIOIUOA4NCCKNJI supersedes D-RFOFYVBEDCXF6BZW)
 - 2026-11-06 skillcheck added to pre-commit and CI: enforces D-HLIOIUOA4NCCKNJI's skill layout on the index
 - 2026-11-08 slice janet-1-43 (U-UJ6VC4JRORZAL3L5) delivered: janet pinned at the v1.43.0 tag
+- 2026-11-08 cutting 0.9.0: Janet moves to the v1.43.0 tag (U-UJ6VC4JRORZAL3L5)
