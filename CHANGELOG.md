@@ -4,6 +4,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Changed
+
+- chirp is built on Janet 1.43.0 (it was on a development build between 1.42.1 and 1.43.0). Janet 1.43.0 checks bytecode more strictly, so `unmarshal` refuses a corrupt image instead of crashing. It also fixes peg matching on a buffer that changes during the match, a use-after-free when a buffer is formatted into itself with `%s`, and `debug/stack` reading an invalid environment. A function with more than 256 closures now fails to compile, where it was compiled wrong before.
+
 ## 0.8.0
 
 Released 2026-11-05.
