@@ -134,7 +134,8 @@ No XML parser is bundled. `lexbor` parses HTML, not XML: it accepts most XML-loo
 ```janet
 (import spork/sh)
 
-(def janet-version (sh/exec-slurp (sh/self-exe) "-e" "(prin janet/version)"))
+# chirp itself is the program here, so the example runs on any host.
+(def janet-version (sh/exec-slurp (dyn *executable*) "-e" "(prin janet/version)"))
 (print janet-version)
 ```
 

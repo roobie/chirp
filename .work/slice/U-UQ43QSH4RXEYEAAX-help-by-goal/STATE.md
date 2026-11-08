@@ -51,6 +51,7 @@ Finalize once CI is green; answer #4, #6 and #8 with a link to the tasks topic (
 - Build guard: before the check accepted `name/` mentions, the linux-x64 build failed with 'help/tasks.md names no goal for spork/argparse, spork/data, spork/misc, spork/stream'.
 - Local linux-x64 build: smoke run passes, tasks check runs 28 examples; help check asserts 'print a table', 'validate data', 'json', 'import json' list the tasks section first; site builds with help/tasks.html and site/check passes.
 - Boost 2 put tasks above the sqlite topic for 'sqlite'; 1.5 keeps topics that match better first (sqlite, tar) while goal words still land on tasks (json, validate, regex, date, csv, hash).
+- CI 42530993983 (7255c4e): all builds and compare pass; smoke windows-x64 failed the tasks check: 'Run another program' used spork/sh/self-exe, which returned nil there. The example now runs (dyn *executable*).
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -61,7 +62,9 @@ Finalize once CI is green; answer #4, #6 and #8 with a link to the tasks topic (
 -->
 - [ ] decision: help is indexed by goal in one topic that must name every bundled module, and its entries carry a 1.5 relevance boost rather than synonyms or a separate index
 - [ ] process: c9f7175 changed --version output without searching for its consumers (ca-roots smoke, pages.yml); CI went red after push and I did not watch it
+- [ ] learning: spork/sh/self-exe returned nil on the windows runner for chirp run by an absolute path (abspath? false, then which fails); use (dyn *executable*)
 
 ## Log
 - 2026-11-08 initialized
 - 2026-11-08 phase initialize → execute
+- 2026-11-08 CI windows smoke caught a non-portable example; fixed
