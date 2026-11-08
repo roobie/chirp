@@ -21,4 +21,4 @@ Front matter is decoded as YAML. Every value must be a string or a list of strin
 Real YAML lets editors and other tools read the files. Without the type check, YAML quietly changes meaning: in twc, criteria that contain `: ` decode as mappings, and `true` or `1.5` turn into a bool or a number. Quoting on write keeps the documents dev-proc writes valid, and plain values stay unquoted, so ordinary output did not change.
 
 ## Consequences
-Malformed front matter now reports libyaml's error instead of the old custom messages. A few inputs the old parser accepted are rejected, such as a list item that starts with `[` or a backtick. A few it rejected are now accepted. A decoded mapping has no key order, so the order is recovered from the text (B-JQKB2VOCY6XQW5V6).
+Malformed front matter now reports libyaml's error instead of the old custom messages. A few inputs the old parser accepted are rejected, such as a list item that starts with `[` or a backtick. A few it rejected are now accepted. A decoded mapping keeps its key order, because dev-proc asks the yaml module for an ordered decode, which gives omaps (D-PYFZFKJPCW3QPOTB).

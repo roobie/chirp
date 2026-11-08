@@ -10,3 +10,5 @@ chirp exports the OS store's roots and lets OpenSSL verify against them (D-DGT7D
 ## Notes
 - Hand the chain to SecTrustEvaluateWithError (macOS, via dlopen as osroots does) or CertGetCertificateChain plus CertVerifyCertificateChainPolicy (windows) from a jsec verify callback. That is a jsec patch or upstream change, since jsec owns the SSL_CTX.
 - The root export would then only serve OpenSSL users outside jsec, or could go.
+- On windows, jsec's native TLS backend (SChannel) might replace static OpenSSL outright, which would give OS verification there and a smaller, faster build. Check whether it is complete enough. This was its own item before windows chirp began exporting the ROOT store, which removed the need to set SSL_CERT_FILE.
+- Related: B-IOPVTTA3XW3OKYXQ (an unknown extra source of roots on windows today).
