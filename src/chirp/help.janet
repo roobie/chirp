@@ -92,14 +92,16 @@
 
 (defn index
   "An open in-memory FTS5 database over the entries. The caller closes it.
-  Markdown entries are indexed as plain text; docstrings as they are."
+  Markdown entries are indexed as plain text; docstrings as they are. An
+  entry's :boost (default 1) multiplies its relevance."
   [entries]
   (def db (sqlite3/open ":memory:"))
   # The porter stemmer lets `certificate` find `certificates`.
-  (sqlite3/eval db "CREATE VIRTUAL TABLE t USING fts5(id, title, body, tokenize = 'porter unicode61');")
+  (sqlite3/eval db "CREATE VIRTUAL TABLE t USING fts5(id, title, body, boost UNINDEXED, tokenize = 'porter unicode61');")
   (sqlite3/eval db "BEGIN;")
   (each e entries
-    (sqlite3/eval db "INSERT INTO t VALUES (?, ?, ?);" [(e :id) (e :title) (get e :plain (e :body))]))
+    (sqlite3/eval db "INSERT INTO t VALUES (?, ?, ?, ?);"
+                  [(e :id) (e :title) (get e :plain (e :body)) (get e :boost 1)]))
   (sqlite3/eval db "COMMIT;")
   db)
 
@@ -151,10 +153,11 @@
       (string/format "(instr(lower(id), :%s) > 0 OR instr(lower(title), :%s) > 0)" k k)))
   # A bare constant in ORDER BY would be read as a column number.
   (def literal (if (empty? hits) "" (string "(" (string/join hits " + ") ") DESC, ")))
-  # Title outweighs id outweighs body.
+  # Title outweighs id outweighs body. bm25 is negative, better is lower, so a
+  # boost above 1 moves an entry up.
   (protect (sqlite3/eval db (string/format
                               "SELECT id, title, snippet(t, 2, :mo, :mc, '...', 16) AS s FROM t
-                               WHERE t MATCH :q ORDER BY %sbm25(t, 3.0, 10.0, 1.0) LIMIT %d;"
+                               WHERE t MATCH :q ORDER BY %sbm25(t, 3.0, 10.0, 1.0, 0.0) * boost LIMIT %d;"
                               literal limit)
                          params)))
 

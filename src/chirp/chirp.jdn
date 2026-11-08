@@ -24,6 +24,9 @@
  # The changelog is a repo-root file people read on GitHub; copying it into
  # help/ would let the two drift.
  :help-extra {"changelog" "../../CHANGELOG.md"}
+ # The help topic indexed by goal: it must name every bundled module, and its
+ # entries rank above others of the same relevance.
+ :help-goals "tasks"
  # `chirp --help serve`: where it listens unless --host or --port say otherwise, and the
  # stylesheet its pages use (the project site's, so the two look alike).
  :help-serve {:host "127.0.0.1" :port 3111 :style "../../site/style.css"}

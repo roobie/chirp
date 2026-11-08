@@ -29,12 +29,25 @@
 (def- extra-topics
   (tabseq [[stem path] :pairs (config :help-extra)]
     stem (slurp (string here path))))
+# The goals topic is where a goal finds its module; its entries outrank others
+# of the same relevance, so a query in a user's words lands there first.
+(def- goals-stem (config :help-goals))
+(def- goals-boost 1.5)
+(defn- goal-entry? [e]
+  (or (= goals-stem (e :id)) (string/has-prefix? (string goals-stem "/") (e :id))))
 # The locator holds every source file it read, so it stays inside this
 # expression and out of the image.
 (def- help-entries
-  (help/collect (string here "help/") bundled extra-topics
-                (source/locator (config :help-source)
-                                {:out "" :repo (string here "../../")})))
+  (map |(if (goal-entry? $) (struct ;(kvs $) :boost goals-boost) $)
+       (help/collect (string here "help/") bundled extra-topics
+                     (source/locator (config :help-source)
+                                     {:out "" :repo (string here "../../")}))))
+# A bundled module the goals topic does not name must fail the build.
+(let [goals ((find |(= goals-stem ($ :id)) help-entries) :text)
+      named? (fn [m] (or (string/find (string "`" m "`") goals) (string/find (string "`" m "/") goals)))
+      missing (filter |(not (named? $)) (config :modules))]
+  (assert (empty? missing)
+          (string "help/" goals-stem ".md names no goal for " (string/join missing ", "))))
 # `--help serve` pages use the project site's stylesheet, baked in like the topics.
 (def- serve-config
   (let [c (config :help-serve)]

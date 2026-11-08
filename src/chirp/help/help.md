@@ -23,7 +23,7 @@ A docstring leaves out how a binding works, so the definition is in the binary t
 
 ## Query examples
 
-Queries use SQLite FTS5 syntax. Words are stemmed, so `certificate` also finds `certificates`.
+Queries use SQLite FTS5 syntax. Words are stemmed, so `certificate` also finds `certificates`. Sections of the `tasks` topic, which is organised by goal, rank above other entries that match about as well, so `chirp --help query 'print a table'` starts with the goal and its example.
 
 ```sh
 chirp --help query certificate             # one word

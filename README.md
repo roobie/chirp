@@ -30,6 +30,7 @@ chirp script.janet       # run a script, like janet
 echo '(print 1)' | chirp # run code from stdin
 chirp --version          # chirp 0.9.0 (unofficial build, not a Janet release) on Janet …
 chirp --help             # chirp's entry points, the help topics, then Janet's options
+chirp --help read tasks  # which bundled module does what, by goal, with examples
 chirp --changelog        # what changed in each release, offline
 chirp --self-update      # replace chirp with the latest signed release (--check only reports)
 ```
@@ -51,7 +52,7 @@ From 0.2.0, scripts can also keep data in SQLite and read configuration from TOM
 (print ((tomlin/toml->janet (slurp "config.toml")) :title))
 ```
 
-YAML is built in too. `yaml/decode` and `yaml/encode` work like `json/decode` and `json/encode`, and plain scalars follow the YAML 1.2 Core schema, so `no` stays a string:
+YAML is built in too. `yaml/decode` and `yaml/encode` work like `decode` and `encode` in `spork/json` (imported with `(import spork/json :as json)`), and plain scalars follow the YAML 1.2 Core schema, so `no` stays a string:
 
 ```janet
 (import yaml)

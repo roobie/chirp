@@ -1,6 +1,6 @@
 # chirp
 
-chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers. It is one static binary that bundles spork, jsec (TLS, with OpenSSL), spork-https, sqlite3, tomlin, yaml, pcre2 (Perl-style regular expressions), md4c (Markdown to HTML), lexbor (HTML parsing and CSS selectors), omap (an insertion-ordered map that json and yaml can decode to and encode from), gzip and tar, so scripts need nothing installed besides chirp.
+chirp is an unofficial build of Janet. It is not a Janet release and is not made by Janet's maintainers. It is one static binary that bundles spork, jsec (TLS, with OpenSSL), spork-https, sqlite3, tomlin, yaml, pcre2 (Perl-style regular expressions), md4c (Markdown to HTML), lexbor (HTML parsing and CSS selectors), omap (an insertion-ordered map that json and yaml can decode to and encode from), gzip and tar, so scripts need nothing installed besides chirp. `chirp --help read tasks` lists what you can do with them, by goal.
 
 ## Usage
 
@@ -11,6 +11,7 @@ chirp - arg...                     # run stdin as a script
 chirp -v | --version               # version and identity
 chirp --changelog                  # what changed in each release
 chirp -h | --help                  # this text, the help topics, then Janet's options
+chirp --help read tasks            # which module does what: goals, imports, examples
 chirp --help query '<words>'       # search the offline docs
 chirp --help read <id> [--source]  # print one result, with a binding's source
 chirp --help serve [--host H] [--port N]   # browse the help at http://127.0.0.1:3111/

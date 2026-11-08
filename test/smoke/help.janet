@@ -21,8 +21,8 @@
   (def [qcode qout _] (help "query" "sqlite"))
   (assert (= 0 qcode) "query exits 0")
   (assert (string/find "sqlite/" qout) (string "query hit: " qout))
-  # The first hit is the https topic, whose markdown has `:trusted-cert`.
-  (def [_ cout _] (help "query" "certificate" "--limit" "1"))
+  # The first hit is the https topic's section, whose markdown has `:trusted-cert`.
+  (def [_ cout _] (help "query" "trusting certificate" "--limit" "1"))
   (assert (and (string/find "trusted-cert" cout) (not (string/find "`" cout)) (not (string/find "\x02" cout)))
           (string "query snippets are plain text: " cout))
 
@@ -39,6 +39,18 @@
   (assert (and (= 0 ccode) (string/find "subprocess/" cout)) (string "query os/spawn :cd: " ccode " " cout cerr))
   (def [tcode tout terr] (help "query" "title:server"))
   (assert (and (= 0 tcode) (string/find "server" tout)) (string "column filter: " tcode " " tout terr))
+
+  # A goal in a user's words lands on the tasks topic first: the goals of
+  # issues #4 (a table), #6 (validation) and #8 (json).
+  (each [q want] [["print a table" "tasks/print-a-table"]
+                  ["validate data" "tasks/validate-data-against-a-schema"]
+                  ["json" "tasks/read-and-write-json"]
+                  ["import json" "tasks/read-and-write-json"]]
+    (def [gcode gout gerr] (help "query" q "--limit" "1"))
+    (assert (and (= 0 gcode) (string/has-prefix? (string want "  ") gout))
+            (string "goal query " q ": " gcode " " gout gerr)))
+  (def [_ tout _] (help "read" "tasks"))
+  (assert (string/find "## Print a table" tout) "read tasks prints the topic")
 
   (def [scode sout _] (help "query" "subprocess working directory"))
   (assert (and (= 0 scode) (string/find "subprocess/run-in-another-directory" sout))
