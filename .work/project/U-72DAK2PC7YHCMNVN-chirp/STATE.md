@@ -60,6 +60,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Spawn-cd (U-ADROWBCLHGO3WS3X): run 41356904368 (d319217) builds all four targets twice with matching sha256, and the spawn-cd smoke check passes on each native runner.
 - Janet-1-43 (U-UJ6VC4JRORZAL3L5): run 42423791827 (7373448) builds all four targets twice with matching sha256 on the v1.43.0 janet pin; every smoke check passes on each native runner.
 - Release 0.9.0: https://github.com/roobie/chirp/releases/tag/v0.9.0 (run 42465115915, e2e4785) ships the four binaries, notices, SHA256SUMS and SHA256SUMS.sig, each binary with one provenance attestation; the downloaded linux-x64 binary matches SHA256SUMS and reports Janet 1.43.0-chirp-e4b50456. pages (run 42466083349) ran after release and the live footer names e2e4785. Self-update from 0.8.0 is unverified: github.com/…/releases/download returned HTTP 504 for every release (0.8.0 too) at publish time.
+- Self-update 0.8.0 -> 0.9.0 verified by BR on linux-x64 after the 504s cleared: the updated binary reports chirp 0.9.0 on Janet 1.43.0-chirp-e4b50456.
 
 ## Harvest
 
@@ -120,3 +121,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-08 slice janet-1-43 (U-UJ6VC4JRORZAL3L5) delivered: janet pinned at the v1.43.0 tag
 - 2026-11-08 cutting 0.9.0: Janet moves to the v1.43.0 tag (U-UJ6VC4JRORZAL3L5)
 - 2026-11-08 0.9.0 published; main moves to 0.10.0-dev
+- 2026-11-08 0.9.0 self-update from 0.8.0 verified
