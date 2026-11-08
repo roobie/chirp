@@ -31,7 +31,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
-- Remaining triaged issues: #8 B-S3NXI7Y7RE7GGQPI, #9 B-IURYPGJRZ7Z2SMYA, #4 and #6 B-LXVEZMLKF5VJOQZQ
+- Remaining triaged issues: #8 B-S3NXI7Y7RE7GGQPI, #9 B-IURYPGJRZ7Z2SMYA, #4 and #6 B-YHAOKYFCK6MVRMXE (surface functionality by end-goal)
 
 ## Evidence
 - Os-trust-stores (U-OWEKBTPLIF7KEK7U): run 41942352002 builds all four targets twice with matching sha256; every smoke passes, macOS https-get example.com from 153 keychain roots and windows from 417 store roots with no SSL_CERT_FILE; a start without TLS takes 14 ms on both.
