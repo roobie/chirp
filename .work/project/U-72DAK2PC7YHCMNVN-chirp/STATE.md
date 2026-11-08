@@ -124,3 +124,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-08 0.9.0 self-update from 0.8.0 verified
 - 2026-11-08 Skill-script-path-relative (U-W65HNFYGPTVNQ5ID): dev-proc's SKILL.md names its script relative to the skill dir, so a -g install works (B-JRBZDUDQ5C5MOATN); unreleased.
 - 2026-11-08 Version-homepage (U-WNR4AN6LILGRPYGJ): --version names the project site, closing B-YHXYPFVYVAOKLA2Z (the repo homepage was already set); unreleased.
+- 2026-11-08 ca-roots smoke fixed for the two-line -v (CI on fb31723 failed on macOS and windows).

@@ -5,10 +5,11 @@
 (def exe (let [e (dyn *executable*) [ok p] (protect (os/realpath e))] (if ok p e)))
 
 (defn- ca-of
-  "The ca part of the child's -v line, run with env as its whole environment."
+  "The ca part of the child's -v identity line, run with env as its whole environment."
   [env]
   (def p (os/spawn [exe "-v"] :pe (merge env {:out :pipe})))
-  (def out (string (ev/read (p :out) :all)))
+  # The identity line is the first; the project site follows it.
+  (def out (first (string/split "\n" (string (ev/read (p :out) :all)))))
   (assert (= 0 (os/proc-wait p)) "chirp -v failed")
   (def at (string/find " - ca: " out))
   (assert at (string "no ca in: " out))
