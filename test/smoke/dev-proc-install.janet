@@ -39,6 +39,18 @@
   (sh/create-dirs d)
   d)
 
+(defn- skill-script
+  "The script path SKILL.md in skill-dir sets DP to, resolved against skill-dir.
+  The path must be relative, so it holds for a project and a global install."
+  [skill-dir]
+  (def md (string/replace-all "\r" "" (slurp (string skill-dir "/SKILL.md"))))
+  (def found (peg/match ~(any (+ (* "DP=\"chirp " (<- (to "\""))) 1)) md))
+  (assert (= 1 (length found)) (string "want one DP= line in SKILL.md, found " (length found)))
+  (def rel (first found))
+  (assert (not (or (string/has-prefix? "/" rel) (string/has-prefix? "." rel) (string/has-prefix? "$" rel)))
+          (string "DP path is not relative to the skill dir: " rel))
+  (string skill-dir "/" rel))
+
 (defn main [&]
   (def here (let [f (dyn *current-file*)]
               (string/slice f 0 (+ 1 (last (string/find-all "/" f))))))
@@ -80,10 +92,11 @@
                 (string "link target " (os/readlink agent)))
         (assert (= (os/realpath canon) (os/realpath agent)) "link does not resolve to the canonical dir")))
 
-    # The installed skill runs with nothing else present.
+    # The installed skill runs with nothing else present, from the path its
+    # SKILL.md gives, resolved against the skill's directory as agents do.
     # dev-proc keeps its .work/ at the top of a git repository.
     (assert (= 0 (os/execute ["git" "init" "-q" proj] :p)) "git init failed")
-    (def script (string ".claude/skills/" skill "/scripts/dev-proc.janet"))
+    (def script (skill-script agent))
     (exits "dev-proc init" 0 (run proj no-env script "init"))
     (exits "dev-proc status" 0 (run proj no-env script "status"))
 
@@ -127,5 +140,12 @@
     (def home (string tmp "/home"))
     (sh/create-dirs home)
     (exits "global" 0 (run proj {"HOME" home "USERPROFILE" home} "--dev-proc" "--install" "-g"))
-    (assert (same-as-source? (string home "/.agents/skills/" skill)) "-g copy differs"))
+    (assert (same-as-source? (string home "/.agents/skills/" skill)) "-g copy differs")
+    # A global install works in a repo that has no project install.
+    (def bare (string tmp "/bare"))
+    (sh/create-dirs bare)
+    (assert (= 0 (os/execute ["git" "init" "-q" bare] :p)) "git init failed")
+    (def global-script (skill-script (string home "/.claude/skills/" skill)))
+    (exits "global dev-proc init" 0 (run bare no-env global-script "init"))
+    (exits "global dev-proc status" 0 (run bare no-env global-script "status")))
   (print "ok dev-proc-install"))

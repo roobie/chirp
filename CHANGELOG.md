@@ -4,6 +4,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Fixed
+
+- The dev-proc skill's SKILL.md names its script as `scripts/dev-proc.janet`, relative to the skill's own directory, so the path also holds after `chirp --dev-proc --install -g`. It used to say `.claude/skills/dev-proc/scripts/dev-proc.janet`, which exists only in a project install, so an agent following a global install got `could not find file`. Run `chirp --dev-proc --install --force` (with `-g` for a global install) to pick up the new wording.
+
 ## 0.9.0
 
 Released 2026-11-08.

@@ -122,3 +122,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-08 cutting 0.9.0: Janet moves to the v1.43.0 tag (U-UJ6VC4JRORZAL3L5)
 - 2026-11-08 0.9.0 published; main moves to 0.10.0-dev
 - 2026-11-08 0.9.0 self-update from 0.8.0 verified
+- 2026-11-08 Skill-script-path-relative (U-W65HNFYGPTVNQ5ID): dev-proc's SKILL.md names its script relative to the skill dir, so a -g install works (B-JRBZDUDQ5C5MOATN); unreleased.
