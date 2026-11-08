@@ -23,7 +23,7 @@ All other options (`-e`, `-l` and the rest) are Janet's own and are listed below
 
 ## Version and identity
 
-`chirp -v` (or `--version`) prints the chirp version, the Janet version it is built on, and the CA bundle it uses: a path, the OS store and the file it was exported to, or `none found`. `chirp --changelog` prints what changed in each release; it is also the help topic `changelog`.
+`chirp -v` (or `--version`) prints the chirp version, the Janet version it is built on, and the CA bundle it uses: a path, the OS store and the file it was exported to, or `none found`. A second line gives the project site, https://roobie.github.io/chirp/. `chirp --changelog` prints what changed in each release; it is also the help topic `changelog`.
 
 ## Certificate authorities
 

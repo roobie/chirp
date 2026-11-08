@@ -69,6 +69,11 @@
           " on Janet " janet/version "-" janet/build
           " - ca: " (or ca "none found")))
 
+# The banner is the identity line alone; --version adds where the docs are.
+(defn- print-version [ca]
+  (print (identity-line ca))
+  (print (config :homepage)))
+
 # Janet's own run-main is private, so this mirrors it: main runs in a fiber that
 # reports errors through the debugger hook, as it does for a script file.
 (defn- run-stdin [subargs]
@@ -124,8 +129,8 @@
             (repl/run))
           (run-stdin @["-"]))
     "-" (run-stdin args)
-    "-v" (print (identity-line (ca)))
-    "--version" (print (identity-line (ca)))
+    "-v" (print-version (ca))
+    "--version" (print-version (ca))
     "--changelog" (prin (extra-topics "changelog"))
     "-h" (print-help (array/slice args 1))
     "--help" (print-help (array/slice args 1))

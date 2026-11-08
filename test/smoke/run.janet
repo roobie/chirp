@@ -31,11 +31,12 @@
           (if (and detail (not (empty? detail))) (string " - " (string/trim detail)) "")))
 
 (defn main [&]
-  # An unofficial build must say so in its identity line.
+  # An unofficial build must say so in its identity line, and name its site.
   (def [code out err] (run "-v"))
   (report "version" (and (= 0 code)
                          (string/has-prefix? "chirp " out)
-                         (string/find "unofficial build" out))
+                         (string/find "unofficial build" out)
+                         (string/find "\nhttps://roobie.github.io/chirp/" out))
           (string out err))
 
   # The https-server check makes its server log the rejected untrusted client
