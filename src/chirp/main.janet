@@ -26,15 +26,36 @@
 (import ./help)
 (import ./source)
 (import ./repl)
-(def- extra-topics
-  (tabseq [[stem path] :pairs (config :help-extra)]
-    stem (slurp (string here path))))
 # The goals topic is where a goal finds its module; its entries outrank others
 # of the same relevance, so a query in a user's words lands there first.
 (def- goals-stem (config :help-goals))
 (def- goals-boost 1.5)
 (defn- goal-entry? [e]
   (or (= goals-stem (e :id)) (string/has-prefix? (string goals-stem "/") (e :id))))
+
+# The modules topic lists every bundled module with the first goal whose
+# example imports it, else the first that names it. It is generated, so it cannot miss one: jsec/* and spork-https are not in
+# module/cache until first required, so a listing taken at run time would. A
+# module the goals topic does not name fails the build.
+(defn- modules-topic [goals]
+  (def sections (drop 1 (string/split "\n## " goals)))
+  (defn goal-of [m]
+    (def s (or (find |(string/find (string "(import " m) $) sections)
+               (find |(or (string/find (string "`" m "`") $) (string/find (string "`" m "/") $)) sections)))
+    (assert s (string "help/" goals-stem ".md names no goal for " m))
+    (first (string/split "\n" s)))
+  (string "# Bundled modules\n\n"
+          "Each imports by its full name with nothing on disk, for example "
+          "`(import spork/json :as json)`. Next to each is a goal from "
+          "`chirp --help read " goals-stem "` that uses it; "
+          "`chirp --help query <module>` lists its documented functions.\n\n"
+          ;(seq [m :in (sorted (config :modules))]
+             (string "- `" m "`: " (goal-of m) "\n"))))
+
+(def- extra-topics
+  (merge (tabseq [[stem path] :pairs (config :help-extra)]
+           stem (slurp (string here path)))
+         {"modules" (modules-topic (slurp (string here "help/" goals-stem ".md")))}))
 # The locator holds every source file it read, so it stays inside this
 # expression and out of the image.
 (def- help-entries
@@ -42,12 +63,6 @@
        (help/collect (string here "help/") bundled extra-topics
                      (source/locator (config :help-source)
                                      {:out "" :repo (string here "../../")}))))
-# A bundled module the goals topic does not name must fail the build.
-(let [goals ((find |(= goals-stem ($ :id)) help-entries) :text)
-      named? (fn [m] (or (string/find (string "`" m "`") goals) (string/find (string "`" m "/") goals)))
-      missing (filter |(not (named? $)) (config :modules))]
-  (assert (empty? missing)
-          (string "help/" goals-stem ".md names no goal for " (string/join missing ", "))))
 # `--help serve` pages use the project site's stylesheet, baked in like the topics.
 (def- serve-config
   (let [c (config :help-serve)]

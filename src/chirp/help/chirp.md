@@ -72,11 +72,7 @@ chirp -l spork/json -e '(print (encode {:a 1}))'
 
 ## Listing bundled modules
 
-Every bundled module can be imported with nothing on disk. List them with:
-
-```sh
-chirp -e '(each k (sort (filter string? (keys module/cache))) (print k))'
-```
+Every bundled module can be imported with nothing on disk. `chirp --help read modules` lists them, each with what it is for.
 
 Read a module's docs with `(doc ...)`, for example `chirp -e '(import spork/sh) (doc sh/exec-slurp)'`.
 

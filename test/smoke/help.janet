@@ -89,6 +89,14 @@
   (def [ucode _ _] (help "read" "no-such-id"))
   (assert (not= 0 ucode) "unknown id fails")
 
+  # The module list is generated, so it holds the TLS modules, which a listing
+  # of module/cache at start would miss.
+  (def [mcode mout _] (help "read" "modules"))
+  (def listed (length (string/find-all "\n- `" mout)))
+  (assert (and (= 0 mcode) (>= listed 50) (string/find "- `jsec/tls`: " mout)
+               (string/find "- `spork-https`: " mout) (string/find "- `spork/json`: Read and write JSON" mout))
+          (string "read modules: " listed " listed\n" mout))
+
   # An overlay's docstring replaces upstream's in the help (#9).
   (def [tcode tout _] (help "read" "spork/tarray/new"))
   (assert (and (= 0 tcode) (string/find "offset counts bytes" tout)) (string "tarray/new docs: " tout))
