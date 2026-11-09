@@ -18,11 +18,11 @@ success_criteria:
 Time-boxed spike (2 working days, hard stop) to retire the two biggest risks of compiling chirp to wasm for a try-it page: whether the real chirp image loads in a wasm32-wasi build made with the pinned zig, and whether SQLite FTS5 (so chirp --help query) works there. Answers go/no-go and numbers; no browser page, CI or release changes.
 
 ## Scope
-In: TODO
-Out: TODO
+In: a wasm32-wasi target driven by the repo's build, the natives that can compile for it, getting the image to load, a Node runner, measurements.
+Out: the browser page and its WASI shim, a reactor API, CI, pages, release, upstreaming Janet shims, decision records beyond what the spike turns up.
 
 ## Context & constraints
-TODO: what is already true, what must stay true, resources available.
+Work happens on branch spike/wasm; the code may be thrown away. The native targets (D-I6U4X6Q5KJD2Y4SM, D-Q23RA2EVVN5LYCX7) must build as before. The image is written on the build host by a full-featured native Janet (tools/build/image.janet), so its cfunction references come from that Janet. Prior art: danja/janey (see Notes).
 
 ### Origin
 Promoted from backlog: B-KM6ALNLLW72NZFVL Compile chirp to wasm for a try-it page on the site
@@ -55,13 +55,17 @@ It does not help with our biggest risk: it ships no marshalled image and no thir
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+Exercise the bundled modules and the stubs under Node; measure gzip size and native timings.
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- Hand build in /tmp from build/skillpath (linux-x64 build of 0.10.0-dev): the unchanged image (obj/exe/release/chirp.c) + janet.c + every non-jsec native compiled by pinned zig 0.15.2 for wasm32-wasi links to a 5.7 MB wasm and runs 'chirp -e (print 1)' under Node 22 WASI in 22 ms (+9 ms compile).
+- 'chirp --help query' for sqlite, certificate, dev-proc, os/spawn, 'parse yaml': output byte-identical to the native binary of the same build; 77-92 ms each under Node.
+- Natives: all compile for wasm32-wasi unchanged except spork/rawterm (needs ev, termios, sigaction). sqlite3 with FTS5 compiles; its binding needs a sqlite3_load_extension stub because the amalgamation omits it on wasi.
+- Image loads with stubs: 85 core cfunctions missing from a JANET_NO_EV/NET/PROCESSES/FFI/FILEWATCH/SYMLINKS/UMASK janet (ev/*, net/*, ffi/*, filewatch/*, os/spawn|execute|shell|proc-*|pipe|open|posix-*|sigaction|getpid|readlink|symlink|umask), plus every binding of jsec/* and spork/rawterm, are registered under their names as one cfunction that panics. 222 names. The image needed no change.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -70,6 +74,8 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] - [ ] decision: missing cfunctions are stubbed under their names so the one image built on the host loads in wasm; no second image build
+- [ ] - [ ] learning: a wasm janet lacks 85 core cfunctions; an image from a full janet unmarshals only if each is registered under its name
 
 ## Log
 - 2026-11-10 initialized
