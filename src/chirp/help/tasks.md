@@ -302,15 +302,22 @@ For protocols other than HTTP, `jsec/tls` connects, listens and upgrades plain c
 
 ## Work with binary data
 
-`buffer/push-uint32` and its kin, `int/u64` and `int/s64`, and `string/bytes` are core. `spork/tarray` views a buffer as typed numbers; its offset counts bytes, its size and stride count elements. `spork/utf8` decodes and encodes UTF-8 code points.
+`buffer/push-uint32` and its kin write numbers into a buffer, and `int/u64`, `int/s64` and `string/bytes` are core. `spork/tarray` reads numbers out of bytes: `tarray/new` copies a buffer or string (one from `slurp`, say) and views it as typed numbers, with the offset in bytes and the size and stride in elements, in the host's byte order, little-endian on every chirp target. `(doc tarray/new)` has the details. `spork/utf8` decodes and encodes UTF-8 code points.
+
+Parse a binary header, here the 12 bytes that start a GLB file: a 4-byte magic, then the version and the total length as 32-bit little-endian numbers.
 
 ```janet
 (import spork/tarray)
-(import spork/utf8)
 
-(def b (buffer/push-uint16 @"" :le 513))
-(def u16 (tarray/new :uint16 1 1 0 b))
-(print (u16 0))
+# In a script: (def bytes (slurp "model.glb"))
+(def bytes (buffer "glTF" (buffer/push-uint32 @"" :le 2) (buffer/push-uint32 @"" :le 1024)))
+(def header (tarray/new :uint32 2 1 4 bytes))   # 2 numbers from byte 4
+(assert (= "glTF" (string/slice bytes 0 4)) "not a GLB file")
+(printf "version %d, %d bytes" (header 0) (header 1))
+```
+
+```janet
+(import spork/utf8)
 (pp (utf8/decode-rune "é"))
 ```
 

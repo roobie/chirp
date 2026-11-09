@@ -59,9 +59,11 @@
  # both relative to the install base.
  :skill-canonical ".agents/skills"
  :skill-links [".claude/skills"]
- # Bundled module -> chirp module whose public bindings replace the module's own.
+ # Bundled module -> chirp module whose public bindings replace the module's own
+ # (behaviour or, for spork/tarray, only docs).
  :overlays {"spork-https" "./overlay-spork-https"
-            "spork/json" "./overlay-spork-json"}
+            "spork/json" "./overlay-spork-json"
+            "spork/tarray" "./overlay-spork-tarray"}
  # Short names people try for a bundled module, besides its last path segment
  # (json for spork/json). Importing one that is not on disk fails with a hint.
  :import-aliases {"toml" "tomlin" "sqlite" "sqlite3" "https" "spork-https"

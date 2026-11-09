@@ -89,6 +89,10 @@
   (def [ucode _ _] (help "read" "no-such-id"))
   (assert (not= 0 ucode) "unknown id fails")
 
+  # An overlay's docstring replaces upstream's in the help (#9).
+  (def [tcode tout _] (help "read" "spork/tarray/new"))
+  (assert (and (= 0 tcode) (string/find "offset counts bytes" tout)) (string "tarray/new docs: " tout))
+
   (def [ncode nout _] (help "query" "zzzqqqxxx"))
   (assert (and (= 0 ncode) (string/find "no matches" nout)) "no hits exits 0")
   (print "ok help"))
