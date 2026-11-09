@@ -26,12 +26,13 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-DGT7DONSVJESO5FV (superseding D-B2RTYH6CNDO6SRF5), D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.9.0 is published (2026-11-08) and main carries 0.10.0-dev. 0.9.0 moves Janet to the v1.43.0 tag (U-UJ6VC4JRORZAL3L5), with upstream's fuzzing and memory-safety fixes. No issues were fixed, so there was no milestone to close.
+0.10.0 is published (2026-11-09) and main carries 0.11.0-dev. 0.10.0 makes bundled functionality findable (tasks, modules and surprises help topics, short-name import hint, tarray/new docs) and keeps jsec's error buffers per thread on windows; close-milestone closed #4, #6, #8 and #9.
 
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
-- #4, #6, #8 and #9 are on milestone 0.10.0 with comments pointing at the tasks topic; the 0.10.0 release closes them.
+- BR files the spork tarray/new docs and view-offset issue; the draft is in B-RFIP6MFEVGQNJ46S
+- Candidate for 0.11: bundle a CSV reader and writer (B-3U2LXKLBUDLJGUOO)
 
 ## Evidence
 - Os-trust-stores (U-OWEKBTPLIF7KEK7U): run 41942352002 builds all four targets twice with matching sha256; every smoke passes, macOS https-get example.com from 153 keychain roots and windows from 417 store roots with no SSL_CERT_FILE; a start without TLS takes 14 ms on both.
@@ -61,6 +62,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Janet-1-43 (U-UJ6VC4JRORZAL3L5): run 42423791827 (7373448) builds all four targets twice with matching sha256 on the v1.43.0 janet pin; every smoke check passes on each native runner.
 - Release 0.9.0: https://github.com/roobie/chirp/releases/tag/v0.9.0 (run 42465115915, e2e4785) ships the four binaries, notices, SHA256SUMS and SHA256SUMS.sig, each binary with one provenance attestation; the downloaded linux-x64 binary matches SHA256SUMS and reports Janet 1.43.0-chirp-e4b50456. pages (run 42466083349) ran after release and the live footer names e2e4785. Self-update from 0.8.0 is unverified: github.com/…/releases/download returned HTTP 504 for every release (0.8.0 too) at publish time.
 - Self-update 0.8.0 -> 0.9.0 verified by BR on linux-x64 after the 504s cleared: the updated binary reports chirp 0.9.0 on Janet 1.43.0-chirp-e4b50456.
+- Release 0.10.0: https://github.com/roobie/chirp/releases/tag/v0.10.0 (run 42551719483, 22443b2): not a draft, 10 assets, Latest, notes from the changelog section; milestone 0.10.0 closed with #4 #6 #8 #9 each commented 'Shipped in chirp 0.10.0'; 0.9.0 linux-x64 --self-update -> 0.10.0, which gives the json import hint and lists 54 modules; pages run 42552919062 green, help/tasks.html serves 200.
 
 ## Harvest
 
@@ -133,3 +135,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-09 0.10.0 scope finished: modules topic (U-HZVT), surprises topic (U-3PZS), jsec TLS buffers per thread on windows (U-DYQL, L-MMOQJTXSQIJQ4CCS).
 - 2026-11-09 0.10.0 preflight: changelog notes that scripts reading --version take its first line.
 - 2026-11-09 cutting 0.10.0: help by goal (tasks, modules, surprises), short-name import hint, tarray/new docs, windows jsec thread-local buffers; closes #4, #6, #8, #9.
+- 2026-11-09 0.10.0 published by BR's tag; release run 42551719483 green, no reruns; main moves to 0.11.0-dev
