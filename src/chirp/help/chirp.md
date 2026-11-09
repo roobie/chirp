@@ -80,6 +80,8 @@ chirp -e '(each k (sort (filter string? (keys module/cache))) (print k))'
 
 Read a module's docs with `(doc ...)`, for example `chirp -e '(import spork/sh) (doc sh/exec-slurp)'`.
 
+Import a module by its full name. A short name such as `(import json)` fails unless a `json` module is on disk, and the error names the bundled import: `(import spork/json :as json)`.
+
 ## Updating chirp
 
 `chirp --self-update` replaces the binary with the latest signed release; `--check` only reports. See `chirp --help read self-update`.

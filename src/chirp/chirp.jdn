@@ -62,6 +62,10 @@
  # Bundled module -> chirp module whose public bindings replace the module's own.
  :overlays {"spork-https" "./overlay-spork-https"
             "spork/json" "./overlay-spork-json"}
+ # Short names people try for a bundled module, besides its last path segment
+ # (json for spork/json). Importing one that is not on disk fails with a hint.
+ :import-aliases {"toml" "tomlin" "sqlite" "sqlite3" "https" "spork-https"
+                  "markdown" "md4c" "pcre" "pcre2"}
  # Modules resolvable with nothing on disk. spork/tasker is left out: its peg
  # schema is stringified with a heap address at compile time, so the image
  # differs per run.

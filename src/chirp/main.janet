@@ -128,10 +128,32 @@
   (array/insert module/paths 0
                 [(fn [name] (when (and (tls-module? name) (bundled name)) name)) :chirp-tls]))
 
+# A short name of a bundled module (json for spork/json, toml for tomlin) maps to
+# the import line that works. Two modules sharing a last segment both show.
+(def- import-hints
+  (let [full @{}]
+    (each name (config :modules)
+      (def short (last (string/split "/" name)))
+      (unless (= short name) (put full short (array/push (get full short @[]) name))))
+    (eachp [short name] (config :import-aliases)
+      (put full short (array/push (get full short @[]) name)))
+    (tabseq [[short names] :pairs full]
+      short (string/join (map |(string "(import " $ " :as " short ")") (sorted names)) " or "))))
+
+# Last in module/paths, so a module of that name on disk or in the project
+# still wins; only an import that would fail anyway gets the hint.
+(defn- add-import-hints []
+  (put module/loaders :chirp-hint
+       (fn [name &]
+         (errorf "could not find module %s; chirp bundles it: %s\n`chirp --help read tasks` lists the bundled modules by goal"
+                 name (import-hints name))))
+  (array/push module/paths [(fn [name] (when (import-hints name) name)) :chirp-hint]))
+
 (defn main [& argv]
   (def ca-file (ca/setup (config :ca-paths)))
   (defn ca [] (or ca-file (ca/from-store)))
   (defer-tls-modules ca)
+  (add-import-hints)
   (def args (array/slice argv 1))
   (case (first args)
     # A pipe is not a person: no banner, prompts or echoed values, and failures

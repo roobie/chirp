@@ -7,6 +7,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 ### Added
 
 - The help topic `tasks` (`chirp --help read tasks`) lists what the bundled modules do by goal: reading JSON, printing a table, validating data, hashing, running a program and so on. Each goal names the module, its import line and a short example that runs as it is, and says so when nothing bundled does it (CSV, XML). `chirp --help query` ranks these goals above other entries that match about as well, so a query in your own words, such as `print a table` or `json`, finds the module first.
+- Importing a bundled module by a short name, such as `(import json)` or `(import toml)`, fails with the import that works, `(import spork/json :as json)`, and points at `chirp --help read tasks`, instead of only listing the paths Janet searched. A module of that name on disk still loads first.
 
 ### Changed
 
