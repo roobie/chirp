@@ -18,3 +18,14 @@ Open risks, to retire first in a spike:
 - SQLite with FTS5, md4c, lexbor, pcre2 (no JIT), libyaml and miniz should compile; jsec/OpenSSL and osroots drop out, taking https, `--help serve`, self-update and skill install with them.
 
 Shape if picked up: a `wasm32-wasi` target outside the release binaries, a small hand-written browser WASI shim (stdout, args, clocks, random, in-memory fs) rather than a third-party one, one fresh instance per Run of `chirp -e '<code>'` (a REPL would need blocking stdin), smoke checks under Node in CI, `pages.yml` copying the wasm into the site, and maybe "try it" buttons on the wasm-safe examples in `help/tasks.md`. The page must say plainly what does not work (subprocesses, network, threads, persistent files). Needs decision records for the target, its image build and its module set, and touches D-ME7B5XOAG245FN65 and D-T52C67MPJMJZQ5RK.
+
+## Prior art: danja/janey
+https://github.com/danja/janey (Janet 1.37 livecoding music in the browser, published on GitHub Pages) takes the same route independently: wasm32-wasi, wasm exception handling for setjmp, no Emscripten, the same `JANET_NO_*` set. Worth taking from it:
+- A reactor module (`-mexec-model=reactor`) that exports `init`/`eval`/`alloc`/`free` and keeps one Janet env alive between evals. That gives a REPL-like page without blocking stdin, which is better than one instance per Run.
+- Its hand-written WASI imports are about 50 lines: `fd_write` to stdout/stderr, `fd_fdstat_get`, `clock_time_get`, empty environ and a throwing `proc_exit`, with a Proxy answering ENOSYS (EBADF for `fd_prestat_get`) for everything else. That confirms our own shim is small.
+- The same `engine.js` runs in the browser and in Node tests, so CI exercises the page's real glue.
+- Smaller shims: a stub `sys/wait.h` (`WEXITSTATUS`) and an empty `spawn.h` instead of a `siginfo_t` typedef, and `-std=gnu99 -D_DEFAULT_SOURCE`, which declares `timegm`. Plus `JANET_NO_CRYPTORAND`. Janet 1.43 also needs a `dup` stub, which janey's 1.37 did not.
+- Link flags: `--strip-all --gc-sections -z stack-size=1048576`. With our zig that took plain Janet from 3.5 MB to 1.27 MB (about 340 KB gzipped), starting in 10 ms.
+- It links wasi-sdk 25's `-lsetjmp`. Using that would add a second toolchain; vendoring wasi-libc's `rt.c` keeps us on zig alone (D-I6U4X6Q5KJD2Y4SM).
+
+It does not help with our biggest risk: it ships no marshalled image and no third-party natives. Its workflow uses unpinned actions and deploys on every push, which our pages flow already does better.
