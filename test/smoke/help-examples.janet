@@ -1,5 +1,7 @@
-# Every janet example in the tasks help topic runs as it is, offline: the
-# topic promises examples that work when pasted into a script.
+# Every janet example in these help topics runs as it is, offline: they
+# promise examples that work when pasted into a script, and the surprises
+# topic's examples assert the behaviour they describe.
+(def- topics {"tasks" 25 "surprises" 9})
 (import spork/sh)
 
 # The child resolves a relative program path after :cd, so it has to be absolute.
@@ -31,18 +33,21 @@
   out)
 
 (defn main [&]
-  (def [code text err] (run (os/cwd) "--help" "read" "tasks"))
-  (assert (= 0 code) (string "help read tasks: " err))
-  (def all (examples text))
-  (assert (< 10 (length all)) (string "only " (length all) " examples found"))
+  (def all @[])
+  (eachp [topic least] topics
+    (def [code text err] (run (os/cwd) "--help" "read" topic))
+    (assert (= 0 code) (string "help read " topic ": " err))
+    (def found (map |[topic ;$] (examples text)))
+    (assert (<= least (length found)) (string topic ": only " (length found) " examples found"))
+    (array/concat all found))
   (def tmp (string (or (os/getenv "TMPDIR") (os/getenv "TEMP") (os/getenv "TMP") (os/cwd))
-                   "/chirp-smoke-tasks-" (os/time) "-" (math/floor (* 1e6 (math/random)))))
+                   "/chirp-smoke-help-examples-" (os/time) "-" (math/floor (* 1e6 (math/random)))))
   (defer (sh/rm tmp)
-    (eachp [i [section src]] all
+    (eachp [i [topic section src]] all
       (def dir (string tmp "/" i))
       (sh/create-dirs dir)
       (spit (string dir "/example.janet") src)
       # The working directory is the example's own, so files it writes stay there.
       (def [c out err] (run dir (string dir "/example.janet")))
-      (assert (= 0 c) (string "tasks example in \"" section "\" exits " c ":\n" src "\n" out err))))
-  (print "ok tasks (" (length all) " examples)"))
+      (assert (= 0 c) (string topic " example in \"" section "\" exits " c ":\n" src "\n" out err))))
+  (print "ok help-examples (" (length all) " examples)"))

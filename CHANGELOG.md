@@ -10,6 +10,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 - Importing a bundled module by a short name, such as `(import json)` or `(import toml)`, fails with the import that works, `(import spork/json :as json)`, and points at `chirp --help read tasks`, instead of only listing the paths Janet searched. A module of that name on disk still loads first.
 - `(doc tarray/new)` explains its arguments: the offset counts bytes into a buffer and the size and stride count elements, a buffer or string is copied while a typed array or `ta/buffer` is shared, and numbers are in the host's byte order. spork's own docstring says only "Create new typed array." The `tasks` topic shows how to parse a binary file header.
 - `chirp --help read modules` lists every bundled module with a goal it serves. It replaces the command in the `chirp` topic, which read `module/cache` and so missed the 9 TLS modules that load on first use.
+- The help topic `surprises` (`chirp --help read surprises`) lists Janet behaviour that trips up scripts, each with the way around it: `sort` is not stable, program arguments must be strings rather than buffers, `ev/read` returns nil on empty output, `os/mkdir` makes one directory, a table cannot hold nil, `=` compares tables by identity, `in` raises where `get` returns nil, `length` counts bytes, and how to find the running chirp. The `sqlite` topic notes that FTS5 has no stopword list.
 
 ### Changed
 

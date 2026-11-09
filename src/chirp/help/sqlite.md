@@ -49,3 +49,5 @@ FTS5 is compiled in. Create a virtual table, insert, and query with `MATCH`; `bm
 ```
 
 `chirp --help query` itself is built on this.
+
+FTS5 has no stopword list: `the` and `of` are indexed and matched like any other word. A search that takes user text should drop such words itself, and `tokenize = 'porter unicode61'` in the table definition makes `certificate` match `certificates`.

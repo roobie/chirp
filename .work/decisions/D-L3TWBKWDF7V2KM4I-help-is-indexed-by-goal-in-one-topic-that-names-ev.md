@@ -9,7 +9,7 @@ refs:
   - src/chirp/main.janet#goal-entry?
   - src/chirp/help.janet#index
   - src/chirp/help/tasks.md
-  - test/smoke/tasks.janet
+  - test/smoke/help-examples.janet
 ---
 
 # D-L3TWBKWDF7V2KM4I Help is indexed by goal in one topic that names every bundled module and ranks with a boost

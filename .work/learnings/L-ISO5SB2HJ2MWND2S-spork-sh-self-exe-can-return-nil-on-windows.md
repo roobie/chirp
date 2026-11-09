@@ -3,7 +3,7 @@ date: 2026-11-08
 read_if:
   - a script needs the path of the running chirp
 refs:
-  - test/smoke/tasks.janet
+  - test/smoke/help-examples.janet
 ---
 
 # L-ISO5SB2HJ2MWND2S spork/sh/self-exe can return nil on windows
