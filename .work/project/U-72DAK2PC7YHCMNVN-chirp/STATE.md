@@ -132,3 +132,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-09 tarray/new docs overlay (U-B4RZB3IGUELBCSVF) delivered for #9; upstream draft in B-RFIP6MFEVGQNJ46S for BR.
 - 2026-11-09 0.10.0 scope finished: modules topic (U-HZVT), surprises topic (U-3PZS), jsec TLS buffers per thread on windows (U-DYQL, L-MMOQJTXSQIJQ4CCS).
 - 2026-11-09 0.10.0 preflight: changelog notes that scripts reading --version take its first line.
+- 2026-11-09 cutting 0.10.0: help by goal (tasks, modules, surprises), short-name import hint, tarray/new docs, windows jsec thread-local buffers; closes #4, #6, #8, #9.

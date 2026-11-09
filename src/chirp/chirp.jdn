@@ -1,6 +1,6 @@
 {# A -dev suffix marks builds from main; release.yml requires the tag to equal
  # this, so a release first drops the suffix.
- :version "0.10.0-dev"
+ :version "0.10.0"
  # The project site; `chirp --version` names it so the binary leads to its docs.
  :homepage "https://roobie.github.io/chirp/"
  # `chirp --self-update` reads <base>/latest/download/ and <base>/download/v<version>/,
