@@ -31,7 +31,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
-- Remaining triaged issues: #9 B-IURYPGJRZ7Z2SMYA. #4, #6 and #8 can be answered with a link to the tasks help topic (U-UQ43QSH4RXEYEAAX) once it is released
+- Remaining triaged issues: #9 B-IURYPGJRZ7Z2SMYA. #4, #6 and #8 are on milestone 0.10.0 with comments pointing at the tasks topic; the 0.10.0 release closes them.
 
 ## Evidence
 - Os-trust-stores (U-OWEKBTPLIF7KEK7U): run 41942352002 builds all four targets twice with matching sha256; every smoke passes, macOS https-get example.com from 153 keychain roots and windows from 417 store roots with no SSL_CERT_FILE; a start without TLS takes 14 ms on both.
@@ -128,3 +128,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-08 pages.yml reads the version from the first line of --version.
 - 2026-11-08 Help-by-goal (U-UQ43QSH4RXEYEAAX) delivered: the tasks help topic, goal-ranked queries, a build guard and a smoke check (D-L3TWBKWDF7V2KM4I); unreleased.
 - 2026-11-09 Import hint for short names (U-LF7MVZMNU7JQHUD5) delivered, unreleased; #8 fully addressed on main.
+- 2026-11-09 Milestone 0.10.0 created with #4, #6, #8; each got a comment pointing at chirp --help read tasks.
