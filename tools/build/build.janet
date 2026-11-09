@@ -265,7 +265,8 @@
       (seq [s :in (native-sources n)]
         (def o (string dir "/" (flat s) ".o"))
         (zig ;tgt-cflags ;(if (n :openssl) [(string "-I" tgt-ossl-root "/include")] [])
-             ;(native-cflags n) ;defs "-c" s "-o" o)
+             ;(native-cflags n) ;(get-in target [:pin-cflags (get n :pin :janet)] [])
+             ;defs "-c" s "-o" o)
         o)))
   (def lib (string dir "/" (flat name) ".a"))
   (when (os/stat lib) (os/rm lib))
