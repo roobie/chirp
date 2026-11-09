@@ -131,3 +131,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-09 Milestone 0.10.0 created with #4, #6, #8; each got a comment pointing at chirp --help read tasks.
 - 2026-11-09 tarray/new docs overlay (U-B4RZB3IGUELBCSVF) delivered for #9; upstream draft in B-RFIP6MFEVGQNJ46S for BR.
 - 2026-11-09 0.10.0 scope finished: modules topic (U-HZVT), surprises topic (U-3PZS), jsec TLS buffers per thread on windows (U-DYQL, L-MMOQJTXSQIJQ4CCS).
+- 2026-11-09 0.10.0 preflight: changelog notes that scripts reading --version take its first line.

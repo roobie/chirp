@@ -14,7 +14,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Changed
 
-- `chirp -v` and `chirp --version` print a second line with the project site, https://roobie.github.io/chirp/. The REPL banner is unchanged.
+- `chirp -v` and `chirp --version` print a second line with the project site, https://roobie.github.io/chirp/. The REPL banner is unchanged. A script that reads the version should take the first line, for example `chirp --version | head -n1`.
 
 ### Fixed
 
