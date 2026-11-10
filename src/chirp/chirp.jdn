@@ -6,6 +6,12 @@
  # `chirp --self-update` reads <base>/latest/download/ and <base>/download/v<version>/,
  # a file tree that any mirror can serve.
  :update {:base "https://github.com/roobie/chirp/releases"
+          # The release public key, a file in src/chirp/.
+          :key "release-key.pem"
+          # `--channel NAME` reads a tree of its own and trusts only the key named
+          # here, never the release key.
+          :channels {:main {:base "https://roobie.github.io/chirp/latest"
+                            :key "main-build-key.pem"}}
           # Janet's (os/which) -> (os/arch) -> release target name.
           :targets {:linux {:x64 "linux-x64" :aarch64 "linux-arm64"}
                     :macos {:aarch64 "macos-arm64"}

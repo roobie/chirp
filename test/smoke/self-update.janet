@@ -3,6 +3,7 @@
 (import spork/http)
 (import spork/sh)
 (import jsec/crypto)
+(import ../../src/chirp/update)
 
 (def targets ["linux-x64" "linux-arm64" "macos-arm64" "windows-x64"])
 (def windows? (truthy? (index-of (os/which) [:windows :mingw])))
@@ -27,7 +28,46 @@
    (string/replace-all "\r" "" (string out))
    (string/replace-all "\r" "" (string err))])
 
+(defn- trust-separation
+  "The release key and the main-build key each verify their own tree and never
+  the other's, whatever --base says."
+  []
+  (def release (crypto/generate-key :ed25519))
+  (def main-build (crypto/generate-key :ed25519))
+  (def config
+    {:base "https://example.test/releases"
+     :key (crypto/export-public-key release)
+     :channels {:main {:base "https://example.test/latest"
+                       :key (crypto/export-public-key main-build)}
+                :keyless {:base "https://example.test/keyless"}}})
+  (def sums "chirp-1.0.0-linux-x64\n")
+  (def by-release (crypto/sign release sums))
+  (def by-main (crypto/sign main-build sums))
+  (defn verifies? [trust sig] (truthy? (crypto/verify (trust :key) sums sig)))
+  (defn trust [& flags] (update/resolve-trust (tabseq [[k v] :in (partition 2 flags)] k v) config))
+
+  (let [t (trust)]
+    (assert (= "https://example.test/releases" (t :base)) "default base")
+    (assert (verifies? t by-release) "the release key verifies a release")
+    (assert (not (verifies? t by-main)) "the release key must not verify a main build"))
+  (let [t (trust :channel "main")]
+    (assert (= "https://example.test/latest" (t :base)) "channel base")
+    (assert (verifies? t by-main) "the main-build key verifies a main build")
+    (assert (not (verifies? t by-release)) "the main-build key must not verify a release"))
+  (let [t (trust :base "https://mirror.test/x/")]
+    (assert (= "https://mirror.test/x" (t :base)) "--base replaces the base, trailing slash dropped")
+    (assert (verifies? t by-release) "--base alone keeps the release key")
+    (assert (not (verifies? t by-main)) "--base alone must not trust the main-build key"))
+  (let [t (trust :channel "main" :base "https://mirror.test/x")]
+    (assert (= "https://mirror.test/x" (t :base)) "--channel with --base reads the mirror")
+    (assert (verifies? t by-main) "--channel with --base keeps the channel's key")
+    (assert (not (verifies? t by-release)) "--channel with --base must not trust the release key"))
+  (assert (not (first (protect (trust :channel "nightly")))) "an unknown channel is refused")
+  (assert (not (first (protect (trust :channel "keyless"))))
+          "a channel without a key is refused, not given the release key"))
+
 (defn main [&]
+  (trust-separation)
   (def tmp (string (or (os/getenv "TMPDIR") (os/getenv "TEMP") (os/getenv "TMP") ".")
                    "/chirp-smoke-update-" (os/time) "-" (math/floor (* 1e6 (math/random)))))
   (sh/create-dirs tmp)
@@ -92,6 +132,20 @@
       (publish :signer other-key)
       (fails "signature by another key" (update "--force") "does not verify")
 
+      # The main channel trusts the key built into this binary, not the test's
+      # release key: a tree signed with it is refused unless --key says otherwise.
+      (publish)
+      (defn channel [& flags] (run-copy exe "--self-update" "--channel" "main" "--base" base ;flags))
+      (let [[code _ err] (channel "--check")]
+        (assert (and (not= 0 code) (string/find "does not verify" err))
+                (string "--channel main accepted a tree signed by another key: " code " " (string/format "%q" err))))
+      (let [[code out err] (channel "--key" key-file "--check")]
+        (assert (and (= 0 code) (string/find "latest  99.0.0" out))
+                (string "--channel main --key: " code " " (string/format "%q" (string out err)))))
+      (let [[code _ err] (run-copy exe "--self-update" "--channel" "nightly" "--check")]
+        (assert (and (not= 0 code) (string/find "unknown channel" err)) "--channel nightly is refused"))
+      (assert (unchanged?) "a channel check changed the binary")
+
       (publish)
       (put tree "/latest/download/SHA256SUMS.sig" nil)
       (fails "missing signature" (update "--force") "signature missing")
@@ -100,11 +154,44 @@
       (put tree (string "/download/v99.0.0/" (asset "99.0.0" target)) "tampered")
       (fails "hash mismatch" (update "--force") "signed checksum")
 
-      # A replayed older release, correctly signed, must not downgrade.
+      # A replayed older release, correctly signed, does not downgrade on its own.
       (publish :version "0.0.1")
-      (def [ocode oout _] (update "--force"))
-      (assert (and (= 0 ocode) (string/find "up to date" oout)) (string "older release: " ocode " " oout))
+      # A -dev binary refuses a plain update before it compares versions.
+      (unless pre-release?
+        (def [ocode oout _] (update))
+        (assert (and (= 0 ocode) (string/find "up to date" oout)) (string "older release: " ocode " " oout)))
+      (def [scode sout _] (update "--force" "--check"))
+      (assert (and (= 0 scode) (string/find "update available: no" sout)) "--check reports an older release as no update")
       (assert (unchanged?) "an older release replaced the binary")
+
+      # --output saves whatever verifies, newer or not, and installs nothing.
+      (def fake (fake-binary target))
+      (def older-out (string tmp "/older-out"))
+      (def [pcode pout perr] (update "--output" older-out))
+      (assert (and (= 0 pcode) (= fake (string (slurp older-out))))
+              (string "--output of an older release: " pcode " " (string/format "%q" (string pout perr))))
+      (assert (unchanged?) "--output of an older release changed the running binary")
+
+      # --force never downgrades: an older signed build is refused, and the
+      # binary is left alone.
+      (fails "--force of an older release" (update "--force") "does not downgrade")
+
+      # --force takes the same version again: a build from main keeps one
+      # version between releases. The signature and checksum are still checked.
+      (def version (get (peg/match ~(* "chirp " (<- (some (if-not " " 1)))) identity) 0))
+      (publish :version version)
+      (put tree (string "/download/v" version "/" (asset version target)) "tampered")
+      (fails "--force of the same version, hash mismatch" (update "--force") "signed checksum")
+      (publish :version version)
+      (unless pre-release?
+        (def [scode sout _] (update))
+        (assert (and (= 0 scode) (string/find "up to date" sout) (unchanged?))
+                (string "the same version without --force: " scode " " sout)))
+      (def [fcode0 fout0 ferr0] (update "--force"))
+      (assert (and (= 0 fcode0) (= fake (string (slurp exe))))
+              (string "--force of the same version: " fcode0 " " (string/format "%q" (string fout0 ferr0))))
+      (spit exe original)
+      (unless windows? (os/chmod exe 8r755))
 
       # --output saves the release elsewhere and never touches the running binary.
       (publish)

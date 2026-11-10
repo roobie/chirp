@@ -1,100 +1,286 @@
 name: pages
 
-# The site describes a release, so it is published after the release workflow
-# succeeds for a tag, built by the binary that release shipped. A manual run
-# republishes from a commit between releases, such as a dev-proc change, and
-# builds chirp for it first.
+# The site describes what users can download, so it is published when that
+# changes, and only ever for the tip of main:
+#  - a tag's release run succeeded and the tagged commit is still main's tip:
+#    the site, built by the binary it shipped. When main has moved on, the
+#    newer deploy already carries the release;
+#  - CI succeeded for a push to main that is still its tip: the site again, and
+#    with it a signed "latest" tree of that build, so a build of main can be
+#    downloaded and installed with chirp --self-update --channel main --force;
+#  - a manual run on main: the same for its tip. Pages only deploys main, so a
+#    manual run on any other ref publishes nothing.
+# The CI of a feature branch or pull request, and a dry run of the release
+# workflow, publish nothing.
 on:
+  # Every CI and release run reaches the plan job, which is where a run is
+  # accepted or not; the branch filter of this trigger is not relied on.
   workflow_run:
-    workflows: [release]
+    workflows: [release, ci]
     types: [completed]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# There is no workflow-level concurrency: a run that publishes nothing must not
+# take a place in a queue, because a newer waiting run replaces an older one
+# that is still waiting. The one queue is on the deploy job; see there.
 jobs:
-  # A manual run only: a release run already holds the binary it built.
+  # Decides what this run is, once, so the jobs below do not each repeat the
+  # event juggling.
+  plan:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      # Whether anything is published.
+      publish: ${{ steps.plan.outputs.publish }}
+      # The commit to publish, and the run whose artifacts hold its binaries.
+      sha: ${{ steps.plan.outputs.sha }}
+      run_id: ${{ steps.plan.outputs.run_id }}
+      # Whether the site carries the signed latest tree of a build of main.
+      main_build: ${{ steps.plan.outputs.main_build }}
+      # A manual run has no CI run to take binaries from, so it builds them.
+      needs_ci: ${{ steps.plan.outputs.needs_ci }}
+    steps:
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          UPSTREAM_NAME: ${{ github.event.workflow_run.name }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
+          UPSTREAM_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          UPSTREAM_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          publish=true main_build=false needs_ci=false sha=$SHA run_id=$RUN_ID
+          if [ "$EVENT" = workflow_dispatch ]; then
+            needs_ci=true main_build=true
+            if [ "$REF_TYPE" != branch ] || [ "$REF_NAME" != main ]; then
+              echo "::notice::only main is deployed, and this run is on $REF_NAME"
+              publish=false
+            fi
+          else
+            sha=$UPSTREAM_SHA run_id=$UPSTREAM_RUN_ID
+            # The release workflow's manual runs are dry runs, so only pushes count.
+            # A release run on a push is a tag's, because a tag is all it triggers on.
+            if [ "$UPSTREAM_CONCLUSION" != success ] || [ "$UPSTREAM_EVENT" != push ] ||
+               [ "$UPSTREAM_REPO" != "$GH_REPO" ]; then
+              publish=false
+            elif [ "$UPSTREAM_NAME" = ci ]; then
+              main_build=true
+              [ "$UPSTREAM_BRANCH" = main ] || publish=false
+            fi
+          fi
+          # Runs finish out of order. An older push whose CI finished after a
+          # newer one's, or a tag older than the commit main has moved to, would
+          # replace the newer site. The deploy job checks this again when it starts.
+          if [ "$publish" = true ]; then
+            tip=$(gh api "repos/$GH_REPO/commits/main" --jq .sha)
+            if [ "$tip" != "$sha" ]; then
+              echo "::notice::$sha is not the tip of main ($tip), so nothing is published"
+              publish=false
+            fi
+          fi
+          {
+            echo "publish=$publish"
+            echo "sha=$sha"
+            echo "run_id=$run_id"
+            echo "main_build=$main_build"
+            echo "needs_ci=$needs_ci"
+          } >> "$GITHUB_OUTPUT"
+
   ci:
-    if: github.event_name == 'workflow_dispatch'
+    needs: plan
+    if: needs.plan.outputs.publish == 'true' && needs.plan.outputs.needs_ci == 'true'
     uses: ./.github/workflows/ci.yml
 
-  build:
-    needs: ci
-    # The release workflow's manual runs are dry runs, so only its tag runs count.
+  # Signs the main build. This is the only job that reads the main-build key,
+  # and the environment keeps that key to runs on main. The key and the public
+  # key to check the signature against are set together here; the release key
+  # is never used. See D-6NWFV37OBOERI3AF.
+  main-build:
+    needs: [plan, ci]
     if: >-
       always() &&
-      (needs.ci.result == 'success' ||
-       (github.event_name == 'workflow_run' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.event == 'push'))
+      needs.plan.outputs.publish == 'true' &&
+      needs.plan.outputs.main_build == 'true' &&
+      (needs.ci.result == 'success' || needs.plan.outputs.needs_ci == 'false')
+    runs-on: ubuntu-24.04
+    environment: main-build
+    permissions:
+      contents: read
+      actions: read
+      # For the attestation of the files, the only thing this job writes.
+      id-token: write
+      attestations: write
+    env:
+      CHIRP: artifacts/chirp-linux-x64-a/chirp
+    outputs:
+      # The version of the build, empty when this commit is a release cut.
+      version: ${{ steps.layout.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: chirp-*-a
+          path: artifacts
+          run-id: ${{ needs.plan.outputs.run_id }}
+          github-token: ${{ github.token }}
+      # Artifacts do not keep the executable bit.
+      - run: chmod +x "$CHIRP"
+      # A release-cut commit on main has a version without a suffix, which is
+      # a release's to publish, so it is not signed and gets no tree.
+      - name: Read the version
+        id: version
+        run: |
+          version=$("$CHIRP" tools/release/layout.janet version artifacts)
+          case "$version" in
+            *-*) echo "version=$version" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::notice::$version is a release's version, so there is no main build" ;;
+          esac
+      - name: Lay out and sign the main build
+        id: layout
+        if: steps.version.outputs.version != ''
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          CHIRP_MAIN_BUILD_SIGNING_KEY: ${{ secrets.CHIRP_MAIN_BUILD_SIGNING_KEY }}
+          KEY_ENV: CHIRP_MAIN_BUILD_SIGNING_KEY
+          PUBLIC_KEY: src/chirp/main-build-key.pem
+        run: |
+          "$CHIRP" tools/release/layout.janet release artifacts out/main-release \
+            --pub "$PUBLIC_KEY" --key-env "$KEY_ENV"
+          "$CHIRP" tools/release/layout.janet mirror out/main-release out/main-tree "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      # So `gh attestation verify`, which the Main build page points to, works.
+      - if: steps.layout.outputs.version != ''
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: out/main-tree/download/v*/*
+      - if: steps.layout.outputs.version != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: main-tree
+          path: out/main-tree
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    needs: [plan, ci, main-build]
+    if: >-
+      always() &&
+      needs.plan.outputs.publish == 'true' &&
+      (needs.ci.result == 'success' || needs.plan.outputs.needs_ci == 'false') &&
+      (needs.main-build.result == 'success' || needs.main-build.result == 'skipped')
     runs-on: ubuntu-24.04
     permissions:
       contents: read
       actions: read
+    env:
+      CHIRP: artifacts/chirp-linux-x64-a/chirp
     steps:
       # The full history, because the site's commit links are checked against it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ needs.plan.outputs.sha }}
           persist-credentials: false
           fetch-depth: 0
-      # From this run (manual) or from the release run that triggered this one.
+      # From the CI run behind this publish: this run's own (manual), the
+      # release run's, or the push's.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: chirp-linux-x64-a
-          path: bin
-          run-id: ${{ github.event.workflow_run.id || github.run_id }}
-          github-token: ${{ github.token }}
-      # The try page's chirp.wasm, from the same build.
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: chirp-wasm32-wasi-a
-          path: wasm
-          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+          pattern: chirp-*-a
+          path: artifacts
+          run-id: ${{ needs.plan.outputs.run_id }}
           github-token: ${{ github.token }}
       # Node 22 for its built-in WebSocket, which drives Chrome.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+      # Artifacts do not keep the executable bit.
+      - run: chmod +x "$CHIRP"
+      - if: needs.main-build.outputs.version != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: main-tree
+          path: out/main-tree
       - name: Build the site
+        env:
+          MAIN_TREE: ${{ needs.main-build.outputs.version && 'out/main-tree' || '' }}
         run: |
-          # Artifacts do not keep the executable bit.
-          chmod +x bin/chirp
-          bin/chirp site/build.janet out/site --wasm wasm/chirp.wasm
+          "$CHIRP" site/build.janet out/site \
+            --wasm artifacts/chirp-wasm32-wasi-a/chirp.wasm ${MAIN_TREE:+--main-build "$MAIN_TREE"}
       - name: Check the site
         env:
-          COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          COMMIT: ${{ needs.plan.outputs.sha }}
         run: |
-          bin/chirp site/check.janet out/site --commit "$COMMIT" \
-            --chirp-version "$(bin/chirp --version | head -n1 | cut -d' ' -f2)"
+          "$CHIRP" site/check.janet out/site --commit "$COMMIT" \
+            --chirp-version "$("$CHIRP" --version | head -n1 | cut -d' ' -f2)"
           node test/wasm/page.mjs out/site
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: out/site
 
-  # The only job that can write to Pages.
+  # The only job that can write to Pages, and the only queue. Deploys run one at
+  # a time, and the first step deploys only if this commit is still the tip of
+  # main when the job starts, so an older commit is never deployed over a newer
+  # one: a deploy that starts after a newer one finished sees that it is no
+  # longer the tip. A newer waiting job replaces an older waiting one, which is
+  # right when the newer is the tip. The one gap: an older run that reaches this
+  # job after a newer one is already waiting replaces it, then deploys nothing,
+  # and the site stays as it was until the next push.
   deploy:
-    needs: build
+    needs: [plan, build]
     if: always() && needs.build.result == 'success'
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     permissions:
+      contents: read
       pages: write
       id-token: write
     outputs:
+      # Whether this run deployed; the verify job has nothing to check if not.
+      deployed: ${{ steps.tip.outputs.current }}
       page_url: ${{ steps.deploy.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      - id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ needs.plan.outputs.sha }}
+        run: |
+          tip=$(gh api "repos/$GH_REPO/commits/main" --jq .sha)
+          if [ "$tip" = "$SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$SHA is no longer the tip of main ($tip), so it is not deployed"
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
       - id: deploy
+        if: steps.tip.outputs.current == 'true'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
   # The deployed site, checked by the same rules. Pages can serve the previous
   # deploy for a while, so the check waits until the footer names this commit.
   verify:
-    needs: deploy
-    if: always() && needs.deploy.result == 'success'
+    needs: [plan, main-build, deploy]
+    if: always() && needs.deploy.result == 'success' && needs.deploy.outputs.deployed == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -102,19 +288,55 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ needs.plan.outputs.sha }}
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: chirp-linux-x64-a
           path: bin
-          run-id: ${{ github.event.workflow_run.id || github.run_id }}
+          run-id: ${{ needs.plan.outputs.run_id }}
           github-token: ${{ github.token }}
+      # A newer deploy can land while this waits for the footer to name this
+      # commit, which is not a failure, so the next step decides.
       - name: Check the live site
+        id: live
+        continue-on-error: true
         env:
-          COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          COMMIT: ${{ needs.plan.outputs.sha }}
           URL: ${{ needs.deploy.outputs.page_url }}
+          VERSION: ${{ needs.main-build.outputs.version }}
+          GH_REPO: ${{ github.repository }}
         run: |
           chmod +x bin/chirp
           bin/chirp site/check.janet "$URL" --commit "$COMMIT" --wait 600 \
             --chirp-version "$(bin/chirp --version | head -n1 | cut -d' ' -f2)"
+          # The client a user would run, against the tree as served: it must
+          # accept the signature, report this build, and serve the bytes CI built.
+          if [ -n "$VERSION" ]; then
+            base="${URL%/}/latest"
+            report=$(bin/chirp --self-update --check --channel main --base "$base")
+            echo "$report"
+            grep -qx "latest  $VERSION" <<< "$report"
+            curl -fsSL -o served "$base/download/v$VERSION/chirp-$VERSION-linux-x64"
+            [ "$(sha256sum < served)" = "$(sha256sum < bin/chirp)" ]
+            # The base built into chirp, which users reach without --base. It
+            # is this project's site, so it is checked only where that is the site.
+            if [ "$GH_REPO" = roobie/chirp ]; then
+              report=$(bin/chirp --self-update --check --channel main)
+              echo "$report"
+              grep -qx "latest  $VERSION" <<< "$report"
+            fi
+          fi
+      - name: A newer deploy is not a failure
+        if: steps.live.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ needs.plan.outputs.sha }}
+        run: |
+          tip=$(gh api "repos/$GH_REPO/commits/main" --jq .sha)
+          if [ "$tip" = "$SHA" ]; then
+            echo "::error::the live site does not check out"
+            exit 1
+          fi
+          echo "::notice::main moved on to $tip while this was checked, so the site now shows a newer deploy"

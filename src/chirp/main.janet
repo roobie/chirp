@@ -84,7 +84,10 @@
   {:version (config :version)
    :base ((config :update) :base)
    :targets ((config :update) :targets)
-   :key (slurp (string here "release-key.pem"))})
+   :key (slurp (string here ((config :update) :key)))
+   :channels (tabseq [[name channel] :pairs ((config :update) :channels)]
+               name {:base (channel :base)
+                     :key (slurp (string here (channel :key)))})})
 
 # -h prints this section, so renaming its heading must fail the build.
 (def- usage-entry (find |(= "chirp/usage" ($ :id)) help-entries))

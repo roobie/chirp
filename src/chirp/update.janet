@@ -11,7 +11,10 @@
 (defn- hex [bytes]
   (string/format (string/repeat "%02x" (length bytes)) ;(string/bytes bytes)))
 
-(defn- sha256-hex [data] (hex (crypto/digest :sha256 data)))
+(defn sha256-hex
+  "Lowercase hex sha256 of a string or buffer."
+  [data]
+  (hex (crypto/digest :sha256 data)))
 
 # Versions ----------------------------------------------------------------
 
@@ -244,19 +247,37 @@
       "--check" (put opts :check true)
       "--force" (put opts :force true)
       "--output" (put opts :output (value a))
+      "--channel" (put opts :channel (value a))
       "--base" (put opts :base (value a))
       "--key" (put opts :key (value a))
-      (die "unknown argument " a ". Usage: chirp --self-update [--check] [--force] [--output PATH] [--base URL] [--key PEM]"))
+      (die "unknown argument " a ". Usage: chirp --self-update [--check] [--force] [--output PATH] [--channel NAME] [--base URL] [--key PEM]"))
     (++ i))
   opts)
 
-(defn- self-update [args {:version version :base default-base :targets targets :key key-pem}]
+(defn resolve-trust
+  "Where to read from and which public key (PEM) to trust. A channel brings its
+  own base and key and nothing else is trusted for it; without one the release
+  base and key apply. --base alone keeps the key, --channel with --base keeps
+  the channel's key, and --key overrides the key whatever else was chosen.
+  config has :base and :key for releases and :channels, a table of name to
+  {:base :key}. A channel without a key is an error, never the release key."
+  [opts {:base default-base :key default-key :channels channels}]
+  (def channel
+    (when-let [name (opts :channel)]
+      (or (get channels (keyword name))
+          (die "unknown channel " name ", known: " (string/join (sorted (map string (keys channels))) ", ")))))
+  (when (and channel (not (channel :key)))
+    (die "channel " (opts :channel) " has no key, so nothing could be verified"))
+  (def base (or (opts :base) (get channel :base) default-base))
+  {:base (if (string/has-suffix? "/" base) (string/slice base 0 -2) base)
+   :key (if (opts :key)
+          (try (slurp (opts :key)) ([e] (die "cannot read key file " (opts :key) ": " e)))
+          (if channel (channel :key) default-key))})
+
+(defn- self-update [args config]
+  (def {:version version :targets targets} config)
   (def opts (parse-args args))
-  (def base (let [b (or (opts :base) default-base)]
-              (if (string/has-suffix? "/" b) (string/slice b 0 -2) b)))
-  (def key (if (opts :key)
-             (try (slurp (opts :key)) ([e] (die "cannot read key file " (opts :key) ": " e)))
-             key-pem))
+  (def {:base base :key key} (resolve-trust opts config))
   (def user-agent (string "chirp/" version))
   (def target (target-name targets))
   # --output leaves the running build alone, so a pre-release may use it freely.
@@ -265,7 +286,15 @@
          "Releases are what --self-update installs; use --force to replace it anyway"))
   (def sums-text (verified-sums base key user-agent))
   (def [latest name sha] (latest-release (parse-sums sums-text) target))
-  (def newer? (pos? (compare-versions latest version)))
+  (def order (compare-versions latest version))
+  (def newer? (pos? order))
+  # --force takes an equal version, as a build from main keeps one version
+  # between releases, but never an older one: it would be a downgrade. --output
+  # installs nothing, so it saves whatever verifies.
+  (when (and (opts :force) (neg? order) (not (opts :check)) (not (opts :output)))
+    (die "the latest build is " latest ", older than this chirp " version
+         ", and --force does not downgrade. --output PATH saves it without installing"))
+  (def wanted? (or newer? (opts :output) (and (opts :force) (not (neg? order)))))
   (cond
     (opts :check)
     (do (print "current " version)
@@ -273,8 +302,8 @@
         (print "target  " target)
         (print "update available: " (if newer? "yes" "no")))
 
-    (not newer?)
-    (print "chirp " version " is up to date (latest release: " latest ")")
+    (not wanted?)
+    (print "chirp " version " is up to date (latest: " latest ")")
 
     (do
       (defn download []
@@ -306,7 +335,8 @@
 
 (defn run
   "Run `chirp --self-update`. args are the words after it; config has :version,
-  :base, :targets and :key (the public key as PEM). Failures print to stderr and
+  :base, :targets, :key (the public key as PEM) and :channels (name to
+  {:base :key}, the key as PEM). Failures print to stderr and
   exit 1, leaving the running binary as it was."
   [args config]
   (def [ok err] (protect (self-update args config)))

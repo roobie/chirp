@@ -29,45 +29,24 @@ jobs:
         with:
           pattern: chirp-*-a
           path: artifacts
-      - name: Lay out the release
+      # The version comes from the binary being shipped, not from a file.
+      # chirp --self-update trusts the signature and nothing else in the release.
+      # The shipped linux-x64 binary does the work, which also keeps the signing
+      # code exercised by every release. The key to check against is the one the
+      # shipped binaries trust, read from the checkout.
+      - name: Lay out and sign the release
         id: layout
         env:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
+          CHIRP_RELEASE_SIGNING_KEY: ${{ secrets.CHIRP_RELEASE_SIGNING_KEY }}
         run: |
-          # The version comes from the binary being shipped, not from a file.
-          # Artifacts do not keep the executable bit.
           chmod +x artifacts/chirp-linux-x64-a/chirp
-          identity=$(artifacts/chirp-linux-x64-a/chirp --version | head -n1)
-          echo "$identity"
-          read -r name version _ <<< "$identity"
-          if [ "$name" != chirp ] || [ -z "$version" ]; then
-            echo "::error::cannot read a version from: $identity"
-            exit 1
-          fi
-          if [ "$REF_TYPE" = tag ] && [ "$REF_NAME" != "v$version" ]; then
-            echo "::error::tag $REF_NAME does not match the binary's version v$version"
-            exit 1
-          fi
+          tag=
+          [ "$REF_TYPE" = tag ] && tag=$REF_NAME
+          version=$(artifacts/chirp-linux-x64-a/chirp tools/release/layout.janet release \
+            artifacts out/release --pub src/chirp/release-key.pem ${tag:+--tag "$tag"})
           echo "version=$version" >> "$GITHUB_OUTPUT"
-
-          mkdir -p out/release
-          for dir in artifacts/chirp-*-a; do
-            target=${dir#artifacts/chirp-}
-            target=${target%-a}
-            # Published on the site's try page, not as a release file.
-            [ "$target" = wasm32-wasi ] && continue
-            if [ -f "$dir/chirp.exe" ]; then
-              cp "$dir/chirp.exe" "out/release/chirp-$version-$target.exe"
-            else
-              cp "$dir/chirp" "out/release/chirp-$version-$target"
-              chmod +x "out/release/chirp-$version-$target"
-            fi
-            cp "$dir/NOTICES.txt" "out/release/NOTICES-$target.txt"
-          done
-          # Written outside the directory first, so it does not list itself.
-          (cd out/release && find . -type f -printf '%f\n' | sort | xargs sha256sum) > out/SHA256SUMS
-          mv out/SHA256SUMS out/release/SHA256SUMS
           cat out/release/SHA256SUMS
 
           notes=$(< .github/release-notes.md)
@@ -85,21 +64,6 @@ jobs:
           fi
           # The heading is replaced so the notes read as one page under the release title.
           printf '\n## Changes\n%s\n' "$(tail -n +2 <<< "$section")" >> out/notes.md
-      # chirp --self-update trusts this signature and nothing else in the release.
-      # The shipped linux-x64 binary signs, which also keeps the signing code
-      # exercised by every release.
-      - name: Sign the checksums
-        env:
-          CHIRP_RELEASE_SIGNING_KEY: ${{ secrets.CHIRP_RELEASE_SIGNING_KEY }}
-        run: |
-          artifacts/chirp-linux-x64-a/chirp tools/release/sign.janet sign \
-            out/release/SHA256SUMS out/release/SHA256SUMS.sig
-      # A wrong secret would otherwise publish a release that no chirp accepts.
-      # The key is the one the shipped binaries trust, read from the checkout.
-      - name: Check the signature against the key chirp trusts
-        run: |
-          artifacts/chirp-linux-x64-a/chirp tools/release/sign.janet verify \
-            out/release/SHA256SUMS out/release/SHA256SUMS.sig src/chirp/release-key.pem
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-${{ steps.layout.outputs.version }}
