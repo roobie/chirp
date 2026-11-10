@@ -32,9 +32,9 @@ Owner: review, set github-pages environment rules, push
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
-- tools/release/layout.test.janet passes (release layout, tag check, wrong/missing key, mirror tree)
-- chirp built in a container with the channel code: smoke self-update (incl. --channel: unit trust separation both ways, a tree signed by another key refused, unknown channel refused, --key override), help, cli-help, changelog, help-examples pass. main-build-key.pem is the owner's real public key; its private half was never here, so a tree signed with it is untested.
-- Local: layout.test, cut.test, leakcheck all + test, skillcheck + test pass; site built with --main-build from a throwaway-key tree (fake artifacts) and site/check.janet passes on 17 pages, 16 without the tree. Not run: the workflows (no actionlint, no GitHub), a live --self-update against the tree (localhost blocked here), a real wasm build.
+- layout.test and cut.test pass; the layout of a release is byte-identical to the old release.yml shell's (checked in the C locale, which the runners sort in) except for the added SHA256SUMS.sig.
+- chirp built in a container from these sources: smoke self-update (--force same version and refusal of an older one, --output of any verified build, --channel: trust separation both ways, a tree signed by another key refused, a channel without a key refused, unknown channel, --key override), help, cli-help, changelog, help-examples pass. main-build-key.pem is the owner's real public key; its private half was never here, so a tree signed with it is untested.
+- leakcheck all, skillcheck, dev-proc check pass; site built with --main-build from a throwaway-key tree and site/check.janet reports only the two wasm-related failures a build without --wasm always has. Not run: the workflows (no actionlint, no GitHub), a live --self-update against the served tree (localhost blocked here), a real wasm build.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -46,6 +46,7 @@ Owner: review, set github-pages environment rules, push
 - [ ] decision: D-6NWFV37OBOERI3AF recorded (main builds on Pages, signed with a separate main-build key trusted through --channel main)
 - [ ] backlog: B-DDS77NF4GPLATVIL recorded (every main build reports the same -dev version)
 - [ ] decision: D-7TDUEHUOFXPTSQCE recorded; it supersedes D-ME7B5XOAG245FN65 (the whole site is published from main on every green push)
+- [ ] backlog: B-K2J3HVGSJFJM4IFC recorded (the release signing key is a repository secret any branch's workflow can read)
 - [ ] learning: os/spawn :env is not applied by this chirp with flags :pe, so tests set the variable with os/setenv; a relative import (import ./sign) works from a chirp script
 
 ## Log
@@ -57,3 +58,4 @@ Owner: review, set github-pages environment rules, push
 - 2026-11-10 self-update: --channel main trusts a key of its own
 - 2026-11-10 site: the latest tree and the Main build page
 - 2026-11-10 pages.yml: main-build job, tip checks, attestation
+- 2026-11-10 records, README
