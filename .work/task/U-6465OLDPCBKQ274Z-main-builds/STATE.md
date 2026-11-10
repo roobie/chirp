@@ -56,3 +56,4 @@ Owner: review, set github-pages environment rules, push
 - 2026-11-10 self-update: --force takes the same version, --output any verified build
 - 2026-11-10 self-update: --channel main trusts a key of its own
 - 2026-11-10 site: the latest tree and the Main build page
+- 2026-11-10 pages.yml: main-build job, tip checks, attestation
