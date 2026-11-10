@@ -1,31 +1,35 @@
 # Builds chirp's static site from the repo's own Markdown, so the site cannot
 # drift from the binary's docs or from the dev-proc skill.
-# Usage: chirp site/build.janet [outdir] [--wasm chirp.wasm]
+# Usage: chirp site/build.janet [outdir] [--wasm chirp.wasm] [--main-build tree]
 #   (default out/site; run from the repo root)
 # Needs a chirp that bundles md4c. The build fails on a relative link it cannot
 # resolve and on a commit link to a commit this checkout does not have. The try
 # page runs the chirp.wasm given by --wasm, from the wasm32-wasi target of the
 # same build; without it the page is written but cannot load chirp.
+# --main-build is the tree `tools/release/layout.janet mirror` laid out for a
+# build of main. The site carries it as latest/ and links its files from a page.
 (import md4c)
 (import spork/sh)
 
 (def- repo-url "https://github.com/roobie/chirp")
 (defn- die [& msg] (eprint "site: " ;msg) (os/exit 1))
 
-(def- [out-dir wasm]
+(def- usage "usage: chirp site/build.janet [outdir] [--wasm chirp.wasm] [--main-build tree]")
+
+(def- [out-dir wasm main-tree]
   (do
     (var out nil)
-    (var wasm nil)
+    (def flags @{})
     (var i 1)
     (def args (dyn :args))
     (while (< i (length args))
       (def a (args i))
       (cond
-        (= a "--wasm") (do (set wasm (get args (+ i 1))) (+= i 2))
+        (has-value? ["--wasm" "--main-build"] a)
+        (do (put flags a (or (get args (+ i 1)) (die a " needs a value"))) (+= i 2))
         (and (nil? out) (not (string/has-prefix? "-" a))) (do (set out a) (++ i))
-        (die "usage: chirp site/build.janet [outdir] [--wasm chirp.wasm]")))
-    (when (and (has-value? args "--wasm") (nil? wasm)) (die "--wasm needs a file"))
-    [(or out "out/site") wasm]))
+        (die usage)))
+    [(or out "out/site") (flags "--wasm") (flags "--main-build")]))
 
 (defn- git [& args] (string/trim (sh/exec-slurp "git" ;args)))
 
@@ -71,10 +75,41 @@
                          (def [path text] ((p :sources) 0))
                          (string "- [" (first-heading text) "](../" path ")\n")))]]})
 
+# The main build's page, from site/main-build.md and the files of the tree.
+# The tree holds one release-shaped directory, download/v<version>.
+(def- main-version
+  (when main-tree
+    (let [dirs (os/dir (string main-tree "/download"))]
+      (unless (= 1 (length dirs))
+        (die main-tree "/download must hold exactly one v<version> directory"))
+      (string/slice (first dirs) 1))))
+
+# [name site-path] of each file in the main build, sorted by name.
+(def- main-files
+  (if main-tree
+    (let [dir (string "download/v" main-version)]
+      (seq [name :in (sorted (os/dir (string main-tree "/" dir)))]
+        [name (string "latest/" dir "/" name)]))
+    @[]))
+
+(when main-tree
+  (array/push pages
+    {:url "latest/index.html" :nav "Main build"
+     :sources [["site/main-build.md"
+                (->> (slurp "site/main-build.md")
+                     (string/replace-all "@VERSION@" main-version)
+                     (string/replace-all "@COMMIT@" sha)
+                     (string/replace-all "@SHORT@" (string/slice sha 0 7))
+                     (string/replace-all "@FILES@"
+                       (string/join (map (fn [[name path]] (string "- [`" name "`](" path ")")) main-files)
+                                    "\n")))]]}))
+
 # A source path maps to the page that renders it. The files the build writes
 # for the try page are linked as if they were in site/.
 (def- page-of @{"site/NOTICES-wasm.txt" "NOTICES-wasm.txt"})
 (each p pages (each [path] (p :sources) (put page-of path (p :url))))
+# The main build's files are linked as if they were in site/.
+(each [_ path] main-files (put page-of (string "site/" path) path))
 
 (defn- normalize [path]
   (def out @[])
@@ -194,5 +229,9 @@
     (spit (string out-dir "/chirp.wasm") (slurp wasm))
     (spit (string out-dir "/NOTICES-wasm.txt") (slurp (string (dirname wasm) "NOTICES.txt"))))
   (eprint "site: no --wasm, so the try page cannot load chirp"))
+# The tree is copied as it is, so the site serves what the layout script signed.
+(when main-tree
+  (each entry (os/dir main-tree)
+    (sh/copy (string main-tree "/" entry) (string out-dir "/latest/" entry))))
 (spit (string out-dir "/.nojekyll") "")
 (print "site: " (length pages) " pages in " out-dir)
