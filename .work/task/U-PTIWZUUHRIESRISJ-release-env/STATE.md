@@ -7,7 +7,7 @@ owner:
 created: 2026-11-10
 success_criteria:
   - The job that signs a release declares environment release, and only the signing step has the secret
-  - A manual run never touches the release environment or the real key, and proves layout, signing, verify and attestation with a throwaway key
+  - A manual run, on a branch or a tag, never touches the release environment or the real key, and proves layout, signing, verify and attestation with a throwaway key
   - A tag run signs with the real secret and verifies against src/chirp/release-key.pem before publish, as before
 ---
 
@@ -17,11 +17,11 @@ success_criteria:
 The release signing key is a repository secret that a workflow on any branch can read; it moves into a release environment that only v* tags can use, and the manual dry run stops using the real key.
 
 ## Scope
-In: TODO
-Out: TODO
+In: .github/workflows/release.yml, `--throwaway` in tools/release/layout.janet, the records that name the release key.
+Out: creating the environment and its rules, deleting the repository secret (the owner's), a tag ruleset, rotating the key.
 
 ## Context & constraints
-TODO: what is already true, what must stay true, resources available.
+The owner has created the `release` environment (v* tag policy, required reviewer, the key stored in it). A tag run must stay the same in output and sign with the same key; `publish` must stay apart from the key. The pages workflow's per-step env pattern for a key is the model.
 
 ### Origin
 Promoted from backlog: B-K2J3HVGSJFJM4IFC Keep the release signing key in an environment limited to v* tags
@@ -34,15 +34,16 @@ TODO
 
 
 ## Now
-Done: workflow, decision and amendments committed; waiting for merge
+Review fixes committed; waiting for merge
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
-- tools/release/layout.test.janet: ok with chirp 0.10.0. The workflow's two shell steps, extracted and run on fake artifacts: a manual run signs with an openssl throwaway key and verifies against its public half; a tag run signs with a key standing in for the secret and verifies against a pem standing in for release-key.pem; a tag run with a different key fails with 'does not verify against src/chirp/release-key.pem' before publish. The workflow parses as YAML.
+- tools/release/layout.test.janet: ok with chirp 0.10.0. The workflow's layout step, extracted and run on fake artifacts: a manual run signs with --throwaway; a tag run signs with a key standing in for the secret and verifies against a pem standing in for release-key.pem; with a different key it fails with 'does not verify against src/chirp/release-key.pem' before publish. The workflow parses as YAML.
 - Not provable here: that a job with an empty environment expression runs without an environment; the first manual run on GitHub shows it.
+- Review fixes: a manual run on a tag is a dry run (event_name decides; sim dispatch-on-tag signs with --throwaway and names the artifact dry-run-*). layout.test.janet covers --throwaway, including no private key in the output and no mixing with --pub. sim.sh: dry, dispatch-on-tag, tag ok; tag with a wrong secret fails verifying against release-key.pem.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -52,7 +53,7 @@ Done: workflow, decision and amendments committed; waiting for merge
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
 - [x] decision: D-S23WKXKSMWMABF53 records why v* tags only and why dry runs use a throwaway key
-- [ ] backlog: delete the repository secret CHIRP_RELEASE_SIGNING_KEY after the first manual run and the first tag run pass
+- [ ] backlog: the first manual dispatch on a branch proves the empty environment expression, before the first tag; the first tag proves the secret and the approval; then the owner deletes the repository secret CHIRP_RELEASE_SIGNING_KEY
 
 ## Log
 - 2026-11-10 initialized

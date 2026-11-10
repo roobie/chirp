@@ -1,8 +1,10 @@
 name: release
 
 on:
-  # A tag publishes. A manual run does everything except create the release,
-  # so the packaging and attestation can be proven before a real tag.
+  # A push of a tag publishes. A manual run, even on a tag, does everything
+  # except create the release, so the packaging and attestation can be proven
+  # before a real tag. Every "is this a release" check below is on the event,
+  # because a manual run on a tag also has a tag ref.
   push:
     tags: ['v*']
   workflow_dispatch:
@@ -18,11 +20,12 @@ jobs:
   package:
     needs: ci
     runs-on: ubuntu-24.04
-    # The release key lives in the release environment, which allows only v*
-    # tags, so a manual run cannot have it and takes no environment at all.
-    environment: ${{ github.ref_type == 'tag' && 'release' || '' }}
+    # The release key lives in the release environment, which a manual run
+    # must not enter, so it takes no environment at all.
+    environment: ${{ github.event_name == 'push' && 'release' || '' }}
     outputs:
       version: ${{ steps.layout.outputs.version }}
+      artifact: ${{ steps.layout.outputs.artifact }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,43 +35,35 @@ jobs:
         with:
           pattern: chirp-*-a
           path: artifacts
-      # A tag signs with the release key and checks against the key the shipped
-      # binaries trust. A manual run proves the same code paths with a key made
-      # here and thrown away: it never has the real one.
-      - name: Choose the signing key
-        run: |
-          if [ "$REF_TYPE" = tag ]; then
-            { echo KEY_ENV=CHIRP_RELEASE_SIGNING_KEY
-              echo PUBLIC_KEY=src/chirp/release-key.pem; } >> "$GITHUB_ENV"
-          else
-            openssl genpkey -algorithm ed25519 -out "$RUNNER_TEMP/throwaway.key"
-            openssl pkey -in "$RUNNER_TEMP/throwaway.key" -pubout -out "$RUNNER_TEMP/throwaway.pub"
-            { echo KEY_ENV=CHIRP_THROWAWAY_SIGNING_KEY
-              echo PUBLIC_KEY="$RUNNER_TEMP/throwaway.pub"
-              echo "CHIRP_THROWAWAY_SIGNING_KEY<<END_OF_KEY"
-              cat "$RUNNER_TEMP/throwaway.key"
-              echo END_OF_KEY; } >> "$GITHUB_ENV"
-          fi
-        env:
-          REF_TYPE: ${{ github.ref_type }}
       # The version comes from the binary being shipped, not from a file.
       # chirp --self-update trusts the signature and nothing else in the release.
       # The shipped linux-x64 binary does the work, which also keeps the signing
-      # code exercised by every release.
+      # code exercised by every release. A release signs with the key in the
+      # environment and checks against the key the shipped binaries trust; a
+      # manual run never has that key and signs with one made for the run.
       - name: Lay out and sign the release
         id: layout
         env:
-          REF_TYPE: ${{ github.ref_type }}
+          RELEASE: ${{ github.event_name == 'push' }}
           REF_NAME: ${{ github.ref_name }}
-          # Only this step has the secret, and only on a tag.
-          CHIRP_RELEASE_SIGNING_KEY: ${{ github.ref_type == 'tag' && secrets.CHIRP_RELEASE_SIGNING_KEY || '' }}
+          # Only this step has the secret, and only for a release.
+          CHIRP_RELEASE_SIGNING_KEY: ${{ github.event_name == 'push' && secrets.CHIRP_RELEASE_SIGNING_KEY || '' }}
         run: |
           chmod +x artifacts/chirp-linux-x64-a/chirp
           tag=
-          [ "$REF_TYPE" = tag ] && tag=$REF_NAME
+          signing=--throwaway
+          if [ "$RELEASE" = true ]; then
+            tag=$REF_NAME
+            signing="--pub src/chirp/release-key.pem --key-env CHIRP_RELEASE_SIGNING_KEY"
+          fi
+          # shellcheck disable=SC2086
           version=$(artifacts/chirp-linux-x64-a/chirp tools/release/layout.janet release \
-            artifacts out/release --pub "$PUBLIC_KEY" --key-env "$KEY_ENV" ${tag:+--tag "$tag"})
+            artifacts out/release $signing ${tag:+--tag "$tag"})
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          # A dry run's files are not a release's, and are named so.
+          prefix=dry-run
+          [ "$RELEASE" = true ] && prefix=release
+          echo "artifact=$prefix-$version" >> "$GITHUB_OUTPUT"
           cat out/release/SHA256SUMS
 
           notes=$(< .github/release-notes.md)
@@ -78,7 +73,7 @@ jobs:
           # -dev version with no section of its own, so it shows Unreleased.
           slug=changelog/${version//./-}
           if ! section=$(artifacts/chirp-linux-x64-a/chirp --help read "$slug" 2>/dev/null); then
-            if [ "$REF_TYPE" = tag ]; then
+            if [ "$RELEASE" = true ]; then
               echo "::error::CHANGELOG.md has no '## $version' section"
               exit 1
             fi
@@ -88,7 +83,7 @@ jobs:
           printf '\n## Changes\n%s\n' "$(tail -n +2 <<< "$section")" >> out/notes.md
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: release-${{ steps.layout.outputs.version }}
+          name: ${{ steps.layout.outputs.artifact }}
           path: out/
           if-no-files-found: error
           retention-days: 7
@@ -104,14 +99,14 @@ jobs:
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: release-${{ needs.package.outputs.version }}
+          name: ${{ needs.package.outputs.artifact }}
           path: dl
       # Also on a manual run, so the dry run proves attestation works.
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dl/release/*
       - name: Create the release
-        if: github.ref_type == 'tag'
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -132,7 +127,7 @@ jobs:
   # A version with no milestone has nothing to close.
   close-milestone:
     needs: [package, publish]
-    if: github.ref_type == 'tag'
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     permissions:
       issues: write
