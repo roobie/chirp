@@ -4,6 +4,16 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Added
+
+- `dev-proc` exits 4 when a unit or record a command names, by id or label, is not active: the subject of `status`, `note`, `phase`, `rescope` and `close`, and `--parent`, `--from`, `--supersedes` and `close --decision`. A program that shows a unit can tell one closed meanwhile from dev-proc failing. Nothing is printed on stdout and the message on stderr is unchanged. A malformed id or label, an ambiguous label (a label two units share now asks for an id) and a parent recorded in a unit's own STATE.md that is no longer active still exit 2; `dig` and the commit-msg hook are unchanged.
+- `dev-proc` exits 3 when a command that needs a work dir finds none, in a git repo or outside one. Every other failure keeps exit 1 or 2, so a program running `dev-proc status --json` over many directories tells "no dev-proc work here" from "dev-proc failed" by the code instead of the message. Nothing is printed on stdout in that case, and the message on stderr is unchanged. `dev-proc help` lists the exit codes.
+
+### Changed
+
+- An unknown unit or record named to `dev-proc` used to exit 2 and now exits 4. `close --scrap --decision` with an unknown decision now fails on it before the other gate problems, and with a record that is not a decision it says so.
+- `dev-proc check` and `dev-proc find` in a git repo with no work dir now exit 3, with the message "no work dir … found in this repo", where they printed `ok (0 roots)` or an empty result and exited 0. The commit hooks (`check --staged --hook`, `check-msg`) still exit 0 there, silently, so a repo that does not use dev-proc is never blocked. A `dev-proc.root` that does not exist is still an error, exit 2.
+
 ## 0.11.0
 
 Released 2026-11-10.
