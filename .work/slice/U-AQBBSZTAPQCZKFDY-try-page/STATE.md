@@ -46,13 +46,15 @@ Depends on or pairs with B-GUXSNK7MDKPJWBUW (upstream janet wasi fixes, cryptora
 
 
 ## Now
-Wire CI: wasm32-wasi in the build matrix, a wasm smoke job, pages.yml passing --wasm and running the page check, release.yml skipping the wasm; then site/check.janet rules.
+CI wired (build matrix, wasm job, pages, release skip); decisions accepted and D-3BYAW4P2KZ2INYOD recorded. Next: commit, push main, watch CI.
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- Local: wasm smoke 14/14 incl. help byte-equal to native; site build + check.janet ok (16 pages), and check fails when wasi.mjs is removed; page.mjs 9/9 in headless Chrome.
+- linux-x64 NOTICES unchanged (0c154cd3...). The linux-x64 binary changed only by site/style.css, which the image embeds for --help serve (strings diff shows only the new try-page rules).
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -66,3 +68,4 @@ Wire CI: wasm32-wasi in the build matrix, a wasm smoke job, pages.yml passing --
 - 2026-11-10 initialized
 - 2026-11-10 phase initialize → execute
 - 2026-11-10 Page, WASI host and both tests written: site/try.md, try.mjs, try-worker.mjs; src/wasm/wasi.mjs replaces node:wasi in run.mjs; test/wasm/smoke.mjs (14 checks incl. byte-equal help vs native) and test/wasm/page.mjs (9 checks via CDP in headless Chrome) pass locally.
+- 2026-11-10 Took in B-7WXYORKRHKWIAOVW (wasm NOTICES): the site now distributes chirp.wasm, so its notices must be right. notices.jdn: :openssl true on jsec and OpenSSL; wasi-libc, its musl, cloudlibc and emmalloc for wasm32-wasi only.

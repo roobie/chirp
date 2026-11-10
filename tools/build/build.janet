@@ -432,6 +432,7 @@
 (spit "bin/NOTICES.txt"
       (string/join
         (seq [n :in notices
-              :when (or (not (n :targets)) (index-of target-name (n :targets)))]
+              :when (and (or (not (n :targets)) (index-of target-name (n :targets)))
+                         (or (not (n :openssl)) tgt-openssl?))]
           (notice-section n))
         ""))

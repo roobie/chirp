@@ -71,8 +71,9 @@
                          (def [path text] ((p :sources) 0))
                          (string "- [" (first-heading text) "](../" path ")\n")))]]})
 
-# A source path maps to the page that renders it.
-(def- page-of @{})
+# A source path maps to the page that renders it. The files the build writes
+# for the try page are linked as if they were in site/.
+(def- page-of @{"site/NOTICES-wasm.txt" "NOTICES-wasm.txt"})
 (each p pages (each [path] (p :sources) (put page-of path (p :url))))
 
 (defn- normalize [path]
@@ -187,8 +188,11 @@
 # The try page's scripts. wasi.mjs is the WASI host the wasm smoke test runs.
 (each f ["site/try.mjs" "site/try-worker.mjs" "src/wasm/wasi.mjs"]
   (spit (string out-dir "/" (last (string/split "/" f))) (slurp f)))
+# chirp.wasm ships with the license notices its build wrote next to it.
 (if wasm
-  (spit (string out-dir "/chirp.wasm") (slurp wasm))
+  (do
+    (spit (string out-dir "/chirp.wasm") (slurp wasm))
+    (spit (string out-dir "/NOTICES-wasm.txt") (slurp (string (dirname wasm) "NOTICES.txt"))))
   (eprint "site: no --wasm, so the try page cannot load chirp"))
 (spit (string out-dir "/.nojekyll") "")
 (print "site: " (length pages) " pages in " out-dir)

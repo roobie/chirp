@@ -96,12 +96,14 @@
     (unless (docs page)
       (load page)
       (when-let [d (docs page)]
-        (each el (lexbor/select d "a[href], link[href]")
-          (when-let [[path] (internal (lexbor/attr el "href") page)
+        (each el (lexbor/select d "a[href], link[href], script[src]")
+          (when-let [[path] (internal (or (lexbor/attr el "href") (lexbor/attr el "src")) page)
                      _ path]
             (if (string/has-suffix? ".html" path)
               (unless (or (docs path) (missing path)) (array/push queue path))
-              (load path))))))))
+              (load path)))))))
+  # The try page's scripts load these; no link reaches them.
+  (each f ["try-worker.mjs" "wasi.mjs" "chirp.wasm"] (load f)))
 
 # The commit in a page's footer, from its link to the commit.
 (defn- footer-commit [d]
@@ -122,6 +124,8 @@
 
 (crawl)
 (when (missing "index.html") (eprint "site check: no index.html at " base) (os/exit 1))
+(each f ["try-worker.mjs" "wasi.mjs" "chirp.wasm"]
+  (when (missing f) (fail f "try page" "missing; the try page loads it")))
 
 # Rules, per page
 
@@ -147,8 +151,8 @@
     (when (seen id) (fail page "ids" "\"" id "\" is used more than once"))
     (put seen id true))
 
-  (each el (lexbor/select d "a[href], link[href]")
-    (def href (lexbor/attr el "href"))
+  (each el (lexbor/select d "a[href], link[href], script[src]")
+    (def href (or (lexbor/attr el "href") (lexbor/attr el "src")))
     (when-let [[path frag] (internal href page)]
       (cond
         (nil? path) (fail page "links" href " leaves the site")

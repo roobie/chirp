@@ -56,11 +56,12 @@
                          :lflags ["-s"]
                          :libs ["-lws2_32" "-lwsock32" "-lmswsock" "-lpsapi"
                                 "-lcrypt32" "-luser32" "-ladvapi32"]}
-           # SPIKE (task wasm-spike): not shipped. A WASI module for a browser
-           # page; Janet's error handling needs wasm exception handling. No
-           # OpenSSL, so no jsec; :skip-natives and the core functions this
-           # janet compiles out are stubbed under their names (:stub-missing)
-           # so the image built on the host loads unchanged.
+           # The site's try page runs this; it is not a release file. A WASI
+           # module whose host is src/wasm/wasi.mjs; Janet's error handling
+           # needs wasm exception handling (D-HA7ATG3IF6P73TOI). No OpenSSL,
+           # so no jsec; :skip-natives and the core functions this janet
+           # compiles out are stubbed under their names (:stub-missing) so the
+           # image built on the host loads unchanged (D-T6TVFVI3SEQKWL7F).
            :wasm32-wasi {:triple "wasm32-wasi"
                          :openssl false
                          :cflags ["-std=gnu99" "-O2" "-mllvm" "-wasm-enable-sjlj" "-mexception-handling"

@@ -28,4 +28,6 @@ The full offline help, as `chirp --help query` and `chirp --help read` give it: 
 
 The page runs `chirp -` with the script as its standard input, once per run, so nothing carries over between runs and nothing is saved. Everything that computes works: Janet, PEGs, JSON, TOML, YAML, Markdown, HTML, regular expressions, gzip, SQLite and the rest. Anything that needs an operating system the browser does not give raises "not available in this build of chirp": files, subprocesses, the network and HTTPS, threads, the event loop and `os/cryptorand`. `os/sleep` blocks the run.
 
+chirp.wasm is chirp's wasm32-wasi build target, built and checked with the release; its [license notices](NOTICES-wasm.txt) differ from the binaries' because it links neither OpenSSL nor a native libc.
+
 <script type="module" src="try.mjs"></script>

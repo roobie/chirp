@@ -55,6 +55,8 @@ jobs:
           for dir in artifacts/chirp-*-a; do
             target=${dir#artifacts/chirp-}
             target=${target%-a}
+            # Published on the site's try page, not as a release file.
+            [ "$target" = wasm32-wasi ] && continue
             if [ -f "$dir/chirp.exe" ]; then
               cp "$dir/chirp.exe" "out/release/chirp-$version-$target.exe"
             else
