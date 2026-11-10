@@ -1052,11 +1052,15 @@
           (defn set-refs [& refs]
             (spit rec (string "---\nstatus: accepted\ndate: 2026-11-10\nread_if:\n  - x\nrefs:\n"
                               (string/join (map |(string "  - " $) refs) "\n") "\n---\n\n# A decision\n")))
+          (spit (string dir "/.git/info/exclude") "built.rs\n")
+          (spit (string dir "/built.rs") "fn foo() {}\n")
           (set-refs "inside.rs#foo" "real.rs#foo")
           (check (= 0 ((run dir "check") :status)) "links inside the repo are fine")
           (each [ref want] [["outside.rs#foo" "lies outside the repo"]
                             ["zero.rs#foo" "lies outside the repo"]
                             ["pipe.rs#foo" "is a fifo, not a file"]
+                            [".git/config#core" "is git-ignored or in the git dir"]
+                            ["built.rs#foo" "is git-ignored or in the git dir"]
                             ["huge.rs#foo" "too large to check the symbol"]]
             (set-refs "real.rs#foo" ref)
             (def c (run dir "check"))
@@ -1099,6 +1103,8 @@
 
 (test "an unreadable file or folder is a problem, not a crash or a missing STATE.md"
   (fn []
+    # root can read anything, so there is nothing to refuse
+    (when (= "0" (string/trim (sh/exec-slurp "id" "-u"))) (break))
     (with-repo
       (fn [dir]
         (new-id dir "task" "locked")
@@ -1121,7 +1127,7 @@
         (def c (run dir "check"))
         (check (string/find "D-AAAAAAAAAAAAAAAA-big.md: not read: larger than 1 MiB" (c :stdout)) (c :stdout))))))
 
-(test "the documents of one root may use only so many bytes between them"
+(test "the documents one command reads may use only so many bytes between them"
   (fn []
     (with-repo
       (fn [dir]
@@ -1129,7 +1135,7 @@
           (big-file (string dir "/.work/decisions/D-AAAAAAAAAAAAA" (string/format "%c%c%c" (+ 65 (div i 26)) (+ 65 (% i 26)) 65) "-b.md")
                     1048000))
         (def c (run dir "check"))
-        (check (string/find "past the 64 MiB a work dir may have read" (c :stdout)) (c :stdout))))))
+        (check (string/find "past the 64 MiB one command may read" (c :stdout)) (c :stdout))))))
 
 (test "dig does not follow a link inside closed/"
   (fn []
@@ -1144,6 +1150,50 @@
           (ok (run dir "close" task))
           (symlink ".." (string root "/closed/loop"))
           (check (string/find "# task/private" ((ok (run dir "dig" task)) :stdout))))))))
+
+(test "new --from keeps the backlog item when the folder cannot be made"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def outside (tmp-dir))
+        (defer (sh/rm outside)
+          (def item (string/trim ((ok (run dir "record" "backlog" "Idea" "--id")) :stdout)))
+          (symlink outside (string dir "/.work/wave"))
+          (def r (run dir "new" "wave" "w" "--from" item "--owner" "BR"))
+          (check (not= 0 (r :status)))
+          (check (string/find ".work/wave: is a symlink" (r :stderr)) (r :stderr))
+          (check (os/stat (record-file dir "backlog" item)) "the item was deleted")
+          (check (empty? (os/dir outside))))))))
+
+(test "record --supersedes writes nothing when closed/ is a link"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def mine (tmp-dir))
+        (def outside (tmp-dir))
+        (defer (do (sh/rm mine) (sh/rm outside))
+          (def root (string mine "/w"))
+          (git-in dir "config" "dev-proc.root" root)
+          (ok (run dir "init"))
+          (def old (string/trim ((ok (run dir "record" "decision" "Old call" "--read-if" "x" "--id")) :stdout)))
+          (symlink outside (string root "/closed"))
+          (def r (run dir "record" "decision" "New call" "--read-if" "x" "--supersedes" old))
+          (check (not= 0 (r :status)))
+          (check (= 1 (length (os/dir (string root "/decisions")))) "a record was written or lost")
+          (check (empty? (os/dir outside))))))))
+
+(test "the byte budget is one per command, not one per root"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (os/mkdir (string dir "/sub"))
+        (ok (run (string dir "/sub") "init"))
+        (os/mkdir (string dir "/sub/.work/decisions"))
+        (each work [".work" "sub/.work"]
+          (for i 0 34
+            (big-file (string dir "/" work "/decisions/D-AAAAAAAAAAAAAAA" (string/format "%c" (+ 65 i)) "-b.md") 1048000)))
+        (def c (run dir "check"))
+        (check (string/find "past the 64 MiB one command may read" (c :stdout)) (c :stdout))))))
 
 (when (> failures 0)
   (eprint failures " test(s) failed")

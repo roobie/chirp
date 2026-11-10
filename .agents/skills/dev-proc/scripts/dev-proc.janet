@@ -122,14 +122,13 @@
 
 # Work dirs arrive in checkouts that may not be trusted, so what dev-proc reads from one is bounded.
 # Both limits are constants on purpose: a setting in the checkout would let the checkout lift them.
-(def MAX-DOC-BYTES (* 1024 1024)) # one document
-(def MAX-ROOT-BYTES (* 64 1024 1024)) # all the documents of one root
-
 (def- MIB (* 1024 1024))
-(def NO-FILE "does not exist")
-(def LINK "is a symlink")
-(def TOO-LARGE (string "larger than " (div MAX-DOC-BYTES MIB) " MiB"))
-(def OVER-BUDGET (string "past the " (div MAX-ROOT-BYTES MIB) " MiB a work dir may have read"))
+(def- MAX-DOC-BYTES MIB) # one document
+(def- MAX-RUN-BYTES (* 64 MIB)) # all the documents one command reads
+(def- NO-FILE "does not exist")
+(def- LINK "is a symlink")
+(def- TOO-LARGE (string "larger than " (div MAX-DOC-BYTES MIB) " MiB"))
+(def- OVER-BUDGET (string "past the " (div MAX-RUN-BYTES MIB) " MiB one command may read"))
 
 # The sorted names in a directory, or nil when it cannot be listed.
 (defn- listing [d]
@@ -151,7 +150,7 @@
 
 # Reads a document of a work dir, or raises "not read: <why>", for a loader to report as a problem.
 # The read is capped as well, for a file that grows after it was looked at. A `budget` (@{:left bytes})
-# is what the documents of one root may still use.
+# is what the documents one command reads may still use.
 (defn- read-doc [p &opt budget]
   (when-let [why (refusal p :file (when budget (budget :left)))] (error (string "not read: " why)))
   (def f (let [[ok f] (protect (file/open p :rb))] (when ok f)))
@@ -169,7 +168,7 @@
 
 # Creates the directories `segs` below `base`, or enters those that exist, and returns the path.
 # A component that is a link is never written through: it would put files where a checkout says.
-(defn- ensure-dir [base & segs]
+(defn- ensure-dir [top base & segs]
   (var dir base)
   (each seg segs
     (set dir (pjoin dir seg))
@@ -177,7 +176,7 @@
     (cond
       (nil? why) nil
       (= why NO-FILE) (os/mkdir dir)
-      (die (string dir ": " why ", so nothing is written there"))))
+      (die (string (shown top dir) ": " why ", so nothing is written there"))))
   dir)
 
 # ---------- git
@@ -492,13 +491,12 @@
 # repo or is git-ignored, and the commit hooks and trailers never ask for it or name it.
 # What the root itself has wrong (a link or an unreadable folder where a directory belongs, a work dir
 # that is refused) is in its :problems, for check and status to report: it belongs to no unit or record.
-# A refused root (:refused) is not read at all.
-(defn- load-root [desc]
+# A refused root (:refused) is not read at all. `budget` is shared by all the roots a command loads.
+(defn- load-root [desc budget]
   (def dir (desc :dir))
   (def units @[])
   (def records @[])
   (def problems (if (desc :refused) @[(desc :refused)] @[]))
-  (def budget @{:left MAX-ROOT-BYTES})
   (def root @{:dir dir :base (desc :base) :oob (desc :oob) :units units :records records :problems problems})
   # The names in a directory to descend into, or nil; a link is reported and left alone.
   (defn enter [path what]
@@ -510,8 +508,8 @@
     (each type TYPES
       (when-let [entries (enter (pjoin dir type) type)]
         (each entry entries
-          (when-let [_ (enter (pjoin dir type entry) (string type "/" entry))]
-            (def udir (pjoin dir type entry))
+          (def udir (pjoin dir type entry))
+          (when-let [_ (enter udir (string type "/" entry))]
             (def state-path (pjoin udir "STATE.md"))
             (def m (peg/match unit-dir-peg entry))
             (def name (if m (m 1) entry))
@@ -596,8 +594,8 @@
 # the type and record dirs, so nothing in here is seen by status, find or check.
 (def CLOSED "closed")
 
-(defn- archive [root path & sub]
-  (def dest (pjoin (ensure-dir (root :dir) CLOSED ;sub) (basename path)))
+(defn- archive [ctx root path & sub]
+  (def dest (pjoin (ensure-dir (ctx :top) (root :dir) CLOSED ;sub) (basename path)))
   (when (exists? dest) (die (string dest " already exists")))
   (os/rename path dest)
   dest)
@@ -682,9 +680,10 @@
                 (sort (filter |(and (present? $) (not= $ configured)) (keys roots)))))
   # A directory whose .dev-proc.toml cannot be used has no work dir to read; that is its problem to
   # report, not one to stop the others for.
-  (eachp [d res] work-dirs
-    (unless (res 0)
-      (array/push out {:dir (pjoin d DEFAULT-WORK) :base d :oob false :refused (error-text (res 1))})))
+  (each d (sort (keys work-dirs))
+    (def [ok e] (work-dirs d))
+    (unless ok
+      (array/push out {:dir (pjoin d DEFAULT-WORK) :base d :oob false :refused (error-text e)})))
   (when (and configured (exists? configured))
     (array/push out (root-desc configured top configured :named)))
   out)
@@ -873,7 +872,7 @@
   (def parent (parent-of u))
   (def owner (list-of (fm/fm-get front "owner")))
   (def criteria (list-of (fm/fm-get front "success_criteria")))
-  (def files (filter |(exists? (pjoin (u :dir) $)) ["DESIGN.md" "PLAN.md" "STATE.md"]))
+  (def files (filter |(not (refusal (pjoin (u :dir) $) :file)) ["DESIGN.md" "PLAN.md" "STATE.md"]))
   (def children (map |(string (show $) " [" (jstr (or (fm/fm-get ($ :fm) "phase") "?")) "]")
                      (children-of root (u :id))))
   (def gate (if next-phase (gate-problems root u next-phase) @[]))
@@ -1033,8 +1032,9 @@
   (def designs (seq [f :in (filter |(not= $ "") (string/split "," (or (args "with") "")))]
                  (or (get {"design" "DESIGN.md" "plan" "PLAN.md"} (fm/jtrim f)) (die "--with takes design,plan"))))
 
+  # The folder is made first: it can fail, and the backlog item must outlive that.
+  (def dir (ensure-dir (ctx :top) (root :dir) type (string id "-" name)))
   (when backlog (sh/rm (backlog :file)))
-  (def dir (ensure-dir (root :dir) type (string id "-" name)))
   (spit (pjoin dir "STATE.md") (dump-doc front state))
   (def created @["STATE.md"])
   (each file designs
@@ -1044,7 +1044,7 @@
   # --execute runs the gate of `phase <unit> execute`; the unit exists either way.
   (def gate
     (when (args "execute")
-      (def fresh (load-root root))
+      (def fresh (load-root root (ctx :budget)))
       (protect (move-phase fresh (find-unit fresh id) "execute" false))))
   (report args id
           (jobj "id" id "label" lbl "type" type "name" name "path" (shown (ctx :top) dir)
@@ -1100,7 +1100,7 @@
   # The id stays put, so children's parent refs and past Work: trailers remain valid.
   (def new-dir (pjoin (root :dir) type (string (u :id) "-" name)))
   (unless (= new-dir (u :dir))
-    (ensure-dir (root :dir) type)
+    (ensure-dir (ctx :top) (root :dir) type)
     (os/rename (u :dir) new-dir))
   (def state-path (pjoin new-dir "STATE.md"))
   (def body (u :body))
@@ -1132,7 +1132,7 @@
     (die (string "cannot close " (show u) ":\n  ✗ " (string/join problems "\n  ✗ "))))
   (unless (history-top (root :dir))
     # Nothing would keep a deleted copy, so it is kept here, and there is no commit to name it in.
-    (def dest (archive root (u :dir) (u :type)))
+    (def dest (archive ctx root (u :dir) (u :type)))
     (print "moved " (show u) " to " (shown (ctx :top) dest) "/ — the work dir has no git history to keep it")
     (break))
   (sh/rm (u :dir))
@@ -1167,10 +1167,12 @@
       "learning" @[@["date" (today)] @["read_if" read-if] @["refs" refs]]
       "backlog" @[@["created" (today)]]))
   (def text (apply-body ctx args (template (string kind ".md") {"id" id "title" title "date" (today)}) []))
-  (ensure-dir (root :dir) (spec :dir))
-  (spit file (dump-doc front text))
   (def kept (unless (or (empty? old) (history-top (root :dir))) true))
-  (each r old (if kept (archive root (r :file) (spec :dir)) (os/rm (r :file))))
+  # Both folders are made before anything is written: either can fail.
+  (ensure-dir (ctx :top) (root :dir) (spec :dir))
+  (when kept (ensure-dir (ctx :top) (root :dir) CLOSED (spec :dir)))
+  (spit file (dump-doc front text))
+  (each r old (if kept (archive ctx root (r :file) (spec :dir)) (os/rm (r :file))))
   (def ids (string/join (map |($ :id) old) ", "))
   (report args id
           (jobj "id" id "kind" kind "path" (shown (ctx :top) file)
@@ -1221,6 +1223,8 @@
     (= (st :mode) :directory) (string "ref " ref ": symbol given for a directory")
     (not (and real real-top (inside? real-top real)))
     (string "ref " ref ": lies outside the repo, so the symbol is not checked")
+    (or (index-of ".git" (string/split "/" (rel real-top real))) (ignored? top real))
+    (string "ref " ref ": is git-ignored or in the git dir, so the symbol is not checked")
     (= why TOO-LARGE) (string "ref " ref ": too large to check the symbol")
     why (string "ref " ref ": " why ", so the symbol is not checked")
     (let [[ok text] (protect (read-doc real))]
@@ -1267,7 +1271,7 @@
 (defn- cmd-check [ctx args]
   # The hooks guard what is committed, so they leave out-of-band roots alone.
   (def configured (configured-root ctx))
-  (def roots (filter |(not (and (args "hook") ($ :oob))) (map load-root (all-roots ctx))))
+  (def roots (filter |(not (and (args "hook") ($ :oob))) (map |(load-root $ (ctx :budget)) (all-roots ctx))))
   (def errors @[])
   (def warns @[])
   (each root roots
@@ -1347,7 +1351,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (when (args "backlog") (put kinds "backlog" true))
   (def records
     (seq [d :in (all-roots ctx)
-          r :in ((load-root d) :records)
+          r :in ((load-root d (ctx :budget)) :records)
           :when (and (kinds (r :kind)) (r :id) (r :fm))]
       {:id (r :id) :kind (r :kind) :root (shown (ctx :top) (d :dir))
        :title (let [t (title-of (r :body)) m (peg/match record-title-peg t)]
@@ -1367,7 +1371,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 (defn- cmd-check-msg [ctx args]
   (def file (or (first (args :pos)) (die "usage: check-msg <commit-msg-file>")))
   (def msg (strip-comments (read-file (resolve (ctx :cwd) file))))
-  (def roots (map load-root (all-roots ctx)))
+  (def roots (map |(load-root $ (ctx :budget)) (all-roots ctx)))
   (def active (some |(not (empty? ($ :units))) (touched-roots roots (ctx :top) (staged-files (ctx :top)))))
   (def trailers (work-trailers msg))
   (def out @[])
@@ -1381,7 +1385,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
 
 (defn- cmd-trailers [ctx args]
   (def top (ctx :top))
-  (def roots (map load-root (all-roots ctx)))
+  (def roots (map |(load-root $ (ctx :budget)) (all-roots ctx)))
   (def staged (staged-files top))
   # A unit is named by the directory of any staged file, so a unit deleted by `close` counts too.
   (def found @[])
@@ -1745,7 +1749,7 @@ alone, so uncommitted work is left out (status shows it).`)
   (def loose (unless git-top
                (if (some-str (args "root")) (resolve cwd (args "root")) (nearest-root cwd nil))))
   (def top (or git-top (if loose (dirname loose) cwd)))
-  (def ctx @{:cwd cwd :top top :git (not (nil? git-top)) :exit 0})
+  (def ctx @{:cwd cwd :top top :git (not (nil? git-top)) :exit 0 :budget @{:left MAX-RUN-BYTES}})
   (put ctx :root-desc
        (fn []
          (def configured (configured-root ctx))
@@ -1769,7 +1773,7 @@ alone, so uncommitted work is left out (status shows it).`)
          (def desc (root-desc dir top configured origin))
          (when (desc :refused) (die (string (shown top dir) ": " (desc :refused))))
          desc))
-  (put ctx :root (fn [] (load-root ((ctx :root-desc)))))
+  (put ctx :root (fn [] (load-root ((ctx :root-desc)) (ctx :budget))))
   (f ctx args)
   (ctx :exit))
 

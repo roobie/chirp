@@ -33,8 +33,8 @@ Review fixes done; awaiting re-review.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
-- dev-proc, find, frontmatter tests pass; new tests cover symlinked STATE.md and record, symlinked unit/type/record dirs, oversize (cap+1 refused, cap accepted), fifo, .work leading outside refused, explicit --root/DEV_PROC_ROOT/dev-proc.root accepted, in-repo .work link accepted. D-JYZH36C56HAGEIHI records the design.
-- Review fixes: refs bounded and confined to the repo; one refusal check behind read, write and descent; ensure-dir for writes below the root; linked team work dirs, dangling links and .dev-proc.toml failures refused as root problems; per-root 64 MiB budget; run-with has a deadline. New tests per rule; dev-proc, find, frontmatter, skillcheck and leakcheck pass.
+- dev-proc, find, frontmatter tests pass; new tests cover symlinked STATE.md and record, symlinked unit/type/record dirs, oversize (cap+1 refused, cap accepted), fifo, .work leading outside refused, explicit --root/DEV_PROC_ROOT/dev-proc.root accepted, a .work link refused even inside the repo (see the review fixes below). D-JYZH36C56HAGEIHI records the design.
+- Review fixes: refs bounded and confined to the repo; one refusal check behind read, write and descent; ensure-dir for writes below the root; linked team work dirs, dangling links and .dev-proc.toml failures refused as root problems; one 64 MiB budget per command; refs kept off git-ignored and git-dir files; new and record check every folder before touching a file; run-with has a deadline. New tests per rule; dev-proc, find, frontmatter, skillcheck and leakcheck pass.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -47,3 +47,4 @@ Review fixes done; awaiting re-review.
 ## Log
 - 2026-11-10 initialized
 - 2026-11-10 docs, changelog and decision brought in line with the review fixes
+- 2026-11-10 second review: new/record order, per-command budget, ref confinement, docs
