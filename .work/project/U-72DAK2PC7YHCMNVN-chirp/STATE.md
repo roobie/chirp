@@ -26,13 +26,13 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-DGT7DONSVJESO5FV (superseding D-B2RTYH6CNDO6SRF5), D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.10.0 is published (2026-11-09) and main carries 0.11.0-dev. 0.10.0 makes bundled functionality findable (tasks, modules and surprises help topics, short-name import hint, tarray/new docs) and keeps jsec's error buffers per thread on windows; close-milestone closed #4, #6, #8 and #9.
+0.11.0 is published (2026-11-10) and main carries 0.12.0-dev. 0.11.0 holds the richer dev-proc status --json, the site's try page running chirp.wasm, signed builds of main installable with --self-update --channel main, and --force/--output for same-version builds; it is the first release signed in the release environment behind the owner's approval. close-milestone closed nothing (no 0.11.0 milestone).
 
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
 - BR files the spork tarray/new docs and view-offset issue; the draft is in B-RFIP6MFEVGQNJ46S
-- Candidate for 0.11: bundle a CSV reader and writer (B-3U2LXKLBUDLJGUOO)
+- Candidate for 0.12: bundle a CSV reader and writer (B-3U2LXKLBUDLJGUOO)
 
 ## Evidence
 - Os-trust-stores (U-OWEKBTPLIF7KEK7U): run 41942352002 builds all four targets twice with matching sha256; every smoke passes, macOS https-get example.com from 153 keychain roots and windows from 417 store roots with no SSL_CERT_FILE; a start without TLS takes 14 ms on both.
@@ -63,6 +63,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Release 0.9.0: https://github.com/roobie/chirp/releases/tag/v0.9.0 (run 42465115915, e2e4785) ships the four binaries, notices, SHA256SUMS and SHA256SUMS.sig, each binary with one provenance attestation; the downloaded linux-x64 binary matches SHA256SUMS and reports Janet 1.43.0-chirp-e4b50456. pages (run 42466083349) ran after release and the live footer names e2e4785. Self-update from 0.8.0 is unverified: github.com/…/releases/download returned HTTP 504 for every release (0.8.0 too) at publish time.
 - Self-update 0.8.0 -> 0.9.0 verified by BR on linux-x64 after the 504s cleared: the updated binary reports chirp 0.9.0 on Janet 1.43.0-chirp-e4b50456.
 - Release 0.10.0: https://github.com/roobie/chirp/releases/tag/v0.10.0 (run 42551719483, 22443b2): not a draft, 10 assets, Latest, notes from the changelog section; milestone 0.10.0 closed with #4 #6 #8 #9 each commented 'Shipped in chirp 0.10.0'; 0.9.0 linux-x64 --self-update -> 0.10.0, which gives the json import hint and lists 54 modules; pages run 42552919062 green, help/tasks.html serves 200.
+- Release 0.11.0: https://github.com/roobie/chirp/releases/tag/v0.11.0 (run 42887783417, 85f41e0): 10 assets, Latest, notes carry the 0.11.0 section; owner approved the release deployment; 0.10.0 linux-x64 --self-update -> 0.11.0 with sha256 equal to SHA256SUMS; pages run 42892097763 green with no main-build tree, as designed; dry run 42850689842 before the tag.
 
 ## Harvest
 
@@ -140,3 +141,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-10 task main-builds delivered: builds of main on the site, signed, installable with --channel main
 - 2026-11-10 BR confirmed the agents' push token holds neither Deployments: write nor Administration: write (B-7W2ZOVM433NUASIC done)
 - 2026-11-10 cutting 0.11.0: dev-proc status --json detail, the try page, signed builds of main with --self-update --channel main, --force/--output on same-version builds; first release signed in the release environment
+- 2026-11-10 0.11.0 published by BR's tag and approval; release run 42887783417 green, no reruns; main moves to 0.12.0-dev
