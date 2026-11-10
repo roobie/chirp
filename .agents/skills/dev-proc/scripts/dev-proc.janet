@@ -26,6 +26,7 @@
 (def- record-id-peg (peg/compile ~(* (<- (set "DLB")) "-" (16 ,b32) -1)))
 # Unit ids carry no type, so a rescoped unit keeps its id (and its Work: trailer history).
 (def- unit-id-peg (peg/compile ~(* "U-" (16 ,b32) -1)))
+(def- label-peg (peg/compile ~(* (+ ,;TYPES) "/" ,kebab -1)))
 (def- unit-dir-peg (peg/compile ~(* (<- (* "U-" (16 ,b32))) "-" (<- ,kebab) -1)))
 (def- file-id-peg (peg/compile ~(* (<- (* (set "DLB") "-" (16 ,b32))) (+ "-" (* ".md" -1)))))
 # record headings read "# D-… Title"
@@ -493,20 +494,22 @@
 
 # Accepts a unit id (U-…) or, as a convenience, its type/name label.
 (defn- find-unit [root ref]
-  (def hits (filter |(or (= ($ :id) ref) (= ($ :label) ref)) (root :units)))
+  (def by-label (filter |(= ($ :label) ref) (root :units)))
   (def missing (string "no active unit \"" (jstr ref) "\" in " (root :dir)))
   (cond
-    (> (length hits) 1) (die (string "\"" (jstr ref) "\" names " (length hits) " units in " (root :dir) "; use an id"))
-    (first hits) (first hits)
-    (and (string? ref) (or (peg/match unit-id-peg ref) (string/find "/" ref))) (die-not-found missing)
+    (find |(= ($ :id) ref) (root :units)) (find |(= ($ :id) ref) (root :units))
+    (> (length by-label) 1) (die (string "\"" (jstr ref) "\" names " (length by-label) " units in " (root :dir) "; use an id"))
+    (first by-label) (first by-label)
+    (and (string? ref) (or (peg/match unit-id-peg ref) (peg/match label-peg ref))) (die-not-found missing)
     (die missing)))
 
 (defn- show [u] (string (u :id) " " (u :label)))
 
 (defn- find-record [root id]
+  (def hit (when id (find |(= ($ :id) id) (root :records))))
   (def missing (string "no record \"" (jstr id) "\" in " (root :dir)))
   (cond
-    (and id (find |(= ($ :id) id) (root :records))) (find |(= ($ :id) id) (root :records))
+    hit hit
     (and (string? id) (peg/match record-id-peg id)) (die-not-found missing)
     (die missing)))
 
@@ -1015,9 +1018,13 @@
   (def name (or (args "name") (u :name)))
   (unless (index-of type TYPES) (die (string "type must be one of: " (string/join TYPES ", "))))
   (unless (peg/match name-peg name) (die "name must be kebab-case"))
+  # A parent read from the unit's own STATE.md is not one the user named, so its absence is no "not found".
+  (def recorded (parent-of u))
+  (when (and (nil? (args "parent")) recorded (not (find |(= ($ :id) recorded) (root :units))))
+    (die (string "recorded parent " recorded " is no longer active; pass --parent <ref> or --parent none")))
   (def parent (if (= (args "parent") "none")
                 nil
-                (check-parent root type (if (nil? (args "parent")) (parent-of u) (args "parent")))))
+                (check-parent root type (if (nil? (args "parent")) recorded (args "parent")))))
   (each k (children-of root (u :id))
     (when (<= (rank (k :type)) (rank type))
       (die (string "child " (k :label) " would no longer be below a " type "; rescope it first"))))
@@ -1050,13 +1057,12 @@
 (defn- cmd-close [ctx args]
   (def root ((ctx :root)))
   (def u (find-unit root (first (args :pos))))
-  (when (and (args "scrap") (some-str (args "decision"))) (find-record root (args "decision")))
+  (def decision (when (and (args "scrap") (some-str (args "decision"))) (find-record root (args "decision"))))
   (def problems (gate-problems root u "closed"))
   (when (args "scrap")
     (cond
-      (not (some-str (args "decision"))) (array/push problems "scrapping needs --decision D-… recording why")
-      (not (find |(and (= ($ :kind) "decision") (= ($ :id) (args "decision"))) (root :records)))
-      (array/push problems (string "decision " (args "decision") " not found"))))
+      (not decision) (array/push problems "scrapping needs --decision D-… recording why")
+      (not= (decision :kind) "decision") (array/push problems (string (args "decision") " is not a decision"))))
   (unless (empty? problems)
     (die (string "cannot close " (show u) ":\n  ✗ " (string/join problems "\n  ✗ "))))
   (unless (history-top (root :dir))

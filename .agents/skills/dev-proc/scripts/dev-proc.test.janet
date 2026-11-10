@@ -886,6 +886,8 @@
         (each [what args]
               [["status, malformed id" ["status" "U-short"]] ["status, a bare word" ["status" "nothing"]]
                ["note, malformed id" ["note" "U-short" "now" "x"]]
+               ["status, a path" ["status" "foo/bar"]] ["status, ./x/y" ["status" "./x/y"]]
+               ["status, a bad label" ["status" "task/Bad Name"]]
                ["new --parent, malformed" ["new" "task" "child" "--parent" "U-short"]]
                ["record --supersedes, malformed" ["record" "decision" "Newer" "--supersedes" "D-short"]]]
           (exits 2 what ;args))
@@ -893,11 +895,34 @@
         (check (= 0 (os/execute ["cp" "-r" (string dir "/.work/task/" real "-real") (string dir "/.work/task/U-BBBBBBBBBBBBBBBB-real")] :p)))
         (exits 2 "ambiguous label" "status" "task/real")))))
 
+(test "a recorded parent that is no longer active is a failure, exit 2, not a name the user gave"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def parent (new-id dir "slice" "par" "--execute"))
+        (def child (new-id dir "task" "kid" "--parent" parent "--execute"))
+        (sh/rm (string dir "/.work/slice/" parent "-par"))
+        (def r (run dir "rescope" child "--name" "kid2"))
+        (check (= 2 (r :status)) (string "exited " (r :status) ": " (r :stderr)))
+        (check (string/find "recorded parent" (r :stderr)) (r :stderr))
+        (check (= "" (r :stdout)))
+        (check (= 0 ((run dir "rescope" child "--name" "kid2" "--parent" "none") :status)) "--parent none still works")))))
+
+(test "close --scrap --decision names a record that is not a decision: exit 2 with the kind said"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def u (new-id dir "task" "scrapped" "--execute"))
+        (def learning (string/trim ((run dir "record" "learning" "A lesson" "--read-if" "x" "--id") :stdout)))
+        (def r (run dir "close" u "--scrap" "--decision" learning))
+        (check (= 2 (r :status)) (string "exited " (r :status) ": " (r :stderr)))
+        (check (string/find (string learning " is not a decision") (r :stderr)) (r :stderr))))))
+
 (test "failures other than a missing work dir keep their exit codes"
   (fn []
     (with-repo
       (fn [dir]
-                (check (= 0 ((run dir "record" "decision" "Dangling" "--read-if" "x" "--ref" "no/such/path#sym") :status)) "recording the dangling ref")
+        (check (= 0 ((run dir "record" "decision" "Dangling" "--read-if" "x" "--ref" "no/such/path#sym") :status)) "recording the dangling ref")
         (check (= 1 ((run dir "check") :status)) "check finding errors")
         (check (= 2 ((run dir "frobnicate") :status)) "unknown command")
         (check (= 2 ((run dir "note" "x") :status)) "bad arguments")
