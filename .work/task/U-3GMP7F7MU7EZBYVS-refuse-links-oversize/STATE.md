@@ -49,3 +49,4 @@ Review fixes done; awaiting re-review.
 - 2026-11-10 docs, changelog and decision brought in line with the review fixes
 - 2026-11-10 second review: new/record order, per-command budget, ref confinement, docs
 - 2026-11-10 docs say per-command budget and what applies outside git
+- 2026-11-10 rebased onto 0.11.0; changelog entries moved under Unreleased

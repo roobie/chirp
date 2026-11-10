@@ -2,6 +2,12 @@
 
 What changed for people who use chirp, newest first; the binary carries this file so it can be read offline.
 
+## Unreleased
+
+### Changed
+
+- dev-proc no longer trusts what a checkout's work dir links to or holds, so it can be pointed at checkouts you have not vetted. A unit's `STATE.md`, a record, or a directory it descends into (`task/`, a unit folder, `backlog/`, `decisions/`, `learnings/`, `closed/`) that is a symlink is not followed, and `new`, `record`, `rescope` and `close` create nothing through one. A document over 1 MiB, or one that is a fifo, device or unreadable, is not read, and the documents one command reads share a 64 MiB budget. Each is reported as a problem by `check`, `status`, and the `problems` field of `status --json` (which now also has a top-level `problems` array for the root), instead of its target appearing as a unit or record. A ref's symbol is only looked up in a regular file under 1 MiB that really lies inside the repo (links that stay inside it are fine). A team work dir found by searching upward that is itself a symlink or leads outside the repo, and a `.dev-proc.toml` that is a link or names `.git`, are refused: a command on that root stops with an error, and `check` and `find` report a problem and go on with the other roots. `--root`, `DEV_PROC_ROOT` and `dev-proc.root` are your own choice and still work, and so does a plain git-ignored work dir. Outside a git repo there is no repo to keep a work dir inside, so a work dir that is a link or leads elsewhere is used as before; every other refusal and limit applies, with refs kept inside the work dir's parent. The limits are fixed and cannot be raised from the checkout. Commands that change a unit refuse one whose `STATE.md` was not read, before touching anything.
+
 ## 0.11.0
 
 Released 2026-11-10.
@@ -16,10 +22,6 @@ Released 2026-11-10.
 ### Changed
 
 - `chirp --self-update --force` now installs a signed build of the same version as the running chirp, and `--output` saves a signed build whether or not it is newer. `--force` still refuses an older build, with a message, so it cannot downgrade chirp. Without either flag an older or equal build is left alone, and the signature and checksum checks are unchanged.
-
-### Changed
-
-- dev-proc no longer trusts what a checkout's work dir links to or holds, so it can be pointed at checkouts you have not vetted. A unit's `STATE.md`, a record, or a directory it descends into (`task/`, a unit folder, `backlog/`, `decisions/`, `learnings/`, `closed/`) that is a symlink is not followed, and `new`, `record`, `rescope` and `close` create nothing through one. A document over 1 MiB, or one that is a fifo, device or unreadable, is not read, and the documents one command reads share a 64 MiB budget. Each is reported as a problem by `check`, `status`, and the `problems` field of `status --json` (which now also has a top-level `problems` array for the root), instead of its target appearing as a unit or record. A ref's symbol is only looked up in a regular file under 1 MiB that really lies inside the repo (links that stay inside it are fine). A team work dir found by searching upward that is itself a symlink or leads outside the repo, and a `.dev-proc.toml` that is a link or names `.git`, are refused: a command on that root stops with an error, and `check` and `find` report a problem and go on with the other roots. `--root`, `DEV_PROC_ROOT` and `dev-proc.root` are your own choice and still work, and so does a plain git-ignored work dir. Outside a git repo there is no repo to keep a work dir inside, so a work dir that is a link or leads elsewhere is used as before; every other refusal and limit applies, with refs kept inside the work dir's parent. The limits are fixed and cannot be raised from the checkout. Commands that change a unit refuse one whose `STATE.md` was not read, before touching anything.
 
 ## 0.10.0
 
