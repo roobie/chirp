@@ -49,3 +49,15 @@ ul.results { list-style: none; padding: 0; }
 ul.results li { margin: .8rem 0; }
 ul.results small { color: var(--muted); }
 .error { color: var(--accent); }
+form.try textarea {
+  display: block; width: 100%; min-height: 20rem; resize: vertical; padding: .8rem 1rem; tab-size: 2;
+  white-space: pre; overflow-wrap: normal; overflow-x: auto;
+  font: .9em/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--fg); background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px;
+}
+form.try .controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .6rem 0; }
+form.try button { font: inherit; padding: .4rem .9rem; color: var(--fg); background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; }
+form.try button[type=submit] { border-color: var(--accent); }
+form button:disabled { opacity: .5; cursor: default; }
+#status { color: var(--muted); font-size: .9rem; }
+pre.output { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 32rem; overflow-y: auto; }

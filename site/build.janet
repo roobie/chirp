@@ -1,15 +1,31 @@
 # Builds chirp's static site from the repo's own Markdown, so the site cannot
 # drift from the binary's docs or from the dev-proc skill.
-# Usage: chirp site/build.janet [outdir]   (default out/site; run from the repo root)
+# Usage: chirp site/build.janet [outdir] [--wasm chirp.wasm]
+#   (default out/site; run from the repo root)
 # Needs a chirp that bundles md4c. The build fails on a relative link it cannot
-# resolve and on a commit link to a commit this checkout does not have.
+# resolve and on a commit link to a commit this checkout does not have. The try
+# page runs the chirp.wasm given by --wasm, from the wasm32-wasi target of the
+# same build; without it the page is written but cannot load chirp.
 (import md4c)
 (import spork/sh)
 
 (def- repo-url "https://github.com/roobie/chirp")
-(def- out-dir (get (dyn :args) 1 "out/site"))
-
 (defn- die [& msg] (eprint "site: " ;msg) (os/exit 1))
+
+(def- [out-dir wasm]
+  (do
+    (var out nil)
+    (var wasm nil)
+    (var i 1)
+    (def args (dyn :args))
+    (while (< i (length args))
+      (def a (args i))
+      (cond
+        (= a "--wasm") (do (set wasm (get args (+ i 1))) (+= i 2))
+        (and (nil? out) (not (string/has-prefix? "-" a))) (do (set out a) (++ i))
+        (die "usage: chirp site/build.janet [outdir] [--wasm chirp.wasm]")))
+    (when (and (has-value? args "--wasm") (nil? wasm)) (die "--wasm needs a file"))
+    [(or out "out/site") wasm]))
 
 (defn- git [& args] (string/trim (sh/exec-slurp "git" ;args)))
 
@@ -40,6 +56,7 @@
     ;(seq [f :in help-files]
        {:url (string "help/" (string/slice f 0 -4) ".html")
         :sources [(src (string "src/chirp/help/" f))]})
+    {:url "try.html" :nav "Try" :sources [(src "site/try.md")]}
     {:url "dev-proc/index.html" :nav "dev-proc"
      :sources [(src "site/dev-proc.md") (src ".agents/skills/dev-proc/SKILL.md" true)]}
     {:url "dev-proc/examples.html" :sources [(src "site/dev-proc-examples.md")]}])
@@ -167,5 +184,11 @@
   (sh/create-dirs-to dest)
   (spit dest (render p)))
 (spit (string out-dir "/style.css") (slurp "site/style.css"))
+# The try page's scripts. wasi.mjs is the WASI host the wasm smoke test runs.
+(each f ["site/try.mjs" "site/try-worker.mjs" "src/wasm/wasi.mjs"]
+  (spit (string out-dir "/" (last (string/split "/" f))) (slurp f)))
+(if wasm
+  (spit (string out-dir "/chirp.wasm") (slurp wasm))
+  (eprint "site: no --wasm, so the try page cannot load chirp"))
 (spit (string out-dir "/.nojekyll") "")
 (print "site: " (length pages) " pages in " out-dir)

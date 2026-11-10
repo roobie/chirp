@@ -46,7 +46,7 @@ Depends on or pairs with B-GUXSNK7MDKPJWBUW (upstream janet wasi fixes, cryptora
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+Wire CI: wasm32-wasi in the build matrix, a wasm smoke job, pages.yml passing --wasm and running the page check, release.yml skipping the wasm; then site/check.janet rules.
 
 ## Next
 - TODO
@@ -65,3 +65,4 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
 ## Log
 - 2026-11-10 initialized
 - 2026-11-10 phase initialize → execute
+- 2026-11-10 Page, WASI host and both tests written: site/try.md, try.mjs, try-worker.mjs; src/wasm/wasi.mjs replaces node:wasi in run.mjs; test/wasm/smoke.mjs (14 checks incl. byte-equal help vs native) and test/wasm/page.mjs (9 checks via CDP in headless Chrome) pass locally.
