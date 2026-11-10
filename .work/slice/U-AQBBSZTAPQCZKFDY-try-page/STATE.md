@@ -69,3 +69,4 @@ CI wired (build matrix, wasm job, pages, release skip); decisions accepted and D
 - 2026-11-10 phase initialize → execute
 - 2026-11-10 Page, WASI host and both tests written: site/try.md, try.mjs, try-worker.mjs; src/wasm/wasi.mjs replaces node:wasi in run.mjs; test/wasm/smoke.mjs (14 checks incl. byte-equal help vs native) and test/wasm/page.mjs (9 checks via CDP in headless Chrome) pass locally.
 - 2026-11-10 Took in B-7WXYORKRHKWIAOVW (wasm NOTICES): the site now distributes chirp.wasm, so its notices must be right. notices.jdn: :openssl true on jsec and OpenSSL; wasi-libc, its musl, cloudlibc and emmalloc for wasm32-wasi only.
+- 2026-11-10 CHANGELOG: Unreleased entry for the try page.

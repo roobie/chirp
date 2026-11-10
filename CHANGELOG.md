@@ -4,6 +4,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Added
+
+- The project site has a try page, https://roobie.github.io/chirp/try.html, that runs chirp in the browser: chirp built for WebAssembly from the same sources as the release, with every bundled module and the full offline help. Edit a script and run it, or search the help as `chirp --help query` does, with the same results. A link can carry a script (`#code=`), a search (`#q=`) or a help entry (`#read=`). Files, subprocesses, the network, HTTPS and threads raise "not available in this build of chirp" there.
+
 ## 0.10.0
 
 Released 2026-11-09.
