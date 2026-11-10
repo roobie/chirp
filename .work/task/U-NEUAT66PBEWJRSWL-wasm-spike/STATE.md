@@ -55,7 +55,7 @@ It does not help with our biggest risk: it ships no marshalled image and no thir
 
 
 ## Now
-Exercise the bundled modules and the stubs under Node; measure gzip size and native timings.
+All four criteria have evidence; write the go/no-go and move to finalize.
 
 ## Next
 - TODO
@@ -66,6 +66,10 @@ Exercise the bundled modules and the stubs under Node; measure gzip size and nat
 - 'chirp --help query' for sqlite, certificate, dev-proc, os/spawn, 'parse yaml': output byte-identical to the native binary of the same build; 77-92 ms each under Node.
 - Natives: all compile for wasm32-wasi unchanged except spork/rawterm (needs ev, termios, sigaction). sqlite3 with FTS5 compiles; its binding needs a sqlite3_load_extension stub because the amalgamation omits it on wasi.
 - Image loads with stubs: 85 core cfunctions missing from a JANET_NO_EV/NET/PROCESSES/FFI/FILEWATCH/SYMLINKS/UMASK janet (ev/*, net/*, ffi/*, filewatch/*, os/spawn|execute|shell|proc-*|pipe|open|posix-*|sigaction|getpid|readlink|symlink|umask), plus every binding of jsec/* and spork/rawterm, are registered under their names as one cfunction that panics. 222 names. The image needed no change.
+- Repo build: 'tools/build/container.sh wasm32-wasi <out>' (pinned zig, pinned build image) writes bin/chirp.wasm, 5,729,551 bytes raw, 1,720,230 gzip -9. Two builds in different out dirs are byte-identical (sha256 64501f31...).
+- Native targets unchanged: linux-x64 built from this branch is byte-identical to a baseline built from the branch point (chirp sha256 914f09d4..., NOTICES 0c154cd3...).
+- Under Node 22 (src/wasm/run.mjs): -e takes 26-32 ms + 13 ms compile (native 13-17 ms); --help query 80-160 ms (native 27-44 ms), the FTS5 index being rebuilt per run. Output of 7 queries and '--help read os/spawn' byte-identical to native.
+- Works: json, tomlin, yaml, md4c, lexbor, pcre2, gzip, sqlite3 with FTS5 in memory, base64, fibers, file io and os/dir through WASI preopens. Stubbed (raise 'not available in this build of chirp', docs kept): ev/*, net/*, ffi/*, filewatch/*, os/spawn|execute|shell|proc-*|pipe|open|posix-*|sigaction|getpid|readlink|symlink|umask, all of jsec/* and spork/rawterm (so https, --help serve, self-update, the REPL's line editor). Broken: os/cryptorand (janet reads /dev/urandom on wasi; wasi-libc has arc4random_buf).
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -76,7 +80,13 @@ Exercise the bundled modules and the stubs under Node; measure gzip size and nat
 -->
 - [ ] - [ ] decision: missing cfunctions are stubbed under their names so the one image built on the host loads in wasm; no second image build
 - [ ] - [ ] learning: a wasm janet lacks 85 core cfunctions; an image from a full janet unmarshals only if each is registered under its name
+- [ ] - [ ] learning: janet.c's core image comes from the full-featured bootstrap, so a janet built with JANET_NO_* keeps doc entries for compiled-out functions with a nil :value
+- [ ] - [ ] learning: JANET_NO_* switches change janet.h, so they must reach every file compiled against it (natives, image main), not only janet.c
+- [ ] - [ ] backlog: upstream to janet: wasi build fixes (tzset, CLOCK_PROCESS_CPUTIME_ID, dup, sys/wait.h, spawn.h, tmpfile) and os/cryptorand via arc4random_buf on __wasi__
+- [ ] - [ ] backlog: wasm NOTICES list OpenSSL and Zig the target does not link; notices.jdn needs target filters for wasm32-wasi
+- [ ] - [ ] backlog: sqlite3 binding calls sqlite3_load_extension, which the amalgamation omits on wasi; offer janet-lang/sqlite3 a SQLITE_OMIT_LOAD_EXTENSION guard
 
 ## Log
 - 2026-11-10 initialized
 - 2026-11-10 phase initialize → execute
+- 2026-11-10 Day 1: both risks retired in about 1.5 h by hand, then folded into the repo build as an unshipped wasm32-wasi target.

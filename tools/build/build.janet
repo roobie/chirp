@@ -113,9 +113,12 @@
 
 (def zig-cc ["zig" "cc" "-target" (target :triple)])
 (def zig-dir (setup-zig))
+# A target with :openssl false links no OpenSSL and none of the natives that need it.
+(def- tgt-openssl? (not= false (target :openssl)))
 # OpenSSL builds in its source tree, so each target gets its own copy.
 (def- openssl-copy (string "src/openssl-" target-name))
-(unless (os/stat openssl-copy) (run "cp" "-a" "src/openssl" openssl-copy))
+(when tgt-openssl?
+  (unless (os/stat openssl-copy) (run "cp" "-a" "src/openssl" openssl-copy)))
 
 # Commit time of the janet pin stands in for every embedded date.
 (os/setenv "SOURCE_DATE_EPOCH" (capture "git" "-C" "src/janet" "log" "-1" "--format=%ct"))
@@ -239,7 +242,53 @@
 # so both builds agree on the symbol names.
 (def tgt-root (string abs-out "/obj-" target-name))
 (def tgt-cflags
-  [prefix-map ;(get target :cflags []) (string "-I" janet-prefix "/include")])
+  [prefix-map ;(get target :cflags [])
+   ;(map |(string "-I" repo "/" $) (get target :repo-includes []))
+   ;(mapcat |["-include" (string repo "/" $)] (get target :force-includes []))
+   (string "-I" janet-prefix "/include")])
+
+# The natives this target links.
+(def tgt-natives
+  (filter |(not (or (and ($ :openssl) (not tgt-openssl?))
+                    (index-of ($ :name) (get target :skip-natives []))))
+          natives))
+
+# For a target whose janet compiles features out (:stub-missing), C source that
+# registers one raising cfunction under every name the image may refer to and
+# the target lacks: each core cfunction of this build's janet that the target's
+# janet does not define, and every binding of the natives it does not link.
+# The names come from this janet and the natives built for it, so the one image
+# written on the build machine loads on the target unchanged. janet.c's core
+# image comes from the full-featured bootstrap, so a compiled-out function keeps
+# its core env entry with a nil :value; such a name counts as missing.
+(defn- stubs-source []
+  (defn c-names [env]
+    (sorted (seq [[k v] :pairs env
+                  :when (and (symbol? k) (cfunction? (if (table? v) (v :value) v)))]
+              (string k))))
+  (def out @"#include <janet.h>\n\nstatic Janet chirp_unavailable(int32_t argc, Janet *argv) {\n    (void) argc; (void) argv;\n    janet_panic(\"not available in this build of chirp\");\n}\n\nstatic void stub(JanetTable *env, const char *name) {\n    Janet stub = janet_wrap_cfunction(chirp_unavailable);\n    Janet entry = janet_table_get(env, janet_csymbolv(name));\n    if (!janet_checktype(entry, JANET_TABLE)) {\n        janet_def(env, name, stub, NULL);\n        return;\n    }\n    /* Keep the entry, and so its docstring; fill in only a missing value. */\n    JanetTable *t = janet_unwrap_table(entry);\n    if (janet_checktype(janet_table_get(t, janet_ckeywordv(\"value\")), JANET_NIL))\n        janet_table_put(t, janet_ckeywordv(\"value\"), stub);\n}\n\n")
+  (buffer/push out "void chirp_stub_core(JanetTable *env) {\n")
+  (each k (c-names (env-lookup root-env)) (buffer/push out (string/format "    stub(env, %j);\n" k)))
+  (buffer/push out "}\n")
+  (each n natives
+    (unless (index-of n tgt-natives)
+      (def meta (eval-string (slurp (string "modpath/" (n :name) ".meta.janet"))))
+      (buffer/push out "\nvoid " (meta :static-entry) "(JanetTable *env) {\n")
+      (each k (c-names (native (string "modpath/" (n :name) ".so")))
+        (buffer/push out (string/format "    stub(env, %j);\n" k)))
+      (buffer/push out "}\n")))
+  out)
+
+# The image's main, with the core stubs registered before it builds the lookup
+# table it unmarshals the image against.
+(defn- stub-main [image-c]
+  (def text (slurp image-c))
+  (def anchor "JanetTable *env = janet_core_env(NULL);")
+  (assert (= 1 (length (string/find-all anchor text))) "image main changed: no single core env line")
+  (def out (string tgt-root "/image-stubbed.c"))
+  (spit out (string "#include <janet.h>\nvoid chirp_stub_core(JanetTable *env);\n"
+                    (string/replace anchor (string anchor " chirp_stub_core(env);") text)))
+  out)
 
 (defn- zig [& args] (run ;zig-cc ;args))
 
@@ -284,7 +333,21 @@
   (spit path b))
 
 (defn- cross-link [image-c tgt-ossl-libs tgt-ossl-root]
-  (def libs (map |(build-native-cross $ tgt-ossl-root) natives))
+  (def libs (map |(build-native-cross $ tgt-ossl-root) tgt-natives))
+  (def extra-objs @[])
+  (each s (get target :repo-sources [])
+    (def o (string tgt-root "/repo___" (flat s) ".o"))
+    (zig ;tgt-cflags (string "-ffile-prefix-map=" repo "=.") "-c" (string repo "/" s) "-o" o)
+    (array/push extra-objs o))
+  (def image-c
+    (if (target :stub-missing)
+      (let [stubs-c (string tgt-root "/stubs.c")
+            stubs-o (string tgt-root "/stubs.o")]
+        (spit stubs-c (stubs-source))
+        (zig ;tgt-cflags "-c" stubs-c "-o" stubs-o)
+        (array/push extra-objs stubs-o)
+        (stub-main image-c))
+      image-c))
   # The amalgamation produced by the native janet build, compiled for the target.
   (def janet-o (string tgt-root "/janet.o"))
   (zig ;tgt-cflags (string "-DJANET_BUILD=\"" janet/build "\"")
@@ -295,7 +358,7 @@
   (def out-exe-name (string ((config :exe) :name) (get target :exe-suffix "")))
   (def out-exe (string "bin/" out-exe-name))
   (mkdirs "bin")
-  (zig ;(get target :cflags []) "-o" out-exe image-o janet-o ;libs ;tgt-ossl-libs
+  (zig ;(get target :cflags []) "-o" out-exe image-o janet-o ;extra-objs ;libs ;tgt-ossl-libs
        ;(get target :lflags []) ;(get target :libs []))
   # The linker also writes an import library for the exe next to it.
   (each f (os/dir "bin") (unless (= f out-exe-name) (os/rm (string "bin/" f))))
@@ -309,7 +372,9 @@
 
 (def tgt-stage (string abs-out "/cache/openssl-" ossl-commit "-" target-name))
 (def [tgt-ossl-root tgt-ossl-libs]
-  (build-openssl (string "src/openssl-" target-name) tgt-stage target))
+  (if tgt-openssl?
+    (build-openssl (string "src/openssl-" target-name) tgt-stage target)
+    [nil []]))
 (cross-link image-c tgt-ossl-libs tgt-ossl-root)
 
 # Everything linked into the executable has to ship its license text. Only

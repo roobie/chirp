@@ -55,7 +55,34 @@
                          :format :pe
                          :lflags ["-s"]
                          :libs ["-lws2_32" "-lwsock32" "-lmswsock" "-lpsapi"
-                                "-lcrypt32" "-luser32" "-ladvapi32"]}}
+                                "-lcrypt32" "-luser32" "-ladvapi32"]}
+           # SPIKE (task wasm-spike): not shipped. A WASI module for a browser
+           # page; Janet's error handling needs wasm exception handling. No
+           # OpenSSL, so no jsec; :skip-natives and the core functions this
+           # janet compiles out are stubbed under their names (:stub-missing)
+           # so the image built on the host loads unchanged.
+           :wasm32-wasi {:triple "wasm32-wasi"
+                         :openssl false
+                         :cflags ["-std=gnu99" "-O2" "-mllvm" "-wasm-enable-sjlj" "-mexception-handling"
+                                  "-D_DEFAULT_SOURCE" "-D_WASI_EMULATED_SIGNAL"
+                                  "-D_WASI_EMULATED_PROCESS_CLOCKS" "-D_WASI_EMULATED_MMAN"
+                                  # Janet's feature switches change what janet.h
+                                  # declares, so janet.c, the natives and the
+                                  # image's main all need them, not just janet.c.
+                                  "-DJANET_NO_EV" "-DJANET_NO_NET" "-DJANET_NO_THREADS"
+                                  "-DJANET_SINGLE_THREADED" "-DJANET_NO_PROCESSES"
+                                  "-DJANET_NO_DYNAMIC_MODULES" "-DJANET_NO_FFI" "-DJANET_NO_FFI_JIT"
+                                  "-DJANET_NO_FILEWATCH" "-DJANET_NO_SYMLINKS" "-DJANET_NO_UMASK"
+                                  "-DJANET_NO_REALPATH" "-DJANET_NO_INTERPRETER_INTERRUPT"]
+                         :repo-includes ["src/wasm/include"]
+                         :force-includes ["src/wasm/compat.h"]
+                         :skip-natives ["spork/rawterm"]
+                         :stub-missing true
+                         :repo-sources ["src/wasm/setjmp.c" "src/wasm/libc.c"]
+                         :exe-suffix ".wasm"
+                         :lflags ["-Wl,--strip-all" "-Wl,--gc-sections" "-Wl,-z,stack-size=1048576"]
+                         :libs ["-lwasi-emulated-signal" "-lwasi-emulated-process-clocks"
+                                "-lwasi-emulated-mman"]}}
  # Pinned checkouts whose root holds importable Janet modules.
  :janet-sources [:spork :jsec :spork-https]
  # Single modules the :all: templates cannot find: a pinned checkout whose entry
