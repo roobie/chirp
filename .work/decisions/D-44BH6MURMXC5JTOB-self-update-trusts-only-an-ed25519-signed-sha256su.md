@@ -30,5 +30,5 @@ Only a signature by the release key, which is built into chirp, makes a release 
 ## Consequences
 - The release workflow must sign every SHA256SUMS. A release without SHA256SUMS.sig cannot be installed by self-update, which is why 0.1.0 cannot be.
 - Rotating a key needs a release signed by the old release key that ships the new one. There is no tooling for that yet.
-- The private key lives only in the CI secret, so losing it means older binaries can never update again without manual installation.
+- The private key lives only in the secret of the `release` environment (D-S23WKXKSMWMABF53), so losing it means older binaries can never update again without manual installation.
 - Provenance stays a separate, manual `gh attestation verify`.

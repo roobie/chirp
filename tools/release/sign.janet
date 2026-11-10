@@ -8,6 +8,11 @@
 
 (def default-key-env "CHIRP_RELEASE_SIGNING_KEY")
 
+(defn sign-with
+  "Writes the signature of the file `sums` to `sig`, with the private key `key`."
+  [key sums sig]
+  (spit sig (crypto/sign key (slurp sums))))
+
 (defn sign
   "Writes the signature of the file `sums` to `sig`, with the private key in the
   environment variable `key-env`."
@@ -15,13 +20,18 @@
   (default key-env default-key-env)
   (def key (os/getenv key-env))
   (unless (and key (not (empty? key))) (error (string key-env " is not set")))
-  (spit sig (crypto/sign key (slurp sums))))
+  (sign-with key sums sig))
+
+(defn verify-pem
+  "Errors unless `sig` is a signature of the file `sums` by the public key `pem`, named `what` in the error."
+  [pem sums sig what]
+  (unless (crypto/verify pem (slurp sums) (slurp sig))
+    (error (string sig " does not verify against " what))))
 
 (defn verify
   "Errors unless `sig` is a signature of the file `sums` by the public key in `pub`."
   [sums sig pub]
-  (unless (crypto/verify (slurp pub) (slurp sums) (slurp sig))
-    (error (string sig " does not verify against " pub))))
+  (verify-pem (slurp pub) sums sig pub))
 
 (def- usage
   (string "usage: sign.janet sign <sums> <sig-out> [--key-env NAME] | verify <sums> <sig> <public-key.pem>"))
