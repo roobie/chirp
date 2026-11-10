@@ -8,7 +8,7 @@ Released 2026-11-10.
 
 ### Added
 
-- `dev-proc` exits 3 when a command that needs a work dir finds none, in a git repo or outside one, and `check` and `find` in a repo with no work dir exit 3 instead of reporting zero roots. The commit hooks (`check --staged --hook`, `check-msg`) still exit 0 there, silently, so a repo that does not use dev-proc is never blocked. Every other failure keeps exit 1 or 2, so a program running `dev-proc status --json` over many directories tells "no dev-proc work here" from "dev-proc failed" by the code instead of the message. Nothing is printed on stdout in that case, and the message on stderr is unchanged. `dev-proc help` lists the exit codes.
+- `dev-proc` exits 3 when a command that needs a work dir finds none, in a git repo or outside one. Every other failure keeps exit 1 or 2, so a program running `dev-proc status --json` over many directories tells "no dev-proc work here" from "dev-proc failed" by the code instead of the message. Nothing is printed on stdout in that case, and the message on stderr is unchanged. `dev-proc help` lists the exit codes.
 - `dev-proc status --json` gives a program everything it needs to show a work dir without reading `.work/`. A unit's entry has `created` and `awaiting`, and each record's has `created`, `date`, `status`, `priority` and `needs` as strings, `refs` and `supersedes` as arrays (an unset or empty field is left out), and `problems`. `status <unit> --json` adds the `sections` of its document as an array of `{heading, text}` in document order with the template's comments removed, and the `harvest` items as `kind`, `text` and `done`. `status <record id>` shows one record the same way, and `status --json --detail` adds the sections to every unit and record. Existing fields are unchanged.
 - The project site has a try page, https://roobie.github.io/chirp/try.html, that runs chirp in the browser: chirp built for WebAssembly from the same sources as the release, with every bundled module and the full offline help. Edit a script and run it, or search the help as `chirp --help query` does, with the same results. A link can carry a script (`#code=`), a search (`#q=`) or a help entry (`#read=`). Files, subprocesses, the network, HTTPS and threads raise "not available in this build of chirp" there.
 - Every push to `main` whose CI passes publishes that build on the project site, in a tree laid out like a release and signed with a key of its own. Install it with `chirp --self-update --channel main --force` (add `--output PATH` to only save it), or download the files from the site's Main build page. It is a build of `main`, not a release: every build between releases reports the same `-dev` version, so the page names its commit and `--force` is how a later one is taken. The tree holds only the newest build, and a release's site deploy carries none until the next push to `main`.
@@ -17,6 +17,10 @@ Released 2026-11-10.
 ### Changed
 
 - `chirp --self-update --force` now installs a signed build of the same version as the running chirp, and `--output` saves a signed build whether or not it is newer. `--force` still refuses an older build, with a message, so it cannot downgrade chirp. Without either flag an older or equal build is left alone, and the signature and checksum checks are unchanged.
+
+### Changed
+
+- `dev-proc check` and `dev-proc find` in a git repo with no work dir now exit 3, with the message "no work dir … found in this repo", where they printed `ok (0 roots)` or an empty result and exited 0. The commit hooks (`check --staged --hook`, `check-msg`) still exit 0 there, silently, so a repo that does not use dev-proc is never blocked. A `dev-proc.root` that does not exist is still an error, exit 2.
 
 ## 0.10.0
 

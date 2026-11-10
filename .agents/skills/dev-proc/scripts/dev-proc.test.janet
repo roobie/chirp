@@ -884,14 +884,31 @@
 
 (test "a named root that does not exist is a failure, exit 2, not no work dir"
   (fn []
-    (with-repo
-      (fn [dir]
-        (def missing (string dir "/missing-root"))
-        (def env (run-with {:env {"DEV_PROC_ROOT" missing}} dir "status"))
-        (check (= 2 (env :status)) (string "DEV_PROC_ROOT exited " (env :status) ": " (env :stderr)))
-        (git-in dir "config" "dev-proc.root" missing)
-        (def cfg (run dir "status"))
-        (check (= 2 (cfg :status)) (string "dev-proc.root exited " (cfg :status) ": " (cfg :stderr)))))))
+    (def repo (tmp-dir))
+    (defer (sh/rm repo)
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (def missing (string repo "/missing-root"))
+      (def env (run-with {:env {"DEV_PROC_ROOT" missing}} repo "status"))
+      (check (= 2 (env :status)) (string "DEV_PROC_ROOT exited " (env :status) ": " (env :stderr)))
+      (git-in repo "config" "dev-proc.root" missing)
+      (each args [["status"] ["check"] ["find" "anything"]]
+        (def cfg (run repo ;args))
+        (check (= 2 (cfg :status)) (string "dev-proc.root, " (string/join args " ") " exited " (cfg :status) ": " (cfg :stderr)))))))
+
+(test "a repo whose only root is an out-of-band dev-proc.root has a work dir: check passes, the hook is silent"
+  (fn []
+    (def repo (tmp-dir))
+    (def mine (tmp-dir))
+    (defer (do (sh/rm repo) (sh/rm mine))
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (git-in repo "config" "dev-proc.root" (string mine "/my-work"))
+      (ok (run repo "init"))
+      (def c (run repo "check"))
+      (check (= 0 (c :status)) (c :stderr))
+      (check (string/find "ok (1 root)" (c :stdout)) (c :stdout))
+      (def h (run-with {:env {"DEV_PROC_STRICT" "1"}} repo "check" "--staged" "--hook"))
+      (check (= 0 (h :status)) (h :stderr))
+      (check (= "" (string (h :stdout) (h :stderr))) (string "hook printed: " (h :stdout) (h :stderr))))))
 
 (test "the commit hooks stay silent and exit 0 in a repo with no work dir, strict or not"
   (fn []

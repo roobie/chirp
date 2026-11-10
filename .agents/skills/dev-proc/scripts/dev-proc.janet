@@ -562,9 +562,13 @@
     (or (= dir configured) (not (inside? top dir))) {:dir dir :base top :oob true}
     {:dir dir :base (dirname dir) :oob (ignored? top dir)}))
 
-(defn- die-no-work-dir [ctx]
-  (error @{:no-work-dir (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to "
-                                (if (ctx :git) "the repo root" "/") " — run `dev-proc init`")}))
+# `searched` says where the work dir was looked for.
+(defn- die-no-work-dir [searched]
+  (error @{:no-work-dir (string "no work dir (.work/, or the work_dir of a " CONFIG ") found " searched
+                                " — run `dev-proc init`")}))
+
+(defn- die-missing-root [name dir]
+  (die (string name " is " dir ", which does not exist — run `dev-proc init`")))
 
 # Every .work/ root in the repo, honouring .gitignore; includes untracked ones, then the
 # configured root, if any. Outside a git repo, only the root the command runs against: finding the
@@ -590,11 +594,15 @@
     (array/push out (root-desc configured top configured)))
   out)
 
-# The roots a command that needs a work dir reads; a repo with none is "no work dir". The commit hooks
-# pass optional: a repo that does not use dev-proc must never have a commit blocked or noised.
+# The roots a command that needs a work dir reads; a repo with none is "no work dir", unless the
+# dev-proc.root it names is missing, which is a failure as it is for every command. The commit hooks
+# pass optional: a repo that does not use dev-proc must never have a commit blocked or made noisy.
 (defn- required-roots [ctx &opt optional]
   (def roots (all-roots ctx))
-  (when (and (empty? roots) (not optional)) (die-no-work-dir ctx))
+  (when (and (empty? roots) (not optional))
+    (when-let [configured (configured-root ctx)]
+      (die-missing-root "dev-proc.root" configured))
+    (die-no-work-dir "in this repo"))
   roots)
 
 (defn- nearest-root [cwd top]
@@ -1543,10 +1551,11 @@ alone, so uncommitted work is left out (status shows it).`)
                                            range (default: last tag..HEAD)
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
-  exit codes     0 ok; 1 or 2 any other failure; 3 no work dir found from here, in a repo with
-                 none too (nothing on stdout, so status --json prints nothing; the commit hooks, check
-                 --staged --hook and check-msg, still exit 0 there). A root you named that does not exist (--root,
-                 DEV_PROC_ROOT, dev-proc.root) is a failure, 2: you asked for it, so it is not "no work here"
+  exit codes     0 ok; 3 no work dir found (nothing on stdout, so status --json prints nothing; in a
+                 repo with none, check and find exit 3 too, while the commit hooks, check --staged
+                 --hook and check-msg, still exit 0); 1 or 2 any other failure. A root you named that
+                 does not exist (--root, DEV_PROC_ROOT, dev-proc.root) is a failure, 2: you asked for
+                 it, so it is not "no work here"
 
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
   DEV_PROC_ROOT=<abs dir>   the default for --root, so a directory can pin its work dir (e.g. an
@@ -1652,11 +1661,9 @@ alone, so uncommitted work is left out (status shows it).`)
                         (nearest-root cwd top)))
          (when (or (not dir) (not (exists? dir)))
            (cond
-             (some-str (args "root"))
-             (die (string (or ((args :from) "root") "--root") " is " dir ", which does not exist — run `dev-proc init`"))
-             (and configured (= dir configured))
-             (die (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`"))
-             (die-no-work-dir ctx)))
+             (some-str (args "root")) (die-missing-root (or ((args :from) "root") "--root") dir)
+             (and configured (= dir configured)) (die-missing-root "dev-proc.root" dir)
+             (die-no-work-dir (if git-top "from here up to the repo root" "from here up to /"))))
          (root-desc dir top configured)))
   (put ctx :root (fn [] (load-root ((ctx :root-desc)))))
   (f ctx args)

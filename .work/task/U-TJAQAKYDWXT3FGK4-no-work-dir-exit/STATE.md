@@ -50,3 +50,4 @@ Review, then finalize by the owner.
 - 2026-11-10 documented in help, SKILL.md and CHANGELOG.md
 - 2026-11-10 review fixes: help wording, named-root rationale, toml/env/config tests
 - 2026-11-10 check and find in a repo with zero roots exit 3 via required-roots; hooks opt out, since a repo that does not use dev-proc must never have a commit blocked or noised
+- 2026-11-10 re-review: missing dev-proc.root is exit 2 for check and find too (shared die-missing-root); check and find say what was searched
