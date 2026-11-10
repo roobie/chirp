@@ -45,3 +45,4 @@ Review, then finalize by the owner.
 ## Log
 - 2026-11-10 initialized
 - 2026-11-10 phase initialize → execute
+- 2026-11-10 documented in help, SKILL.md and CHANGELOG.md
