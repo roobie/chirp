@@ -29,21 +29,19 @@ Promoted from backlog: B-K2J3HVGSJFJM4IFC Keep the release signing key in an env
 ### Why
 CHIRP_RELEASE_SIGNING_KEY is a repository secret, so a workflow on any branch can read it: the release workflow's dry run from a branch already signs that branch's build for seven days. The main-build key is in an environment limited to main (D-6NWFV37OBOERI3AF); the key that protects releases is less guarded than the one that protects builds of main. Moving it into a `release` environment whose deployment rule allows only `v*` tags would limit it to real releases. Decide first what the dry run does without it: skip signing, or sign with a throwaway key so the rest of the packaging is still proven.
 
-### Notes
-TODO
-
 
 ## Now
 Review fixes committed; waiting for merge
 
 ## Next
-- TODO
+- Merge, then the owner's first manual dispatch on a branch and first tag (Harvest).
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - tools/release/layout.test.janet: ok with chirp 0.10.0. The workflow's layout step, extracted and run on fake artifacts: a manual run signs with --throwaway; a tag run signs with a key standing in for the secret and verifies against a pem standing in for release-key.pem; with a different key it fails with 'does not verify against src/chirp/release-key.pem' before publish. The workflow parses as YAML.
 - Not provable here: that a job with an empty environment expression runs without an environment; the first manual run on GitHub shows it.
 - Review fixes: a manual run on a tag is a dry run (event_name decides; sim dispatch-on-tag signs with --throwaway and names the artifact dry-run-*). layout.test.janet covers --throwaway, including no private key in the output and no mixing with --pub. sim.sh: dry, dispatch-on-tag, tag ok; tag with a wrong secret fails verifying against release-key.pem.
+- Second review: the signer is built once in main; layout.test.janet, sim.sh (dry, manual on a tag, tag, tag with a wrong secret), leakcheck, skillcheck pass again.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:

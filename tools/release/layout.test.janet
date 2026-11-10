@@ -107,6 +107,7 @@
            (first (run nil "sh" "-c" (string "cd " dry-out " && sha256sum -c SHA256SUMS"))) 0)
     (check "throwaway: not signed by the real key"
            (crypto/verify (slurp pub) (slurp (string dry-out "/SHA256SUMS")) (slurp (string dry-out "/SHA256SUMS.sig"))) false)
+    (check "throwaway: no private key on stderr" (truthy? (string/find "PRIVATE" e)) false)
     (check "throwaway: no private key left behind"
            (truthy? (find |(string/find "PRIVATE" (slurp (string dry-out "/" $))) (os/dir dry-out))) false))
   (let [[c _ e] (run key chirp script "release" artifacts (string work "/mixed") "--throwaway" "--pub" pub)]

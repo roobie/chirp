@@ -62,21 +62,27 @@
   (os/chmod to 8r755)
   (sh/copy-file (string from "/NOTICES.txt") (string out "/NOTICES-" target ".txt")))
 
-(defn- sign-and-verify
-  "Signs the sums in `out` and checks the signature against the key chirp trusts.
-  A wrong secret would otherwise publish a tree that no chirp accepts."
-  [out pub key-env throwaway?]
-  (def sums (string out "/SHA256SUMS"))
-  (def sig (string out "/SHA256SUMS.sig"))
-  (if throwaway?
-    (let [key (crypto/generate-key :ed25519)]
-      (sign/sign-with key sums sig)
-      (sign/verify-pem (crypto/export-public-key key) sums sig "the throwaway key"))
-    (do
-      (sign/sign sums sig key-env)
-      (sign/verify sums sig pub))))
+(defn- trusted-signer
+  "A function that signs a file's sums with the private key in the environment
+  variable `key-env` and checks the signature against the public key in `pub`,
+  the one chirp trusts. A wrong secret would otherwise publish a tree that no
+  chirp accepts."
+  [pub key-env]
+  (fn [sums sig]
+    (sign/sign sums sig key-env)
+    (sign/verify sums sig pub)))
 
-(defn- release [artifacts out pub tag key-env throwaway?]
+(defn- throwaway-signer
+  "A function that signs with an Ed25519 key made for the call and checks the
+  signature against that key's own public half. It proves the signing paths
+  and trusts nothing."
+  []
+  (fn [sums sig]
+    (def key (crypto/generate-key :ed25519))
+    (sign/sign-with key sums sig)
+    (sign/verify-pem (crypto/export-public-key key) sums sig "the throwaway key")))
+
+(defn- release [artifacts out tag signer]
   (def version (shipped-version artifacts))
   (when (and tag (not= tag (string "v" version)))
     (die "tag " tag " does not match the binary's version v" version))
@@ -90,7 +96,7 @@
       (unless (has-value? unreleased-targets target)
         (add-target (string artifacts "/" dir) out version target))))
   (write-sums out)
-  (sign-and-verify out pub key-env throwaway?)
+  (signer (string out "/SHA256SUMS") (string out "/SHA256SUMS.sig"))
   (print version))
 
 (defn- mirror [release-dir tree version]
@@ -126,7 +132,10 @@
                 (not (or (opts "--pub") (opts "--key-env")))
                 (opts "--pub"))
         (die usage))
-      (release (positional 1) (positional 2) (opts "--pub") (opts "--tag") (opts "--key-env") (opts "--throwaway")))
+      (release (positional 1) (positional 2) (opts "--tag")
+               (if (opts "--throwaway")
+                 (throwaway-signer)
+                 (trusted-signer (opts "--pub") (opts "--key-env")))))
     ["version" 2] (print (shipped-version (positional 1)))
     ["mirror" 4] (mirror (positional 1) (positional 2) (positional 3))
     (die usage)))

@@ -50,19 +50,16 @@ jobs:
           CHIRP_RELEASE_SIGNING_KEY: ${{ github.event_name == 'push' && secrets.CHIRP_RELEASE_SIGNING_KEY || '' }}
         run: |
           chmod +x artifacts/chirp-linux-x64-a/chirp
-          tag=
-          signing=--throwaway
-          if [ "$RELEASE" = true ]; then
-            tag=$REF_NAME
-            signing="--pub src/chirp/release-key.pem --key-env CHIRP_RELEASE_SIGNING_KEY"
-          fi
-          # shellcheck disable=SC2086
-          version=$(artifacts/chirp-linux-x64-a/chirp tools/release/layout.janet release \
-            artifacts out/release $signing ${tag:+--tag "$tag"})
-          echo "version=$version" >> "$GITHUB_OUTPUT"
           # A dry run's files are not a release's, and are named so.
           prefix=dry-run
-          [ "$RELEASE" = true ] && prefix=release
+          signing=(--throwaway)
+          if [ "$RELEASE" = true ]; then
+            prefix=release
+            signing=(--pub src/chirp/release-key.pem --key-env CHIRP_RELEASE_SIGNING_KEY --tag "$REF_NAME")
+          fi
+          version=$(artifacts/chirp-linux-x64-a/chirp tools/release/layout.janet release \
+            artifacts out/release "${signing[@]}")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "artifact=$prefix-$version" >> "$GITHUB_OUTPUT"
           cat out/release/SHA256SUMS
 

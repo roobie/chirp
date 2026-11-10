@@ -20,7 +20,7 @@ The key is the secret of a `release` environment. Its deployment rule allows onl
 
 ## Why
 - **The approval is the gate, the tag rule is not:** a tag push runs the workflow file of the tagged commit, so whoever can push a `v*` tag controls what runs in the environment. The tag rule only narrows which refs can ask; the owner's approval is what keeps the key from a pushed tag. No tag ruleset is planned, so the approval is relied on alone.
-- **The approver must not be an agent:** agents push with the owner's fine-grained token. That token must not hold Deployments: write, or an agent could approve its own tag. The owner's review is not blocked from approving their own run (prevent self-review is off) because the owner is the only person who releases.
+- **The approver must not be an agent:** agents push with the owner's fine-grained token. That token must hold neither Deployments: write, or an agent could approve its own tag, nor Administration: write, or it could drop the reviewer from the environment and then push a tag. The owner's review is not blocked from approving their own run (prevent self-review is off) because the owner is the only person who releases.
 - **A push, not a ref type, decides a release:** a manual run on a tag has a tag ref but is not a deliberate release; it would otherwise reach the key, the release and the milestone.
 - **v* tags and not main:** main already has its own key and environment. Letting main reach the release key would give every merge the key that protects releases, which D-6NWFV37OBOERI3AF rejected for main builds.
 - **A throwaway key for dry runs, not skipped signing:** a manual run must not wait on an approval or reach the key, yet skipping signing would leave layout, signing, verify and attestation unproven. The key lives only in the signing process and is never written out, so it cannot appear in a log. What a dry run no longer proves is the stored secret and the approval; a tag run checks the signature against `src/chirp/release-key.pem` before `publish`, so a wrong secret fails before anything is published.
@@ -28,4 +28,3 @@ The key is the secret of a `release` environment. Its deployment rule allows onl
 
 ## Consequences
 - A tag cut before this change cannot be released again: its workflow file reads the repository secret, which is deleted once this is proven.
-- The first manual run on a branch proves that an empty environment expression means no environment; the first tag proves the secret and the approval.
