@@ -26,6 +26,7 @@
 (def- record-id-peg (peg/compile ~(* (<- (set "DLB")) "-" (16 ,b32) -1)))
 # Unit ids carry no type, so a rescoped unit keeps its id (and its Work: trailer history).
 (def- unit-id-peg (peg/compile ~(* "U-" (16 ,b32) -1)))
+(def- label-peg (peg/compile ~(* (+ ,;TYPES) "/" ,kebab -1)))
 (def- unit-dir-peg (peg/compile ~(* (<- (* "U-" (16 ,b32))) "-" (<- ,kebab) -1)))
 (def- file-id-peg (peg/compile ~(* (<- (* (set "DLB") "-" (16 ,b32))) (+ "-" (* ".md" -1)))))
 # record headings read "# D-… Title"
@@ -36,6 +37,12 @@
                       (if (string/has-prefix? "/" p) p (string (os/cwd) "/" p))))
 
 # ---------- errors and output
+
+# Exit codes; a program running dev-proc over many directories tells these apart without reading stderr.
+(def EXIT-FAILURE 1)
+(def EXIT-USAGE 2)
+(def EXIT-NO-WORK-DIR 3)
+(def EXIT-NOT-FOUND 4)
 
 (defn- die [msg] (error @{:usage msg}))
 (defn- strict? [] (= "1" (os/getenv "DEV_PROC_STRICT")))
@@ -551,10 +558,20 @@
 
 (defn- children-of [root id] (filter |(= (parent-of $) id) (root :units)))
 
+# A well-formed reference that names nothing active exits EXIT-NOT-FOUND, so a viewer can tell a unit
+# closed meanwhile from a failure. A malformed or ambiguous one is a usage error.
+(defn- die-not-found [msg] (error @{:not-found msg}))
+
 # Accepts a unit id (U-…) or, as a convenience, its type/name label.
 (defn- find-unit [root ref]
-  (or (find |(or (= ($ :id) ref) (= ($ :label) ref)) (root :units))
-      (die (string "no active unit \"" (jstr ref) "\" in " (root :dir)))))
+  (def by-label (filter |(= ($ :label) ref) (root :units)))
+  (def missing (string "no active unit \"" (jstr ref) "\" in " (root :dir)))
+  (cond
+    (find |(= ($ :id) ref) (root :units)) (find |(= ($ :id) ref) (root :units))
+    (> (length by-label) 1) (die (string "\"" (jstr ref) "\" names " (length by-label) " units in " (root :dir) "; use an id"))
+    (first by-label) (first by-label)
+    (and (string? ref) (or (peg/match unit-id-peg ref) (peg/match label-peg ref))) (die-not-found missing)
+    (die missing)))
 
 (defn- show [u] (string (u :id) " " (u :label)))
 
@@ -567,8 +584,12 @@
   u)
 
 (defn- find-record [root id]
-  (or (when id (find |(= ($ :id) id) (root :records)))
-      (die (string "no record \"" (jstr id) "\" in " (root :dir)))))
+  (def hit (when id (find |(= ($ :id) id) (root :records))))
+  (def missing (string "no record \"" (jstr id) "\" in " (root :dir)))
+  (cond
+    hit hit
+    (and (string? id) (peg/match record-id-peg id)) (die-not-found missing)
+    (die missing)))
 
 # The person's own root, from `git config dev-proc.root`: clone-local (or global) git config, so it
 # never lands in the repo. A relative path is taken from the repo top; git expands a leading ~.
@@ -656,6 +677,14 @@
 
 (defn- error-text [e] (if (and (table? e) (e :usage)) (e :usage) (string e)))
 
+# `searched` says where the work dir was looked for.
+(defn- die-no-work-dir [searched]
+  (error @{:no-work-dir (string "no work dir (.work/, or the work_dir of a " CONFIG ") found " searched
+                                " — run `dev-proc init`")}))
+
+(defn- die-missing-root [name dir]
+  (die (string name " is " dir ", which does not exist — run `dev-proc init`")))
+
 # Every .work/ root in the repo, honouring .gitignore; includes untracked ones, then the
 # configured root, if any. Outside a git repo, only the root the command runs against: finding the
 # rest would mean walking the tree with git's ignore rules rebuilt by hand.
@@ -687,6 +716,17 @@
   (when (and configured (exists? configured))
     (array/push out (root-desc configured top configured :named)))
   out)
+
+# The roots a command that needs a work dir reads; a repo with none is "no work dir", unless the
+# dev-proc.root it names is missing, which is a failure as it is for every command. The commit hooks
+# pass optional: a repo that does not use dev-proc must never have a commit blocked or made noisy.
+(defn- required-roots [ctx &opt optional]
+  (def roots (all-roots ctx))
+  (when (and (empty? roots) (not optional))
+    (when-let [configured (configured-root ctx)]
+      (die-missing-root "dev-proc.root" configured))
+    (die-no-work-dir "in this repo"))
+  roots)
 
 (defn- nearest-root [cwd top]
   (var d cwd)
@@ -1087,9 +1127,13 @@
   (def name (or (args "name") (u :name)))
   (unless (index-of type TYPES) (die (string "type must be one of: " (string/join TYPES ", "))))
   (unless (peg/match name-peg name) (die "name must be kebab-case"))
+  # A parent read from the unit's own STATE.md is not one the user named, so its absence is no "not found".
+  (def recorded (parent-of u))
+  (when (and (nil? (args "parent")) recorded (not (find |(= ($ :id) recorded) (root :units))))
+    (die (string "recorded parent " recorded " is no longer active; pass --parent <ref> or --parent none")))
   (def parent (if (= (args "parent") "none")
                 nil
-                (check-parent root type (if (nil? (args "parent")) (parent-of u) (args "parent")))))
+                (check-parent root type (if (nil? (args "parent")) recorded (args "parent")))))
   (each k (children-of root (u :id))
     (when (<= (rank (k :type)) (rank type))
       (die (string "child " (k :label) " would no longer be below a " type "; rescope it first"))))
@@ -1122,12 +1166,12 @@
 (defn- cmd-close [ctx args]
   (def root ((ctx :root)))
   (def u (find-unit root (first (args :pos))))
+  (def decision (when (and (args "scrap") (some-str (args "decision"))) (find-record root (args "decision"))))
   (def problems (gate-problems root u "closed"))
   (when (args "scrap")
     (cond
-      (not (some-str (args "decision"))) (array/push problems "scrapping needs --decision D-… recording why")
-      (not (find |(and (= ($ :kind) "decision") (= ($ :id) (args "decision"))) (root :records)))
-      (array/push problems (string "decision " (args "decision") " not found"))))
+      (not decision) (array/push problems "scrapping needs --decision D-… recording why")
+      (not= (decision :kind) "decision") (array/push problems (string (args "decision") " is not a decision"))))
   (unless (empty? problems)
     (die (string "cannot close " (show u) ":\n  ✗ " (string/join problems "\n  ✗ "))))
   (unless (history-top (root :dir))
@@ -1271,7 +1315,7 @@
 (defn- cmd-check [ctx args]
   # The hooks guard what is committed, so they leave out-of-band roots alone.
   (def configured (configured-root ctx))
-  (def roots (filter |(not (and (args "hook") ($ :oob))) (map |(load-root $ (ctx :budget)) (all-roots ctx))))
+  (def roots (filter |(not (and (args "hook") ($ :oob))) (map |(load-root $ (ctx :budget)) (required-roots ctx (args "hook")))))
   (def errors @[])
   (def warns @[])
   (each root roots
@@ -1333,9 +1377,9 @@
 
   (each w warns (print "warn  " w))
   (each e errors (print "error " e))
-  (when (and (empty? errors) (empty? warns))
+  (when (and (empty? errors) (empty? warns) (not (and (args "hook") (empty? roots))))
     (print "ok (" (length roots) " root" (if (= (length roots) 1) "" "s") ")"))
-  (when (and (not (empty? errors)) (or (not (args "hook")) (strict?))) (put ctx :exit 1)))
+  (when (and (not (empty? errors)) (or (not (args "hook")) (strict?))) (put ctx :exit EXIT-FAILURE)))
 
 (def FIND-HELP
   `usage: find <words…> [--backlog] [--json]
@@ -1349,11 +1393,15 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (when (empty? query) (die FIND-HELP))
   (def kinds @{"decision" true "learning" true})
   (when (args "backlog") (put kinds "backlog" true))
+  (def roots (map |(load-root $ (ctx :budget)) (required-roots ctx)))
+  # A root that could not be read hides its records, so say so rather than answer as if it had none.
+  (each root roots
+    (each p (root :problems) (eprint "dev-proc: " (shown (ctx :top) (root :dir)) ": " p)))
   (def records
-    (seq [d :in (all-roots ctx)
-          r :in ((load-root d (ctx :budget)) :records)
+    (seq [root :in roots
+          r :in (root :records)
           :when (and (kinds (r :kind)) (r :id) (r :fm))]
-      {:id (r :id) :kind (r :kind) :root (shown (ctx :top) (d :dir))
+      {:id (r :id) :kind (r :kind) :root (shown (ctx :top) (root :dir))
        :title (let [t (title-of (r :body)) m (peg/match record-title-peg t)]
                 (if m (m 0) t))
        :read-if (list-of (fm/fm-get (r :fm) "read_if"))}))
@@ -1381,7 +1429,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
     (unless (peg/match unit-id-peg t)
       (array/push out (string "trailer \"Work: " t "\" is not a unit id (U-<16 base32 chars>)"))))
   (each o out (print (if (strict?) "error" "warn ") " " o))
-  (when (and (not (empty? out)) (strict?)) (put ctx :exit 1)))
+  (when (and (not (empty? out)) (strict?)) (put ctx :exit EXIT-FAILURE)))
 
 (defn- cmd-trailers [ctx args]
   (def top (ctx :top))
@@ -1655,6 +1703,15 @@ alone, so uncommitted work is left out (status shows it).`)
                                            range (default: last tag..HEAD)
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
+  exit codes     0 ok; 3 no work dir found (nothing on stdout, so status --json prints nothing; in a
+                 repo with none, check and find exit 3 too, while the commit hooks, check --staged
+                 --hook and check-msg, still exit 0); 4 a unit or record you named (by id or label,
+                 as an argument, --parent, --from or --supersedes) is not active: a viewer can tell a
+                 unit closed meanwhile from a failure; 1 or 2 any other failure, a malformed id or an
+                 ambiguous label included. A root you named that does not exist (--root,
+                 DEV_PROC_ROOT, dev-proc.root) is a failure, 2: you asked for it, so it is not
+                 "no work here"
+
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
   DEV_PROC_ROOT=<abs dir>   the default for --root, so a directory can pin its work dir (e.g. an
                  .envrc with export DEV_PROC_ROOT=$PWD/.mine); it works in and out of a git repo, and
@@ -1762,15 +1819,12 @@ alone, so uncommitted work is left out (status shows it).`)
                            :found))
          # A found work dir that is a dangling link is refused below, not taken for an absent one.
          (when (or (not dir) (not ((if (= origin :found) present? exists?) dir)))
-           (die (cond
-                  (some-str (args "root"))
-                  (string (or ((args :from) "root") "--root") " is " dir ", which does not exist — run `dev-proc init`")
-                  (and configured (= dir configured))
-                  (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`")
-                  git-top
-                  (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to the repo root — run `dev-proc init`")
-                  (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to / — run `dev-proc init`"))))
+           (cond
+             (some-str (args "root")) (die-missing-root (or ((args :from) "root") "--root") dir)
+             (and configured (= dir configured)) (die-missing-root "dev-proc.root" dir)
+             (die-no-work-dir (if git-top "from here up to the repo root" "from here up to /"))))
          (def desc (root-desc dir top configured origin))
+         # A work dir the checkout points elsewhere is a failure of this root, not an absent one.
          (when (desc :refused) (die (string (shown top dir) ": " (desc :refused))))
          desc))
   (put ctx :root (fn [] (load-root ((ctx :root-desc)) (ctx :budget))))
@@ -1781,8 +1835,10 @@ alone, so uncommitted work is left out (status shows it).`)
   (def code
     (try (run argv)
       ([e]
-        (if (and (table? e) (e :usage))
-          (do (eprint "dev-proc: " (e :usage)) 2)
-          (do (eprint "dev-proc: " (string e)) 1)))))
+        (cond
+          (and (table? e) (e :usage)) (do (eprint "dev-proc: " (e :usage)) EXIT-USAGE)
+          (and (table? e) (e :no-work-dir)) (do (eprint "dev-proc: " (e :no-work-dir)) EXIT-NO-WORK-DIR)
+          (and (table? e) (e :not-found)) (do (eprint "dev-proc: " (e :not-found)) EXIT-NOT-FOUND)
+          (do (eprint "dev-proc: " (string e)) EXIT-FAILURE)))))
   (file/flush stdout)
   (unless (= code 0) (os/exit code)))

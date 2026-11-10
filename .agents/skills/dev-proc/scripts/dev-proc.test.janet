@@ -983,6 +983,22 @@
         (symlink "nowhere" (string dir "/.work"))
         (refused dir "work dir is a symlink")))))
 
+(test "a repo whose only root is refused is reported, not taken for having no work dir"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (os/rename (string dir "/.work") (string dir "/store"))
+        (symlink "store" (string dir "/.work"))
+        (def s (run dir "status"))
+        (check (= 2 (s :status)) (string "a single-root command fails with 2, got " (s :status)))
+        (check (string/find "work dir is a symlink" (s :stderr)) (s :stderr))
+        (def c (run dir "check"))
+        (check (= 1 (c :status)) (string "check exits 1, got " (c :status) ": " (c :stderr)))
+        (check (string/find "work dir is a symlink" (c :stdout)) (c :stdout))
+        (def f (run dir "find" "anything"))
+        (check (not= 3 (f :status)) "find does not call it no work dir")
+        (check (string/find "work dir is a symlink" (f :stderr)) (f :stderr))))))
+
 (test "a committed link to a git-ignored root or to the git dir is not a team root"
   (fn []
     (with-repo
@@ -1194,6 +1210,142 @@
             (big-file (string dir "/" work "/decisions/D-AAAAAAAAAAAAAAA" (string/format "%c" (+ 65 i)) "-b.md") 1048000)))
         (def c (run dir "check"))
         (check (string/find "past the 64 MiB one command may read" (c :stdout)) (c :stdout))))))
+
+(test "a command that needs a work dir exits 3 with nothing on stdout where there is none, in a repo or not"
+  (fn []
+    (def bare (tmp-dir))
+    (def repo (tmp-dir))
+    (defer (do (sh/rm bare) (sh/rm repo))
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (each [where dir] [["outside a repo" bare] ["in a repo" repo]]
+        (each args [["status"] ["status" "--json"] ["status" "--json" "--detail"] ["note" "U-X" "now" "t"]
+                    ["new" "task" "t"] ["phase" "U-X" "execute"] ["record" "backlog" "t"] ["dig" "U-X"]
+                    ["check"] ["find" "anything"] ["find" "anything" "--json"]]
+          (def r (run dir ;args))
+          (def what (string where ": " (string/join args " ")))
+          (check (= 3 (r :status)) (string what " exited " (r :status)))
+          (check (= "" (r :stdout)) (string what " printed on stdout"))
+          (check (string/find "no work dir" (r :stderr)) (string what ": " (r :stderr))))))))
+
+(test "a reference that names nothing active exits 4, with nothing on stdout; a malformed or ambiguous one exits 2"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def unit "U-AAAAAAAAAAAAAAAA")
+        (def gone "D-AAAAAAAAAAAAAAAA")
+        (def real (new-id dir "task" "real" "--execute"))
+        (defn exits [code what & args]
+          (def r (run dir ;args))
+          (check (= code (r :status)) (string what ": exited " (r :status) ", wanted " code ": " (r :stderr)))
+          (check (= "" (r :stdout)) (string what ": printed on stdout")))
+        (each [what args]
+              [["status by id" ["status" unit]] ["status by label" ["status" "task/none"]]
+               ["status of a record" ["status" gone]] ["status --json" ["status" unit "--json"]]
+               ["note" ["note" unit "now" "x"]] ["note by label" ["note" "task/none" "now" "x"]]
+               ["phase" ["phase" unit "execute"]] ["rescope" ["rescope" unit "--name" "x"]]
+               ["rescope --parent" ["rescope" real "--parent" unit]]
+               ["close" ["close" unit]] ["close --decision" ["close" real "--scrap" "--decision" gone]]
+               ["new --parent" ["new" "task" "child" "--parent" unit]]
+               ["new --from" ["new" "task" "child" "--from" "B-AAAAAAAAAAAAAAAA"]]
+               ["record --supersedes" ["record" "decision" "Newer" "--supersedes" gone]]]
+          (exits 4 what ;args))
+        (each [what args]
+              [["status, malformed id" ["status" "U-short"]] ["status, a bare word" ["status" "nothing"]]
+               ["note, malformed id" ["note" "U-short" "now" "x"]]
+               ["status, a path" ["status" "foo/bar"]] ["status, ./x/y" ["status" "./x/y"]]
+               ["status, a bad label" ["status" "task/Bad Name"]]
+               ["new --parent, malformed" ["new" "task" "child" "--parent" "U-short"]]
+               ["record --supersedes, malformed" ["record" "decision" "Newer" "--supersedes" "D-short"]]]
+          (exits 2 what ;args))
+        # Two units with one label, as a merge of two branches can leave.
+        (check (= 0 (os/execute ["cp" "-r" (string dir "/.work/task/" real "-real") (string dir "/.work/task/U-BBBBBBBBBBBBBBBB-real")] :p)))
+        (exits 2 "ambiguous label" "status" "task/real")))))
+
+(test "a recorded parent that is no longer active is a failure, exit 2, not a name the user gave"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def parent (new-id dir "slice" "par" "--execute"))
+        (def child (new-id dir "task" "kid" "--parent" parent "--execute"))
+        (sh/rm (string dir "/.work/slice/" parent "-par"))
+        (def r (run dir "rescope" child "--name" "kid2"))
+        (check (= 2 (r :status)) (string "exited " (r :status) ": " (r :stderr)))
+        (check (string/find "recorded parent" (r :stderr)) (r :stderr))
+        (check (= "" (r :stdout)))
+        (check (= 0 ((run dir "rescope" child "--name" "kid2" "--parent" "none") :status)) "--parent none still works")))))
+
+(test "close --scrap --decision names a record that is not a decision: exit 2 with the kind said"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def u (new-id dir "task" "scrapped" "--execute"))
+        (def learning (string/trim ((run dir "record" "learning" "A lesson" "--read-if" "x" "--id") :stdout)))
+        (def r (run dir "close" u "--scrap" "--decision" learning))
+        (check (= 2 (r :status)) (string "exited " (r :status) ": " (r :stderr)))
+        (check (string/find (string learning " is not a decision") (r :stderr)) (r :stderr))))))
+
+(test "failures other than a missing work dir keep their exit codes"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "record" "decision" "Dangling" "--read-if" "x" "--ref" "no/such/path#sym") :status)) "recording the dangling ref")
+        (check (= 1 ((run dir "check") :status)) "check finding errors")
+        (check (= 2 ((run dir "frobnicate") :status)) "unknown command")
+        (check (= 2 ((run dir "note" "x") :status)) "bad arguments")
+        (check (= 2 ((run dir "--root" (string dir "/missing") "status") :status)) "--root that does not exist")))))
+
+(test ".dev-proc.toml naming a missing work_dir is no work dir, exit 3"
+  (fn []
+    (def repo (tmp-dir))
+    (defer (sh/rm repo)
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (spit (string repo "/.dev-proc.toml") "work_dir = \".tasks\"\n")
+      (def r (run repo "status"))
+      (check (= 3 (r :status)) (string "exited " (r :status) ": " (r :stderr)))
+      (check (= "" (r :stdout)) "printed on stdout"))))
+
+(test "a named root that does not exist is a failure, exit 2, not no work dir"
+  (fn []
+    (def repo (tmp-dir))
+    (defer (sh/rm repo)
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (def missing (string repo "/missing-root"))
+      (def env (run-with {:env {"DEV_PROC_ROOT" missing}} repo "status"))
+      (check (= 2 (env :status)) (string "DEV_PROC_ROOT exited " (env :status) ": " (env :stderr)))
+      (git-in repo "config" "dev-proc.root" missing)
+      (each args [["status"] ["check"] ["find" "anything"]]
+        (def cfg (run repo ;args))
+        (check (= 2 (cfg :status)) (string "dev-proc.root, " (string/join args " ") " exited " (cfg :status) ": " (cfg :stderr)))))))
+
+(test "a repo whose only root is an out-of-band dev-proc.root has a work dir: check passes, the hook is silent"
+  (fn []
+    (def repo (tmp-dir))
+    (def mine (tmp-dir))
+    (defer (do (sh/rm repo) (sh/rm mine))
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (git-in repo "config" "dev-proc.root" (string mine "/my-work"))
+      (ok (run repo "init"))
+      (def c (run repo "check"))
+      (check (= 0 (c :status)) (c :stderr))
+      (check (string/find "ok (1 root)" (c :stdout)) (c :stdout))
+      (def h (run-with {:env {"DEV_PROC_STRICT" "1"}} repo "check" "--staged" "--hook"))
+      (check (= 0 (h :status)) (h :stderr))
+      (check (= "" (string (h :stdout) (h :stderr))) (string "hook printed: " (h :stdout) (h :stderr))))))
+
+(test "the commit hooks stay silent and exit 0 in a repo with no work dir, strict or not"
+  (fn []
+    (def repo (tmp-dir))
+    (defer (sh/rm repo)
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (def msg (string repo "/msg"))
+      (spit msg "a commit\n")
+      (each strict [nil "1"]
+        (def env (if strict {"DEV_PROC_STRICT" strict} {}))
+        (each args [["check" "--staged" "--hook"] ["check-msg" msg]]
+          (def r (run-with {:env env} repo ;args))
+          (def what (string (string/join args " ") (if strict " (strict)" "")))
+          (check (= 0 (r :status)) (string what " exited " (r :status) ": " (r :stderr)))
+          (check (= "" (string (r :stdout) (r :stderr))) (string what " printed: " (r :stdout) (r :stderr))))))))
 
 (when (> failures 0)
   (eprint failures " test(s) failed")
