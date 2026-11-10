@@ -31,7 +31,7 @@ CHIRP_RELEASE_SIGNING_KEY is a repository secret, so a workflow on any branch ca
 
 
 ## Now
-Review fixes committed; waiting for merge
+Merged; the dry run proved the manual path. The 0.11.0 tag run proves the env secret and the owner's approval.
 
 ## Next
 - Merge, then the owner's first manual dispatch on a branch and first tag (Harvest).
@@ -42,6 +42,7 @@ Review fixes committed; waiting for merge
 - Not provable here: that a job with an empty environment expression runs without an environment; the first manual run on GitHub shows it.
 - Review fixes: a manual run on a tag is a dry run (event_name decides; sim dispatch-on-tag signs with --throwaway and names the artifact dry-run-*). layout.test.janet covers --throwaway, including no private key in the output and no mixing with --pub. sim.sh: dry, dispatch-on-tag, tag ok; tag with a wrong secret fails verifying against release-key.pem.
 - Second review: the signer is built once in main; layout.test.janet, sim.sh (dry, manual on a tag, tag, tag with a wrong secret), leakcheck, skillcheck pass again.
+- Manual dry run 42850689842 on main 235ac89: green; package ran without entering the release environment (no release deployment created), signed with --throwaway, publish attested and skipped the release, close-milestone skipped; artifact dry-run-0.11.0-dev.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -56,3 +57,4 @@ Review fixes committed; waiting for merge
 ## Log
 - 2026-11-10 initialized
 - 2026-11-10 phase initialize → execute
+- 2026-11-10 first manual dispatch green (run 42850689842)
