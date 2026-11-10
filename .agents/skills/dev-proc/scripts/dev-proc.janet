@@ -43,7 +43,6 @@
 (def EXIT-NO-WORK-DIR 3)
 
 (defn- die [msg] (error @{:usage msg}))
-(defn- die-no-work-dir [msg] (error @{:no-work-dir msg}))
 (defn- strict? [] (= "1" (os/getenv "DEV_PROC_STRICT")))
 
 # JS-style string conversion of a front matter value.
@@ -563,6 +562,10 @@
     (or (= dir configured) (not (inside? top dir))) {:dir dir :base top :oob true}
     {:dir dir :base (dirname dir) :oob (ignored? top dir)}))
 
+(defn- die-no-work-dir [ctx]
+  (error @{:no-work-dir (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to "
+                                (if (ctx :git) "the repo root" "/") " — run `dev-proc init`")}))
+
 # Every .work/ root in the repo, honouring .gitignore; includes untracked ones, then the
 # configured root, if any. Outside a git repo, only the root the command runs against: finding the
 # rest would mean walking the tree with git's ignore rules rebuilt by hand.
@@ -586,6 +589,13 @@
   (when (and configured (exists? configured))
     (array/push out (root-desc configured top configured)))
   out)
+
+# The roots a command that needs a work dir reads; a repo with none is "no work dir". The commit hooks
+# pass optional: a repo that does not use dev-proc must never have a commit blocked or noised.
+(defn- required-roots [ctx &opt optional]
+  (def roots (all-roots ctx))
+  (when (and (empty? roots) (not optional)) (die-no-work-dir ctx))
+  roots)
 
 (defn- nearest-root [cwd top]
   (var d cwd)
@@ -1153,7 +1163,7 @@
 (defn- cmd-check [ctx args]
   # The hooks guard what is committed, so they leave out-of-band roots alone.
   (def configured (configured-root ctx))
-  (def roots (filter |(not (and (args "hook") ($ :oob))) (map load-root (all-roots ctx))))
+  (def roots (filter |(not (and (args "hook") ($ :oob))) (map load-root (required-roots ctx (args "hook")))))
   (def errors @[])
   (def warns @[])
   (each root roots
@@ -1214,7 +1224,7 @@
 
   (each w warns (print "warn  " w))
   (each e errors (print "error " e))
-  (when (and (empty? errors) (empty? warns))
+  (when (and (empty? errors) (empty? warns) (not (and (args "hook") (empty? roots))))
     (print "ok (" (length roots) " root" (if (= (length roots) 1) "" "s") ")"))
   (when (and (not (empty? errors)) (or (not (args "hook")) (strict?))) (put ctx :exit EXIT-FAILURE)))
 
@@ -1231,7 +1241,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
   (def kinds @{"decision" true "learning" true})
   (when (args "backlog") (put kinds "backlog" true))
   (def records
-    (seq [d :in (all-roots ctx)
+    (seq [d :in (required-roots ctx)
           r :in ((load-root d) :records)
           :when (and (kinds (r :kind)) (r :id) (r :fm))]
       {:id (r :id) :kind (r :kind) :root (shown (ctx :top) (d :dir))
@@ -1533,8 +1543,9 @@ alone, so uncommitted work is left out (status shows it).`)
                                            range (default: last tag..HEAD)
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
-  exit codes     0 ok; 1 or 2 any other failure; 3 no work dir found from here (nothing on stdout, so
-                 status --json prints nothing). A root you named that does not exist (--root,
+  exit codes     0 ok; 1 or 2 any other failure; 3 no work dir found from here, in a repo with
+                 none too (nothing on stdout, so status --json prints nothing; the commit hooks, check
+                 --staged --hook and check-msg, still exit 0 there). A root you named that does not exist (--root,
                  DEV_PROC_ROOT, dev-proc.root) is a failure, 2: you asked for it, so it is not "no work here"
 
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
@@ -1645,9 +1656,7 @@ alone, so uncommitted work is left out (status shows it).`)
              (die (string (or ((args :from) "root") "--root") " is " dir ", which does not exist — run `dev-proc init`"))
              (and configured (= dir configured))
              (die (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`"))
-             (die-no-work-dir
-               (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to "
-                       (if git-top "the repo root" "/") " — run `dev-proc init`"))))
+             (die-no-work-dir ctx)))
          (root-desc dir top configured)))
   (put ctx :root (fn [] (load-root ((ctx :root-desc)))))
   (f ctx args)

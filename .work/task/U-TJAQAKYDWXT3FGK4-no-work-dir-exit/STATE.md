@@ -34,6 +34,7 @@ Review, then finalize by the owner.
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - dev-proc.test.janet passes with new exit-code tests (3 for no work dir in/out of git; 1 and 2 kept elsewhere)
 - commits 0e4f21d (exit code, tests) and 58c02a7 (help, SKILL.md, CHANGELOG)
+- tests: check/find exit 3 with no work dir; hooks exit 0 silently, strict or not
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -48,3 +49,4 @@ Review, then finalize by the owner.
 - 2026-11-10 phase initialize → execute
 - 2026-11-10 documented in help, SKILL.md and CHANGELOG.md
 - 2026-11-10 review fixes: help wording, named-root rationale, toml/env/config tests
+- 2026-11-10 check and find in a repo with zero roots exit 3 via required-roots; hooks opt out, since a repo that does not use dev-proc must never have a commit blocked or noised

@@ -853,7 +853,8 @@
       (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
       (each [where dir] [["outside a repo" bare] ["in a repo" repo]]
         (each args [["status"] ["status" "--json"] ["status" "--json" "--detail"] ["note" "U-X" "now" "t"]
-                    ["new" "task" "t"] ["phase" "U-X" "execute"] ["record" "backlog" "t"] ["dig" "U-X"]]
+                    ["new" "task" "t"] ["phase" "U-X" "execute"] ["record" "backlog" "t"] ["dig" "U-X"]
+                    ["check"] ["find" "anything"] ["find" "anything" "--json"]]
           (def r (run dir ;args))
           (def what (string where ": " (string/join args " ")))
           (check (= 3 (r :status)) (string what " exited " (r :status)))
@@ -891,6 +892,21 @@
         (git-in dir "config" "dev-proc.root" missing)
         (def cfg (run dir "status"))
         (check (= 2 (cfg :status)) (string "dev-proc.root exited " (cfg :status) ": " (cfg :stderr)))))))
+
+(test "the commit hooks stay silent and exit 0 in a repo with no work dir, strict or not"
+  (fn []
+    (def repo (tmp-dir))
+    (defer (sh/rm repo)
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (def msg (string repo "/msg"))
+      (spit msg "a commit\n")
+      (each strict [nil "1"]
+        (def env (if strict {"DEV_PROC_STRICT" strict} {}))
+        (each args [["check" "--staged" "--hook"] ["check-msg" msg]]
+          (def r (run-with {:env env} repo ;args))
+          (def what (string (string/join args " ") (if strict " (strict)" "")))
+          (check (= 0 (r :status)) (string what " exited " (r :status) ": " (r :stderr)))
+          (check (= "" (string (r :stdout) (r :stderr))) (string what " printed: " (r :stdout) (r :stderr))))))))
 
 (when (> failures 0)
   (eprint failures " test(s) failed")
