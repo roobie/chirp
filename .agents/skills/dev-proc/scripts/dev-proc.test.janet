@@ -19,6 +19,8 @@
 (defn check [ok &opt msg] (unless ok (error (or msg "assertion failed"))))
 (defn matches [pattern text] (check (peg/match pattern text) (string "no match for " (string/format "%q" text))))
 
+(def DEADLINE 60)
+
 # Runs the CLI in `cwd`; returns {:status :stdout :stderr}.
 (defn run-with [opts cwd & args]
   (def old (os/cwd))
@@ -30,7 +32,9 @@
     (when (opts :in)
       (ev/write (p :in) (opts :in))
       (:close (p :in)))
-    (def [o e] (ev/gather (ev/read (p :out) :all) (ev/read (p :err) :all)))
+    # A run that hangs (a fifo opened for reading, say) fails the test instead of the whole suite.
+    (def [o e] (try (ev/with-deadline DEADLINE (ev/gather (ev/read (p :out) :all) (ev/read (p :err) :all)))
+                 ([_] (os/proc-kill p) (error (string "no answer within " DEADLINE "s: " (string/join args " "))))))
     {:status (os/proc-wait p) :stdout (string (or o "")) :stderr (string (or e ""))}))
 
 (defn run [cwd & args] (run-with {} cwd ;args))
@@ -583,10 +587,13 @@
                            ["workdir = \".x\"\n" "unknown key \"workdir\""]
                            ["work_dir = \n" "input is not valid TOML"]]
           (spit file text)
-          (each cmd [["status"] ["check"]]
-            (def r (run dir ;cmd))
-            (check (not= 0 (r :status)) text)
-            (check (string/find (string ".dev-proc.toml: " want) (r :stderr)) (r :stderr))))
+          # a command on one root stops; the sweep reports it and goes on
+          (def r (run dir "status"))
+          (check (not= 0 (r :status)) text)
+          (check (string/find (string ".dev-proc.toml: " want) (r :stderr)) (r :stderr))
+          (def c (run dir "check"))
+          (check (not= 0 (c :status)) text)
+          (check (string/find (string ".dev-proc.toml: " want) (c :stdout)) (c :stdout)))
         (spit file "")
         (check (string/has-prefix? "root: .work\n" ((ok (run dir "status")) :stdout)))))))
 
@@ -844,6 +851,391 @@
         (check (deep= (r "supersedes") @["D-AAAAAAAAAAAAAAAA" "D-BBBBBBBBBBBBBBBB"]))
         (check (= "1, 2" (r "priority")) "a list in a scalar field is joined")
         (check (not (has-key? (find |(string/find "Plain" ($ "title")) ((status-json dir) "records")) "refs")))))))
+
+# ---------- a work dir from a checkout that is not trusted
+
+(defn symlink [target link]
+  (check (= 0 (os/proc-wait (os/spawn ["ln" "-s" target link] :p))) "ln -s failed"))
+
+(defn problems-of [dir]
+  (def j (status-json dir))
+  (array/concat @[] (j "problems") ;(map |($ "problems") (j "units")) ;(map |($ "problems") (j "records"))))
+
+(defn has-problem [dir text]
+  (def all (problems-of dir))
+  (check (find |(string/find text $) all) (string "no problem with " text " in " (string/format "%q" all)))
+  (def c (run dir "check"))
+  (check (not= 0 (c :status)) "check passed")
+  (check (string/find text (c :stdout)) (c :stdout)))
+
+(test "a symlinked STATE.md or record is not read, and shows as a problem"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def outside (string (tmp-dir) "/elsewhere.md"))
+        (defer (sh/rm (string/slice outside 0 (last (string/find-all "/" outside))))
+          (spit outside "---\nphase: execute\n---\n\n# outside\n")
+          (def id (new-id dir "task" "linked"))
+          (def state (unit-file dir "task/linked"))
+          (os/rm state)
+          (symlink outside state)
+          (def rec (record-file dir "decisions" (first (map |($ "id") ((status-json dir) "records")))))
+          (os/rm rec)
+          (symlink outside rec)
+          (has-problem dir "not read: is a symlink")
+          (def j (status-json dir))
+          (def u (find |(= ($ "id") id) (j "units")))
+          (check (= :null (u "phase")) "the unit's front matter was read through the link")
+          (check (find |(= ($ "title") "") (j "records")) "the record's body was read through the link")
+          (check (not= 0 ((run dir "phase" id "finalize" "--force") :status)))
+          (check (not= 0 ((run dir "note" id "log" "more") :status)))
+          (check (= "---\nphase: execute\n---\n\n# outside\n" (string (slurp outside))) "written through the link"))))))
+
+(test "a symlink where a unit, type, or record directory belongs is not followed"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def outside (tmp-dir))
+        (defer (sh/rm outside)
+          (new-id dir "task" "real")
+          (os/mkdir (string outside "/U-AAAAAAAAAAAAAAAA-evil"))
+          (spit (string outside "/U-AAAAAAAAAAAAAAAA-evil/STATE.md") "---\nphase: execute\n---\n\n# evil\n")
+          (symlink (string outside "/U-AAAAAAAAAAAAAAAA-evil") (string dir "/.work/task/U-AAAAAAAAAAAAAAAA-evil"))
+          (symlink outside (string dir "/.work/slice"))
+          (sh/rm (string dir "/.work/learnings"))
+          (symlink outside (string dir "/.work/learnings"))
+          (has-problem dir "task/U-AAAAAAAAAAAAAAAA-evil: is a symlink, not followed")
+          (has-problem dir "slice: is a symlink, not followed")
+          (has-problem dir "learnings: is a symlink, not followed")
+          (def j (status-json dir))
+          (check (= 1 (length (j "units"))) "only the real unit loads")
+          (check (not (find |(= ($ "kind") "learning") (j "records"))))
+          (check (string/find "slice: is a symlink" ((run dir "status") :stdout))))))))
+
+(test "a document over the size cap is not read, one under it is"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (new-id dir "task" "big")
+        (new-id dir "task" "fine")
+        (def pad (fn [n] (string/repeat "x" n)))
+        (def cap 1048576)
+        (defn grow [lbl bytes]
+          (def f (unit-file dir lbl))
+          (spit f (string (slurp f) "\n" (pad (- bytes (length (slurp f)) 1)))))
+        (grow "task/big" (+ cap 1))
+        (grow "task/fine" cap)
+        (has-problem dir "not read: larger than 1 MiB")
+        (def units (get (status-json dir) "units"))
+        (check (= 1 (length (filter |(not (empty? ($ "problems"))) units))) "only the big one")
+        (check (find |(and (= ($ "label") "task/fine") (= ($ "phase") "initialize")) units))))))
+
+(test "a fifo in a document's place is refused without being opened"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (new-id dir "task" "piped")
+        (def state (unit-file dir "task/piped"))
+        (os/rm state)
+        (check (= 0 (os/proc-wait (os/spawn ["mkfifo" state] :p))) "mkfifo failed")
+        (has-problem dir "not read: is a fifo, not a file")))))
+
+(defn repo-with-linked-work [f]
+  (def outside (tmp-dir))
+  (def repo (tmp-dir))
+  (defer (do (sh/rm outside) (sh/rm repo))
+    (check (= 0 ((run outside "init") :status)))
+    (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))))
+    (symlink (string outside "/.work") (string repo "/.work"))
+    (f repo (string outside "/.work"))))
+
+(defn refused [repo want]
+  (def r (run repo "status"))
+  (check (not= 0 (r :status)))
+  (check (string/find want (r :stderr)) (r :stderr))
+  (def c (run repo "check"))
+  (check (not= 0 (c :status)))
+  (check (string/find want (c :stdout)) (c :stdout)))
+
+(test "a work dir found by searching that is a symlink out of the repo is refused"
+  (fn []
+    (repo-with-linked-work
+      (fn [repo outside-work]
+        (refused repo "work dir is a symlink")))))
+
+(test "a work dir the operator names may be outside the repo"
+  (fn []
+    (repo-with-linked-work
+      (fn [repo outside-work]
+        (ok (run repo "status" "--root" outside-work))
+        (ok (run-with {:env {"DEV_PROC_ROOT" outside-work}} repo "status"))
+        (git-in repo "config" "dev-proc.root" outside-work)
+        (ok (run repo "status"))))))
+
+(test "a work dir that is a symlink is refused even inside the repo, or when dangling"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (os/rename (string dir "/.work") (string dir "/store"))
+        (symlink "store" (string dir "/.work"))
+        (refused dir "work dir is a symlink")
+        (os/rm (string dir "/.work"))
+        (symlink "nowhere" (string dir "/.work"))
+        (refused dir "work dir is a symlink")))))
+
+(test "a repo whose only root is refused is reported, not taken for having no work dir"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (os/rename (string dir "/.work") (string dir "/store"))
+        (symlink "store" (string dir "/.work"))
+        (def s (run dir "status"))
+        (check (= 2 (s :status)) (string "a single-root command fails with 2, got " (s :status)))
+        (check (string/find "work dir is a symlink" (s :stderr)) (s :stderr))
+        (def c (run dir "check"))
+        (check (= 1 (c :status)) (string "check exits 1, got " (c :status) ": " (c :stderr)))
+        (check (string/find "work dir is a symlink" (c :stdout)) (c :stdout))
+        (def f (run dir "find" "anything"))
+        (check (not= 3 (f :status)) "find does not call it no work dir")
+        (check (string/find "work dir is a symlink" (f :stderr)) (f :stderr))))))
+
+(test "a committed link to a git-ignored root or to the git dir is not a team root"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (os/mkdir (string dir "/sub"))
+        (spit (string dir "/.git/info/exclude") ".mine\n")
+        (ok (run dir "init" "--root" (string dir "/.mine")))
+        (new-id dir "task" "private" "--root" (string dir "/.mine"))
+        (symlink "../.mine" (string dir "/sub/.work"))
+        (def r (run (string dir "/sub") "status"))
+        (check (not= 0 (r :status)))
+        (check (string/find "work dir is a symlink" (r :stderr)) (r :stderr))
+        (def c (run dir "check"))
+        (check (string/find "sub/.work: work dir is a symlink" (c :stdout)) (c :stdout))
+        (check (not (string/find "private" (c :stdout))) "a private unit showed")
+        (os/rm (string dir "/sub/.work"))
+        (symlink "../.git" (string dir "/sub/.work"))
+        (check (not= 0 ((run (string dir "/sub") "status") :status)))
+        (check (string/find "sub/.work: work dir is a symlink" ((run dir "check") :stdout)))))))
+
+(test "a ignored plain work dir is still a work dir, and a .dev-proc.toml cannot name .git"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (os/mkdir (string dir "/sub"))
+        (spit (string dir "/.git/info/exclude") "sub/.work\n")
+        (ok (run (string dir "/sub") "init"))
+        (check (string/find "(out-of-band)" ((ok (run (string dir "/sub") "status")) :stdout)))
+        (spit (string dir "/.dev-proc.toml") "work_dir = \".git\"\n")
+        (check (string/find "work_dir cannot be .git" ((run dir "status") :stderr)))))))
+
+(test "a linked .dev-proc.toml, dangling or not, is refused and a sweep goes on past it"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def other (tmp-dir))
+        (defer (sh/rm other)
+          (spit (string other "/c.toml") "work_dir = \".x\"\n")
+          (os/mkdir (string dir "/sub"))
+          (new-id dir "task" "fine")
+          (each target [(string other "/c.toml") "missing.toml"]
+            (symlink target (string dir "/sub/.dev-proc.toml"))
+            (def r (run (string dir "/sub") "status"))
+            (check (not= 0 (r :status)))
+            (check (string/find ".dev-proc.toml: not read: is a symlink" (r :stderr)) (r :stderr))
+            (def c (run dir "check"))
+            (check (not= 0 (c :status)))
+            (check (string/find "sub/.dev-proc.toml: not read: is a symlink" (c :stdout)) (c :stdout))
+            (os/rm (string dir "/sub/.dev-proc.toml"))))))))
+
+(defn big-file [path bytes] (spit path (string "---\nstatus: accepted\n---\n\n# big\n" (string/repeat "x" bytes))))
+
+(test "a ref is looked up only in a regular, small file inside the repo"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def outside (tmp-dir))
+        (defer (sh/rm outside)
+          (spit (string dir "/real.rs") "fn foo() {}\n")
+          (spit (string outside "/o.rs") "fn foo() {}\n")
+          (symlink "real.rs" (string dir "/inside.rs"))
+          (symlink (string outside "/o.rs") (string dir "/outside.rs"))
+          (symlink "/dev/zero" (string dir "/zero.rs"))
+          (big-file (string dir "/huge.rs") 1048576)
+          (check (= 0 (os/proc-wait (os/spawn ["mkfifo" (string dir "/pipe.rs")] :p))))
+          (def rec (record-file dir "decisions" (first (map |($ "id") ((status-json dir) "records")))))
+          (defn set-refs [& refs]
+            (spit rec (string "---\nstatus: accepted\ndate: 2026-11-10\nread_if:\n  - x\nrefs:\n"
+                              (string/join (map |(string "  - " $) refs) "\n") "\n---\n\n# A decision\n")))
+          (spit (string dir "/.git/info/exclude") "built.rs\n")
+          (spit (string dir "/built.rs") "fn foo() {}\n")
+          (set-refs "inside.rs#foo" "real.rs#foo")
+          (check (= 0 ((run dir "check") :status)) "links inside the repo are fine")
+          (each [ref want] [["outside.rs#foo" "lies outside the repo"]
+                            ["zero.rs#foo" "lies outside the repo"]
+                            ["pipe.rs#foo" "is a fifo, not a file"]
+                            [".git/config#core" "is git-ignored or in the git dir"]
+                            ["built.rs#foo" "is git-ignored or in the git dir"]
+                            ["huge.rs#foo" "too large to check the symbol"]]
+            (set-refs "real.rs#foo" ref)
+            (def c (run dir "check"))
+            (check (not= 0 (c :status)) ref)
+            (check (string/find want (c :stdout)) (c :stdout))))))))
+
+(test "new, record and rescope write nothing through a linked directory"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def outside (tmp-dir))
+        (defer (sh/rm outside)
+          (def task (new-id dir "task" "mover"))
+          (symlink outside (string dir "/.work/slice"))
+          (sh/rm (string dir "/.work/backlog"))
+          (symlink outside (string dir "/.work/backlog"))
+          (each cmd [["new" "slice" "x" "--owner" "BR"]
+                     ["record" "backlog" "Idea"]
+                     ["rescope" task "--type" "slice"]]
+            (def r (run dir ;cmd))
+            (check (not= 0 (r :status)) (string/join cmd " "))
+            (check (string/find "is a symlink" (r :stderr)) (r :stderr))
+            (check (empty? (os/dir outside)) (string "written through for " (string/join cmd " "))))
+          (check (os/stat (string dir "/.work/task/" (first (os/dir (string dir "/.work/task"))) "/STATE.md"))
+                 "the unit was moved away"))))))
+
+(test "a unit whose STATE.md was refused is not changed half way"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def id (new-id dir "task" "stuck"))
+        (def state (unit-file dir "task/stuck"))
+        (os/rm state)
+        (symlink "nowhere" state)
+        (each cmd [["rescope" id "--name" "moved"] ["note" id "log" "more"] ["phase" id "execute" "--force"]]
+          (def r (run dir ;cmd))
+          (check (not= 0 (r :status)))
+          (check (string/find "cannot be changed: not read: is a symlink" (r :stderr)) (r :stderr)))
+        (check (string/find "-stuck" (first (os/dir (string dir "/.work/task")))) "the folder was renamed")))))
+
+(test "an unreadable file or folder is a problem, not a crash or a missing STATE.md"
+  (fn []
+    # root can read anything, so there is nothing to refuse
+    (when (= "0" (string/trim (sh/exec-slurp "id" "-u"))) (break))
+    (with-repo
+      (fn [dir]
+        (new-id dir "task" "locked")
+        (new-id dir "task" "shut")
+        (def locked (os/dir (string dir "/.work/task")))
+        (def [a b] (let [names (sort locked)] [(string dir "/.work/task/" (names 0)) (string dir "/.work/task/" (names 1))]))
+        (defer (do (os/chmod (string a "/STATE.md") 8r644) (os/chmod b 8r755))
+          (os/chmod (string a "/STATE.md") 0)
+          (os/chmod b 8r644)
+          (def c (run dir "check"))
+          (check (string/find "not read: cannot be opened" (c :stdout)) (c :stdout))
+          (check (string/find "not read: cannot be read" (c :stdout)) (c :stdout))
+          (check (not (string/find "missing STATE.md" (c :stdout))) (c :stdout)))))))
+
+(test "an oversize record is a problem on that record"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (big-file (string dir "/.work/decisions/D-AAAAAAAAAAAAAAAA-big.md") 1048576)
+        (def c (run dir "check"))
+        (check (string/find "D-AAAAAAAAAAAAAAAA-big.md: not read: larger than 1 MiB" (c :stdout)) (c :stdout))))))
+
+(test "the documents one command reads may use only so many bytes between them"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (for i 0 66
+          (big-file (string dir "/.work/decisions/D-AAAAAAAAAAAAA" (string/format "%c%c%c" (+ 65 (div i 26)) (+ 65 (% i 26)) 65) "-b.md")
+                    1048000))
+        (def c (run dir "check"))
+        (check (string/find "past the 64 MiB one command may read" (c :stdout)) (c :stdout))))))
+
+(test "dig does not follow a link inside closed/"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def mine (tmp-dir))
+        (defer (sh/rm mine)
+          (def root (string mine "/w"))
+          (git-in dir "config" "dev-proc.root" root)
+          (ok (run dir "init"))
+          (def [task _] (close-and-supersede dir))
+          (ok (run dir "close" task))
+          (symlink ".." (string root "/closed/loop"))
+          (check (string/find "# task/private" ((ok (run dir "dig" task)) :stdout))))))))
+
+(test "new --from keeps the backlog item when the folder cannot be made"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def outside (tmp-dir))
+        (defer (sh/rm outside)
+          (def item (string/trim ((ok (run dir "record" "backlog" "Idea" "--id")) :stdout)))
+          (symlink outside (string dir "/.work/wave"))
+          (def r (run dir "new" "wave" "w" "--from" item "--owner" "BR"))
+          (check (not= 0 (r :status)))
+          (check (string/find ".work/wave: is a symlink" (r :stderr)) (r :stderr))
+          (check (os/stat (record-file dir "backlog" item)) "the item was deleted")
+          (check (empty? (os/dir outside))))))))
+
+(test "record --supersedes writes nothing when closed/ is a link"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def mine (tmp-dir))
+        (def outside (tmp-dir))
+        (defer (do (sh/rm mine) (sh/rm outside))
+          (def root (string mine "/w"))
+          (git-in dir "config" "dev-proc.root" root)
+          (ok (run dir "init"))
+          (def old (string/trim ((ok (run dir "record" "decision" "Old call" "--read-if" "x" "--id")) :stdout)))
+          (symlink outside (string root "/closed"))
+          (def r (run dir "record" "decision" "New call" "--read-if" "x" "--supersedes" old))
+          (check (not= 0 (r :status)))
+          (check (= 1 (length (os/dir (string root "/decisions")))) "a record was written or lost")
+          (check (empty? (os/dir outside))))))))
+
+(test "the byte budget is one per command, not one per root"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (os/mkdir (string dir "/sub"))
+        (ok (run (string dir "/sub") "init"))
+        (os/mkdir (string dir "/sub/.work/decisions"))
+        (each work [".work" "sub/.work"]
+          (for i 0 34
+            (big-file (string dir "/" work "/decisions/D-AAAAAAAAAAAAAAA" (string/format "%c" (+ 65 i)) "-b.md") 1048000)))
+        (def c (run dir "check"))
+        (check (string/find "past the 64 MiB one command may read" (c :stdout)) (c :stdout))))))
+
+(def MIB-BYTES (* 1024 1024))
+
+(defn dir-bytes [dir]
+  (sum (seq [f :in (os/dir dir)] (or (os/stat (string dir "/" f) :size) 0))))
+
+# The new unit is read back to run its gate. Re-reading the whole root would charge every document
+# twice, so a root past half the budget must still leave the new unit readable.
+(test "new --execute does not read the whole work dir a second time"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def records (+ (dir-bytes (string dir "/.work/decisions")) (dir-bytes (string dir "/.work/learnings"))))
+        (os/mkdir (string dir "/.work/project"))
+        (defn big-unit [name bytes]
+          (def udir (string dir "/.work/project/U-AAAAAAAAAAAAAA" name "-big"))
+          (os/mkdir udir)
+          (big-file (string udir "/STATE.md") (- bytes 32)))
+        # Units are read before records and before the new one. 62 of exactly 1 MiB, then a last one sized
+        # to leave 1 MiB and 100 bytes after the first load: a second pass over the root takes one of the
+        # big ones and leaves the new unit 100 bytes, which is not enough.
+        (for i 0 62 (big-unit (string/format "%02d" i) MIB-BYTES))
+        (big-unit "zz" (- MIB-BYTES records 100))
+        (def r (run dir "new" "task" "big" "--execute" "--owner" "me" "--criterion" "done" "--json"))
+        (check (= 0 (r :status)) (r :stderr))
+        (check (string/find "\"phase\": \"execute\"" (string (r :stdout))) (r :stdout))))))
 
 (test "a command that needs a work dir exits 3 with nothing on stdout where there is none, in a repo or not"
   (fn []
