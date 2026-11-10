@@ -119,6 +119,37 @@
 
 (defn- read-file [p] (string (slurp p)))
 
+# The largest document read from a work dir, in bytes. A constant on purpose: a checkout that is not
+# trusted must not be able to raise it.
+(def MAX-DOC-BYTES (* 1024 1024))
+
+# The one way a document of a work dir is read. A work dir may come from a checkout nobody vetted, so
+# a symlink would show what is outside it, and a huge or endless file (/dev/zero, a fifo) would exhaust
+# memory or hang. It raises "not read: …" for those, so a loader reports it as a problem. The kind is
+# taken with lstat before anything is opened; the read is capped as well, for a file that grows.
+(defn- read-doc [p]
+  (def st (os/lstat p))
+  (def limit (string "larger than " (div MAX-DOC-BYTES 1024) " KiB"))
+  (cond
+    (nil? st) (error "not read: no such file")
+    (= (st :mode) :link) (error "not read: is a symlink")
+    (not= (st :mode) :file) (error (string "not read: is a " (st :mode) ", not a file"))
+    (> (st :size) MAX-DOC-BYTES) (error (string "not read: " limit)))
+  (def f (file/open p :rb))
+  (defer (file/close f)
+    (def text (or (file/read f (+ MAX-DOC-BYTES 1)) ""))
+    (when (> (length text) MAX-DOC-BYTES) (error (string "not read: " limit)))
+    (string text)))
+
+# Rewrites a document read with read-doc, which spit would do through a symlink to wherever it leads.
+(defn- write-doc [p text]
+  (read-doc p)
+  (spit p text))
+
+# How the loader may enter a path: :dir, :link (never followed), or nil for anything else or nothing.
+(defn- entry-kind [p]
+  (case (os/lstat p :mode) :directory :dir :link :link))
+
 # ---------- git
 
 # Exit code and stdout; stderr is swallowed, as in the Node original.
@@ -419,7 +450,7 @@
 
 # Log is the last section of STATE.md by convention, so appending to the file appends to it.
 (defn- append-log [file line]
-  (def text (read-file file))
+  (def text (read-doc file))
   (var e (length text))
   (while (and (> e 0) (fm/ws? (text (- e 1)))) (-- e))
   (spit file (string (string/slice text 0 e) "\n- " (today) " " line "\n")))
@@ -429,15 +460,23 @@
 # A root is described by {:dir :base :oob}. :base is the project dir its refs resolve against and
 # whose files it owns in commits. An out-of-band (:oob) root is one person's own: it sits outside the
 # repo or is git-ignored, and the commit hooks and trailers never ask for it or name it.
+# What the root itself has wrong (a link where a directory belongs, a work dir leading out of the repo)
+# is in its :problems, for check and status to report: it belongs to no unit or record.
 (defn- load-root [desc]
   (def dir (desc :dir))
   (def units @[])
-  (each type TYPES
-    (def tdir (pjoin dir type))
-    (when (exists? tdir)
+  (def records @[])
+  (def root @{:dir dir :base (desc :base) :oob (desc :oob) :units units :records records
+              :problems (if (desc :escape) @[(desc :escape)] @[])})
+  # A directory to descend into, or nil; a symlink is reported and left alone.
+  (defn enter [path what]
+    (case (entry-kind path)
+      :dir path
+      :link (do (array/push (root :problems) (string what ": is a symlink, not followed")) nil)))
+  (each type (if (desc :escape) [] TYPES)
+    (when-let [tdir (enter (pjoin dir type) type)]
       (each entry (sort (os/dir tdir))
-        (def udir (pjoin tdir entry))
-        (when (dir? udir)
+        (when-let [udir (enter (pjoin tdir entry) (string type "/" entry))]
           (def state-path (pjoin udir "STATE.md"))
           (def m (peg/match unit-dir-peg entry))
           (def name (if m (m 1) entry))
@@ -445,19 +484,17 @@
           (def u @{:id (if m (m 0) entry) :label (string type "/" name) :type type :name name
                    :dir udir :state-path state-path :body "" :problems problems})
           (unless m (array/push problems (string "directory \"" entry "\" must be U-<16 base32 chars>-<kebab-name>")))
-          (if (not (exists? state-path))
+          (if (not (os/lstat state-path))
             (array/push problems "missing STATE.md")
-            (let [[ok d] (protect (fm/parse-doc (read-file state-path)))]
+            (let [[ok d] (protect (fm/parse-doc (read-doc state-path)))]
               (if ok
                 (do (put u :fm (d :fm)) (put u :body (d :body))
                     (unless (d :fm) (array/push problems "STATE.md has no front matter")))
                 (array/push problems (string d)))))
           (array/push units u)))))
-  (def records @[])
-  (each kind RECORD-KINDS
+  (each kind (if (desc :escape) [] RECORD-KINDS)
     (def spec (RECORDS kind))
-    (def rdir (pjoin dir (spec :dir)))
-    (when (exists? rdir)
+    (when-let [rdir (enter (pjoin dir (spec :dir)) (spec :dir))]
       (each f (sort (os/dir rdir))
         (when (string/has-suffix? ".md" f)
           (def file (pjoin rdir f))
@@ -467,13 +504,13 @@
           (def r @{:kind kind :spec spec :file file :id id :body "" :problems problems})
           (when (or (not id) (not= (string/slice id 0 1) (spec :prefix)))
             (array/push problems (string "filename must start with " (spec :prefix) "-<16 base32 chars>-")))
-          (let [[ok d] (protect (fm/parse-doc (read-file file)))]
+          (let [[ok d] (protect (fm/parse-doc (read-doc file)))]
             (if ok
               (do (put r :fm (d :fm)) (put r :body (d :body))
                   (unless (d :fm) (array/push problems "no front matter")))
               (array/push problems (string d))))
           (array/push records r)))))
-  @{:dir dir :base (desc :base) :oob (desc :oob) :units units :records records})
+  root)
 
 (defn- parent-of [u]
   (def p (fm/fm-get (u :fm) "parent"))
@@ -530,7 +567,7 @@
 
 (defn- read-config [top file]
   (def where (shown top file))
-  (def [ok cfg] (protect (tomlin/toml->janet (read-file file))))
+  (def [ok cfg] (protect (tomlin/toml->janet (read-doc file))))
   (unless ok (die (string where ": " cfg)))
   (each k (keys cfg)
     (unless (= (string k) "work_dir") (die (string where ": unknown key \"" k "\"; the only one is work_dir"))))
@@ -552,10 +589,22 @@
         DEFAULT-WORK)
     (read-config top file)))
 
-(defn- root-desc [dir top configured]
+# Why a work dir the repo names, as opposed to one the operator chose, may not be used: it is a
+# link whose target lies outside the repo, so a checkout would decide what dev-proc reads.
+(defn- escape-of [top dir]
+  (def real (os/realpath dir))
+  (def real-top (os/realpath top))
+  (unless (and real real-top (inside? real-top real))
+    (string "work dir leads outside the repo (to " (or real "nowhere") "), so it is not read;"
+            " name it with --root, DEV_PROC_ROOT or dev-proc.root if that is meant")))
+
+# `named` is a root the operator chose (--root, DEV_PROC_ROOT, dev-proc.root); `confine` is false when
+# there is no repo top to keep a root inside.
+(defn- root-desc [dir top configured &opt named confine]
   (cond
     (or (= dir configured) (not (inside? top dir))) {:dir dir :base top :oob true}
-    {:dir dir :base (dirname dir) :oob (ignored? top dir)}))
+    {:dir dir :base (dirname dir) :oob (ignored? top dir)
+     :escape (when (and confine (not named)) (escape-of top dir))}))
 
 # Every .work/ root in the repo, honouring .gitignore; includes untracked ones, then the
 # configured root, if any. Outside a git repo, only the root the command runs against: finding the
@@ -575,7 +624,7 @@
     (when-let [i (index-of DEFAULT-WORK segs)]
       (def d (pjoin top ;(slice segs 0 i)))
       (when (= DEFAULT-WORK (name-of d)) (put roots (pjoin d DEFAULT-WORK) true))))
-  (def out (map |(root-desc $ top configured)
+  (def out (map |(root-desc $ top configured false true)
                 (sort (filter |(and (exists? $) (not= $ configured)) (keys roots)))))
   (when (and configured (exists? configured))
     (array/push out (root-desc configured top configured)))
@@ -810,9 +859,11 @@
                                  "awaiting" (fm-string front "awaiting")
                                  ;(if (args "detail") (unit-detail u) [])))
                          units)
-            "records" (map |(record-json $ (args "detail")) (root :records))))
+            "records" (map |(record-json $ (args "detail")) (root :records))
+            "problems" (root :problems)))
     (do
       (print "root: " (shown (ctx :top) (root :dir)) (if (root :oob) "  (out-of-band)" ""))
+      (each p (root :problems) (print "  ⚠ " p))
       (when (empty? units) (print "mode: idle — no active units (curate the backlog, or `new`)"))
       (def ids (tabseq [u :in units] (u :id) true))
       (defn walk [u depth]
@@ -870,7 +921,7 @@
       (when (and (not (empty? problems)) (not force))
         (die (string "gate → " to " closed:\n  ✗ " (string/join problems "\n  ✗ ")
                      "\n(--force to override, and say why in the Log)")))
-      (spit (u :state-path) (dump-doc (fm-set (u :fm) "phase" to) (u :body)))
+      (write-doc (u :state-path) (dump-doc (fm-set (u :fm) "phase" to) (u :body)))
       (append-log (u :state-path)
                   (string "phase " (jstr from) " → " to
                           (if (and force (not (empty? problems))) " (forced)" "")))
@@ -963,7 +1014,7 @@
   (need-section (u :body) heading)
   (case sec
     "log" (append-log (u :state-path) text)
-    (spit (u :state-path)
+    (write-doc (u :state-path)
           (dump-doc (u :fm)
                     (case sec
                       "evidence" (append-to-section (u :body) heading (string "- " text))
@@ -1000,7 +1051,7 @@
       (if i
         (string (string/slice body 0 i) "# " lbl (string/slice body (eol body i)))
         body)))
-  (spit state-path (dump-doc (fm-set (u :fm) "parent" parent) new-body))
+  (write-doc state-path (dump-doc (fm-set (u :fm) "parent" parent) new-body))
   # JS compares undefined (no parent) with null (none stored), so an absent parent always differs.
   (def old-parent (parent-of u))
   (append-log state-path
@@ -1161,6 +1212,7 @@
     (when (and (root :oob) (inside? (ctx :top) (root :dir)) (not (ignored? (ctx :top) (root :dir))))
       (array/push warns (string where ": out-of-band root is inside the repo but not git-ignored, so its files"
                                 " would be committed; add it to .git/info/exclude")))
+    (each p (root :problems) (array/push errors (string where ": " p)))
     (each u (root :units)
       (def at (string where "/" (u :label) " " (u :id)))
       (each p (u :problems) (array/push errors (string at ": " p)))
@@ -1314,7 +1366,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
          (shown (ctx :top) closed) "/:\n")
   (each f hits
     (print "===== " (shown (ctx :top) f))
-    (print (read-file f))))
+    (print (read-doc f))))
 
 (defn- cmd-dig [ctx args]
   (def id (or (first (args :pos)) (die "usage: dig <U-… | D-… | L-… | B-…>")))
@@ -1638,7 +1690,10 @@ alone, so uncommitted work is left out (status shows it).`)
                   git-top
                   (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to the repo root — run `dev-proc init`")
                   (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to / — run `dev-proc init`"))))
-         (root-desc dir top configured)))
+         (def named (or (some-str (args "root")) (and configured (= dir configured))))
+         (def desc (root-desc dir top configured named git-top))
+         (when (desc :escape) (die (string (shown top dir) ": " (desc :escape))))
+         desc))
   (put ctx :root (fn [] (load-root ((ctx :root-desc)))))
   (f ctx args)
   (ctx :exit))

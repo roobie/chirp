@@ -27,13 +27,14 @@ Roots named by the operator (--root, DEV_PROC_ROOT, dev-proc.root) stay exempt f
 
 
 ## Now
-Writing the loader helper and tests.
+Implemented and tested; awaiting review.
 
 ## Next
-- Tests, docs, changelog
+- Owner: judge the 1 MiB cap; review; finalize
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- dev-proc, find, frontmatter tests pass; new tests cover symlinked STATE.md and record, symlinked unit/type/record dirs, oversize (cap+1 refused, cap accepted), fifo, .work leading outside refused, explicit --root/DEV_PROC_ROOT/dev-proc.root accepted, in-repo .work link accepted. D-JYZH36C56HAGEIHI records the design.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -42,6 +43,7 @@ Writing the loader helper and tests.
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] backlog: check-ref reads a ref's source file whole and through links (needed for symbol lookup); bound it for untrusted checkouts without breaking linked skill dirs
 
 ## Log
 - 2026-11-10 initialized

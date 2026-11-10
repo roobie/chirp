@@ -17,6 +17,10 @@ Released 2026-11-10.
 
 - `chirp --self-update --force` now installs a signed build of the same version as the running chirp, and `--output` saves a signed build whether or not it is newer. `--force` still refuses an older build, with a message, so it cannot downgrade chirp. Without either flag an older or equal build is left alone, and the signature and checksum checks are unchanged.
 
+### Changed
+
+- dev-proc no longer trusts what a checkout's work dir links to or holds, so it can be pointed at checkouts you have not vetted. A unit's `STATE.md`, a record, or a directory it descends into (`task/`, a unit folder, `backlog/`, `decisions/`, `learnings/`) that is a symlink is not followed; a document over 1 MiB, or one that is a fifo or device, is not read. Each is reported as a problem by `check`, `status`, and the `problems` field of `status --json` (which now also has a top-level `problems` array for the root), instead of its target appearing as a unit or record. A team `.work` (or `.dev-proc.toml` work dir) found by searching upward whose real path lies outside the repo is refused with an error; `--root`, `DEV_PROC_ROOT` and `dev-proc.root` are your own choice and still work, and nothing changes outside a git repo. The 1 MiB cap is fixed and cannot be raised from the checkout. Commands that rewrite a unit's `STATE.md` refuse a symlink instead of writing through it.
+
 ## 0.10.0
 
 Released 2026-11-09.
