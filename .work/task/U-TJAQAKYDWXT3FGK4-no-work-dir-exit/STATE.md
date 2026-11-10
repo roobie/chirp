@@ -52,3 +52,4 @@ Review, then finalize by the owner.
 - 2026-11-10 check and find in a repo with zero roots exit 3 via required-roots; hooks opt out, since a repo that does not use dev-proc must never have a commit blocked or noised
 - 2026-11-10 re-review: missing dev-proc.root is exit 2 for check and find too (shared die-missing-root); check and find say what was searched
 - 2026-11-10 rebased onto 0.11.0; changelog entries moved under Unreleased
+- 2026-11-10 exit 4 (EXIT-NOT-FOUND) for a well-formed unit or record ref that resolves to nothing, raised in find-unit and find-record; malformed or ambiguous stays 2

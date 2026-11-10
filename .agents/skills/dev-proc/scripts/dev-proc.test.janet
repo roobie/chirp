@@ -861,12 +861,43 @@
           (check (= "" (r :stdout)) (string what " printed on stdout"))
           (check (string/find "no work dir" (r :stderr)) (string what ": " (r :stderr))))))))
 
+(test "a reference that names nothing active exits 4, with nothing on stdout; a malformed or ambiguous one exits 2"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def unit "U-AAAAAAAAAAAAAAAA")
+        (def gone "D-AAAAAAAAAAAAAAAA")
+        (def real (new-id dir "task" "real" "--execute"))
+        (defn exits [code what & args]
+          (def r (run dir ;args))
+          (check (= code (r :status)) (string what ": exited " (r :status) ", wanted " code ": " (r :stderr)))
+          (check (= "" (r :stdout)) (string what ": printed on stdout")))
+        (each [what args]
+              [["status by id" ["status" unit]] ["status by label" ["status" "task/none"]]
+               ["status of a record" ["status" gone]] ["status --json" ["status" unit "--json"]]
+               ["note" ["note" unit "now" "x"]] ["note by label" ["note" "task/none" "now" "x"]]
+               ["phase" ["phase" unit "execute"]] ["rescope" ["rescope" unit "--name" "x"]]
+               ["rescope --parent" ["rescope" real "--parent" unit]]
+               ["close" ["close" unit]] ["close --decision" ["close" real "--scrap" "--decision" gone]]
+               ["new --parent" ["new" "task" "child" "--parent" unit]]
+               ["new --from" ["new" "task" "child" "--from" "B-AAAAAAAAAAAAAAAA"]]
+               ["record --supersedes" ["record" "decision" "Newer" "--supersedes" gone]]]
+          (exits 4 what ;args))
+        (each [what args]
+              [["status, malformed id" ["status" "U-short"]] ["status, a bare word" ["status" "nothing"]]
+               ["note, malformed id" ["note" "U-short" "now" "x"]]
+               ["new --parent, malformed" ["new" "task" "child" "--parent" "U-short"]]
+               ["record --supersedes, malformed" ["record" "decision" "Newer" "--supersedes" "D-short"]]]
+          (exits 2 what ;args))
+        # Two units with one label, as a merge of two branches can leave.
+        (check (= 0 (os/execute ["cp" "-r" (string dir "/.work/task/" real "-real") (string dir "/.work/task/U-BBBBBBBBBBBBBBBB-real")] :p)))
+        (exits 2 "ambiguous label" "status" "task/real")))))
+
 (test "failures other than a missing work dir keep their exit codes"
   (fn []
     (with-repo
       (fn [dir]
-        (check (= 2 ((run dir "status" "U-AAAAAAAAAAAAAAAA") :status)) "unknown unit")
-        (check (= 0 ((run dir "record" "decision" "Dangling" "--read-if" "x" "--ref" "no/such/path#sym") :status)) "recording the dangling ref")
+                (check (= 0 ((run dir "record" "decision" "Dangling" "--read-if" "x" "--ref" "no/such/path#sym") :status)) "recording the dangling ref")
         (check (= 1 ((run dir "check") :status)) "check finding errors")
         (check (= 2 ((run dir "frobnicate") :status)) "unknown command")
         (check (= 2 ((run dir "note" "x") :status)) "bad arguments")

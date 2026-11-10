@@ -41,6 +41,7 @@
 (def EXIT-FAILURE 1)
 (def EXIT-USAGE 2)
 (def EXIT-NO-WORK-DIR 3)
+(def EXIT-NOT-FOUND 4)
 
 (defn- die [msg] (error @{:usage msg}))
 (defn- strict? [] (= "1" (os/getenv "DEV_PROC_STRICT")))
@@ -486,16 +487,28 @@
 
 (defn- children-of [root id] (filter |(= (parent-of $) id) (root :units)))
 
+# A well-formed reference that names nothing active exits EXIT-NOT-FOUND, so a viewer can tell a unit
+# closed meanwhile from a failure. A malformed or ambiguous one is a usage error.
+(defn- die-not-found [msg] (error @{:not-found msg}))
+
 # Accepts a unit id (U-…) or, as a convenience, its type/name label.
 (defn- find-unit [root ref]
-  (or (find |(or (= ($ :id) ref) (= ($ :label) ref)) (root :units))
-      (die (string "no active unit \"" (jstr ref) "\" in " (root :dir)))))
+  (def hits (filter |(or (= ($ :id) ref) (= ($ :label) ref)) (root :units)))
+  (def missing (string "no active unit \"" (jstr ref) "\" in " (root :dir)))
+  (cond
+    (> (length hits) 1) (die (string "\"" (jstr ref) "\" names " (length hits) " units in " (root :dir) "; use an id"))
+    (first hits) (first hits)
+    (and (string? ref) (or (peg/match unit-id-peg ref) (string/find "/" ref))) (die-not-found missing)
+    (die missing)))
 
 (defn- show [u] (string (u :id) " " (u :label)))
 
 (defn- find-record [root id]
-  (or (when id (find |(= ($ :id) id) (root :records)))
-      (die (string "no record \"" (jstr id) "\" in " (root :dir)))))
+  (def missing (string "no record \"" (jstr id) "\" in " (root :dir)))
+  (cond
+    (and id (find |(= ($ :id) id) (root :records))) (find |(= ($ :id) id) (root :records))
+    (and (string? id) (peg/match record-id-peg id)) (die-not-found missing)
+    (die missing)))
 
 # The person's own root, from `git config dev-proc.root`: clone-local (or global) git config, so it
 # never lands in the repo. A relative path is taken from the repo top; git expands a leading ~.
@@ -1037,6 +1050,7 @@
 (defn- cmd-close [ctx args]
   (def root ((ctx :root)))
   (def u (find-unit root (first (args :pos))))
+  (when (and (args "scrap") (some-str (args "decision"))) (find-record root (args "decision")))
   (def problems (gate-problems root u "closed"))
   (when (args "scrap")
     (cond
@@ -1553,9 +1567,12 @@ alone, so uncommitted work is left out (status shows it).`)
 
   exit codes     0 ok; 3 no work dir found (nothing on stdout, so status --json prints nothing; in a
                  repo with none, check and find exit 3 too, while the commit hooks, check --staged
-                 --hook and check-msg, still exit 0); 1 or 2 any other failure. A root you named that
-                 does not exist (--root, DEV_PROC_ROOT, dev-proc.root) is a failure, 2: you asked for
-                 it, so it is not "no work here"
+                 --hook and check-msg, still exit 0); 4 a unit or record you named (by id or label,
+                 as an argument, --parent, --from or --supersedes) is not active: a viewer can tell a
+                 unit closed meanwhile from a failure; 1 or 2 any other failure, a malformed id or an
+                 ambiguous label included. A root you named that does not exist (--root,
+                 DEV_PROC_ROOT, dev-proc.root) is a failure, 2: you asked for it, so it is not
+                 "no work here"
 
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
   DEV_PROC_ROOT=<abs dir>   the default for --root, so a directory can pin its work dir (e.g. an
@@ -1676,6 +1693,7 @@ alone, so uncommitted work is left out (status shows it).`)
         (cond
           (and (table? e) (e :usage)) (do (eprint "dev-proc: " (e :usage)) EXIT-USAGE)
           (and (table? e) (e :no-work-dir)) (do (eprint "dev-proc: " (e :no-work-dir)) EXIT-NO-WORK-DIR)
+          (and (table? e) (e :not-found)) (do (eprint "dev-proc: " (e :not-found)) EXIT-NOT-FOUND)
           (do (eprint "dev-proc: " (string e)) EXIT-FAILURE)))))
   (file/flush stdout)
   (unless (= code 0) (os/exit code)))
