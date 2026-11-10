@@ -28,11 +28,12 @@ Codes in use: 1 failure, 2 usage error. Nothing else is distinct, so 3 is the lo
 Review, then finalize by the owner.
 
 ## Next
-- Docs, then review.
+- Owner finalizes after review.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - dev-proc.test.janet passes with new exit-code tests (3 for no work dir in/out of git; 1 and 2 kept elsewhere)
+- commits 0e4f21d (exit code, tests) and 58c02a7 (help, SKILL.md, CHANGELOG)
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -46,3 +47,4 @@ Review, then finalize by the owner.
 - 2026-11-10 initialized
 - 2026-11-10 phase initialize → execute
 - 2026-11-10 documented in help, SKILL.md and CHANGELOG.md
+- 2026-11-10 review fixes: help wording, named-root rationale, toml/env/config tests

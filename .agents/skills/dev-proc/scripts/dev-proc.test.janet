@@ -865,11 +865,32 @@
     (with-repo
       (fn [dir]
         (check (= 2 ((run dir "status" "U-AAAAAAAAAAAAAAAA") :status)) "unknown unit")
-        (check (= 0 ((run dir "record" "decision" "Dangling" "--read-if" "x" "--ref" "no/such/path#sym") :status)))
+        (check (= 0 ((run dir "record" "decision" "Dangling" "--read-if" "x" "--ref" "no/such/path#sym") :status)) "recording the dangling ref")
         (check (= 1 ((run dir "check") :status)) "check finding errors")
         (check (= 2 ((run dir "frobnicate") :status)) "unknown command")
         (check (= 2 ((run dir "note" "x") :status)) "bad arguments")
         (check (= 2 ((run dir "--root" (string dir "/missing") "status") :status)) "--root that does not exist")))))
+
+(test ".dev-proc.toml naming a missing work_dir is no work dir, exit 3"
+  (fn []
+    (def repo (tmp-dir))
+    (defer (sh/rm repo)
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (spit (string repo "/.dev-proc.toml") "work_dir = \".tasks\"\n")
+      (def r (run repo "status"))
+      (check (= 3 (r :status)) (string "exited " (r :status) ": " (r :stderr)))
+      (check (= "" (r :stdout)) "printed on stdout"))))
+
+(test "a named root that does not exist is a failure, exit 2, not no work dir"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def missing (string dir "/missing-root"))
+        (def env (run-with {:env {"DEV_PROC_ROOT" missing}} dir "status"))
+        (check (= 2 (env :status)) (string "DEV_PROC_ROOT exited " (env :status) ": " (env :stderr)))
+        (git-in dir "config" "dev-proc.root" missing)
+        (def cfg (run dir "status"))
+        (check (= 2 (cfg :status)) (string "dev-proc.root exited " (cfg :status) ": " (cfg :stderr)))))))
 
 (when (> failures 0)
   (eprint failures " test(s) failed")

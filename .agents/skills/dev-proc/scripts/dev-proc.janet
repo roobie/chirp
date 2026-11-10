@@ -1533,8 +1533,9 @@ alone, so uncommitted work is left out (status shows it).`)
                                            range (default: last tag..HEAD)
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
-  exit codes     0 ok; 1 failure (check found errors, or any other error); 2 usage error; 3 no work dir
-                 found from here (nothing on stdout, so status --json prints nothing)
+  exit codes     0 ok; 1 or 2 any other failure; 3 no work dir found from here (nothing on stdout, so
+                 status --json prints nothing). A root you named that does not exist (--root,
+                 DEV_PROC_ROOT, dev-proc.root) is a failure, 2: you asked for it, so it is not "no work here"
 
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
   DEV_PROC_ROOT=<abs dir>   the default for --root, so a directory can pin its work dir (e.g. an
