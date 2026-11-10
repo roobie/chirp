@@ -1,24 +1,35 @@
 # Sign or verify a release's SHA256SUMS with Ed25519, using chirp's own jsec so
 # the release is signed by the code it ships. The private key comes only from
 # the environment, so it is never an argument or a file in the workspace.
-#   chirp sign.janet sign   <sums> <sig-out>      (key in CHIRP_RELEASE_SIGNING_KEY)
+#   chirp sign.janet sign   <sums> <sig-out> [--key-env NAME]
+#       (the key is in the variable NAME, CHIRP_RELEASE_SIGNING_KEY by default)
 #   chirp sign.janet verify <sums> <sig> <public-key.pem>
 (import jsec/crypto)
 
-(defn main [_ mode sums sig & rest]
-  (def data (slurp sums))
-  (case mode
-    "sign"
-    (do
-      (def key (os/getenv "CHIRP_RELEASE_SIGNING_KEY"))
-      (unless (and key (not (empty? key))) (error "CHIRP_RELEASE_SIGNING_KEY is not set"))
-      (spit sig (crypto/sign key data)))
+(def default-key-env "CHIRP_RELEASE_SIGNING_KEY")
 
-    "verify"
-    (do
-      (def [pub] rest)
-      (unless pub (error "verify needs the public key file"))
-      (unless (crypto/verify (slurp pub) data (slurp sig))
-        (error (string sig " does not verify against " pub))))
+(defn sign
+  "Writes the signature of the file `sums` to `sig`, with the private key in the
+  environment variable `key-env`."
+  [sums sig &opt key-env]
+  (default key-env default-key-env)
+  (def key (os/getenv key-env))
+  (unless (and key (not (empty? key))) (error (string key-env " is not set")))
+  (spit sig (crypto/sign key (slurp sums))))
 
-    (error (string "unknown mode " mode))))
+(defn verify
+  "Errors unless `sig` is a signature of the file `sums` by the public key in `pub`."
+  [sums sig pub]
+  (unless (crypto/verify (slurp pub) (slurp sums) (slurp sig))
+    (error (string sig " does not verify against " pub))))
+
+(def- usage
+  (string "usage: sign.janet sign <sums> <sig-out> [--key-env NAME] | verify <sums> <sig> <public-key.pem>"))
+
+(defn main [_ & args]
+  (def [mode sums sig third fourth] args)
+  (case [mode (length args)]
+    ["sign" 3] (sign sums sig)
+    ["sign" 5] (if (= third "--key-env") (sign sums sig fourth) (error usage))
+    ["verify" 4] (verify sums sig third)
+    (error usage)))

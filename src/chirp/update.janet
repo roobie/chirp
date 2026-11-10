@@ -11,7 +11,10 @@
 (defn- hex [bytes]
   (string/format (string/repeat "%02x" (length bytes)) ;(string/bytes bytes)))
 
-(defn- sha256-hex [data] (hex (crypto/digest :sha256 data)))
+(defn sha256-hex
+  "Lowercase hex sha256 of a string or buffer."
+  [data]
+  (hex (crypto/digest :sha256 data)))
 
 # Versions ----------------------------------------------------------------
 
