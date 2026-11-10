@@ -666,6 +666,134 @@
         (check (string/find "decisions +2  learnings +1" ((ok (run dir "report")) :stdout)))
         (check (string/find "is it a range" ((run dir "report" "nope..HEAD") :stderr)))))))
 
+# Adds a front matter line to a work file.
+(defn add-front [file line]
+  (spit file (string/replace "---\n" (string "---\n" line "\n") (string (slurp file)))))
+
+(defn status-json [dir & args]
+  (def r (run dir "status" ;args "--json"))
+  (check (= 0 (r :status)) (r :stderr))
+  (json/decode (r :stdout)))
+
+(defn before? [text a b]
+  (def i (string/find a text))
+  (def j (string/find b text))
+  (and i j (< i j)))
+
+(defn today []
+  (def d (os/date nil true))
+  (string/format "%04d-%02d-%02d" (d :year) (+ 1 (d :month)) (+ 1 (d :month-day))))
+
+(defn record-file [dir kind id]
+  (def sub (string dir "/.work/" kind))
+  (string sub "/" (find |(string/has-prefix? id $) (os/dir sub))))
+
+(test "status <unit> --json gives the sections in document order, without the template's comments"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "page" "--purpose" "Show it.") :status)))
+        (check (= 0 ((run dir "note" "task/page" "now" "Working.") :status)))
+        (def out ((run dir "status" "task/page" "--json") :stdout))
+        (def sections ((json/decode out) "sections"))
+        (check (= "Show it." (sections "Purpose")))
+        (check (= "Working." (sections "Now")))
+        (check (= "" (sections "Harvest")))
+        (check (string/has-prefix? "- " (sections "Log")))
+        (check (not (string/find "<!--" out)))
+        (check (before? out "\"Purpose\"" "\"Scope\""))
+        (check (before? out "\"Context & constraints\"" "\"Now\""))
+        (check (before? out "\"Evidence\"" "\"Harvest\""))
+        (check (before? out "\"Harvest\"" "\"Log\""))))))
+
+(test "status <unit> --json gives the harvest items with kind, text and done, and tolerates others"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "page") :status)))
+        (check (= 0 ((run dir "note" "task/page" "harvest" "decision: pick the ordered map") :status)))
+        (check (= 0 ((run dir "note" "task/page" "harvest" "backlog: later") :status)))
+        (def file (unit-file dir "task/page"))
+        (spit file (string/replace "- [ ] backlog: later" "- [x] backlog: later\n  and wrapped\n- [ ] a free-form note\n- [X] process: tidy" (string (slurp file))))
+        (def items ((status-json dir "task/page") "harvest"))
+        (check (deep= items @[@{"kind" "decision" "text" "pick the ordered map" "done" false}
+                              @{"kind" "backlog" "text" "later\nand wrapped" "done" true}
+                              @{"kind" "other" "text" "a free-form note" "done" false}
+                              @{"kind" "process" "text" "tidy" "done" true}])
+               (string/format "%q" items))))))
+
+(test "a unit's awaiting flag shows in its status and in the tree, with any value; absent when unset, and created shows"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "held") :status)))
+        (check (= 0 ((run dir "new" "task" "free") :status)))
+        (check (nil? ((status-json dir "task/held") "awaiting")))
+        (add-front (unit-file dir "task/held") "awaiting: owner")
+        (check (= "owner" ((status-json dir "task/held") "awaiting")))
+        (def by-label (tabseq [u :in ((status-json dir) "units")] (u "label") u))
+        (check (= "owner" (get-in by-label ["task/held" "awaiting"])))
+        (check (not (has-key? (by-label "task/free") "awaiting")))
+        (check (= (today) ((status-json dir "task/held") "created")))))))
+
+(test "the tree's units carry their sections and harvest only with --detail"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "page" "--purpose" "Show it.") :status)))
+        (def plain (get-in (status-json dir) ["units" 0]))
+        (check (not (or (has-key? plain "sections") (has-key? plain "harvest"))))
+        (def detailed (get-in (status-json dir "--detail") ["units" 0]))
+        (check (= "Show it." (get-in detailed ["sections" "Purpose"])))
+        (check (deep= (detailed "harvest") @[]))))))
+
+(test "records in the tree carry their front matter fields and problems, and sections only with --detail"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def id (string/trim ((run dir "record" "backlog" "Wait for BR" "--id") :stdout)))
+        (def file (record-file dir "backlog" id))
+        (add-front file "needs: owner")
+        (add-front file "priority: \"2\"")
+        (def records (tabseq [r :in ((status-json dir) "records")] (r "kind") r))
+        (def b (records "backlog"))
+        (check (and (= "owner" (b "needs")) (= "2" (b "priority")) (= (today) (b "created"))) (string/format "%q" b))
+        (check (deep= (b "problems") @[]))
+        (check (not (has-key? b "sections")))
+        (def d (records "decision"))
+        (check (and (= "accepted" (d "status")) (= (today) (d "date"))))
+        (check (not (has-key? d "needs")))
+        (def detailed (tabseq [r :in ((status-json dir "--detail") "records")] (r "kind") r))
+        (check (string? (get-in detailed ["backlog" "sections" "Why"])))
+        (check (string? (get-in detailed ["decision" "sections" "Consequences"])))))))
+
+(test "status <record-id> gives one record in full, as JSON or as its fields"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def r (run-with {:in "## Why\nBecause.\n\n## Notes\nSee <!-- hidden --> there."} dir
+                         "record" "backlog" "Second" "--body" "-" "--id"))
+        (check (= 0 (r :status)) (r :stderr))
+        (def id (string/trim (r :stdout)))
+        (def j (status-json dir id))
+        (check (= id (j "id")))
+        (check (= "backlog" (j "kind")))
+        (check (= "Because." (get-in j ["sections" "Why"])))
+        (check (= "See  there." (get-in j ["sections" "Notes"])))
+        (check (string/find (string "created: " (today)) ((run dir "status" id) :stdout)))
+        (check (not= 0 ((run dir "status" "B-AAAAAAAAAAAAAAAA") :status)))))))
+
+(test "status --json lists every backlog record, broken ones too, as many as the human form counts"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (each name ["one" "two" "three"] (check (= 0 ((run dir "record" "backlog" name) :status))))
+        (spit (string dir "/.work/backlog/B-AAAAAAAAAAAAAAAA-broken.md") "no front matter\n")
+        (def listed (filter |(= "backlog" ($ "kind")) ((status-json dir) "records")))
+        (check (= 4 (length listed)))
+        (check (string/find "backlog: 4 " ((run dir "status") :stdout)))
+        (check (some |(not (empty? ($ "problems"))) listed))))))
+
 (when (> failures 0)
   (eprint failures " test(s) failed")
   (os/exit 1))

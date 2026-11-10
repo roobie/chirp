@@ -16,6 +16,7 @@
    "learning" {:dir "learnings" :prefix "L" :durable true}
    "backlog" {:dir "backlog" :prefix "B" :durable false}})
 (def RECORD-KINDS ["decision" "learning" "backlog"])
+(def HARVEST-KINDS ["decision" "learning" "backlog" "process"])
 (def BASE32 "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567") # RFC 4648
 (def HOOK-MARKER "# installed by dev-proc")
 
@@ -259,6 +260,21 @@
 (defn- need-section [body heading]
   (or (section-range body heading) (die (string "no \"## " heading "\" section"))))
 
+# [text before the first "## " heading, [[heading text] …]]; "## " lines inside code fences are content.
+(defn- split-sections [text]
+  (def pre @"")
+  (def out @[])
+  (var fence false)
+  (each line (string/split "\n" text)
+    (def t (fm/jtrim line))
+    (def heading? (and (not fence) (string/has-prefix? "## " line)))
+    (when (or (string/has-prefix? "```" t) (string/has-prefix? "~~~" t)) (set fence (not fence)))
+    (cond
+      heading? (array/push out @[(fm/jtrim (string/slice line 3)) @[]])
+      (empty? out) (buffer/push pre line "\n")
+      (array/push ((last out) 1) line)))
+  [(string pre) (map (fn [[h ls]] [h (string/join ls "\n")]) out)])
+
 # The section's body becomes `text`; the heading line and every other section stay as they are.
 (defn- replace-section [body heading text]
   (def [_ q hend] (need-section body heading))
@@ -282,8 +298,8 @@
     (when (or (= (s k) 10) (= (s k) 13)) (set nl true)))
   (or (= k 0) nl))
 
-(defn- count-open-items [text]
-  # drop /<!--[\s\S]*?-->/ comments; an unclosed one stays
+# /<!--[\s\S]*?-->/ removed; an unclosed one stays
+(defn- strip-html-comments [text]
   (def clean @"")
   (var i 0)
   (while (< i (length text))
@@ -292,8 +308,32 @@
     (if close
       (do (buffer/push clean (string/slice text i open)) (set i (+ close 3)))
       (do (buffer/push clean (string/slice text i)) (set i (length text)))))
-  (def s (string clean))
+  (string clean))
+
+(defn- count-open-items [text]
+  (def s (strip-html-comments text))
   (length (filter |(at-line-start-ws? s $) (string/find-all "- [ ]" s))))
+
+# [[heading text] …] in document order; the template's guidance comments are not content.
+(defn- sections-of [body]
+  (map (fn [[h t]] [h (fm/jtrim (strip-html-comments t))]) ((split-sections body) 1)))
+
+(def- harvest-item-peg (peg/compile ~(* "- [" (<- (set " xX")) "] " (<- (any 1)))))
+
+# Harvest "- [ ] kind: text" lines as {:kind :text :done}; a kind outside decision, learning, backlog and
+# process is "other". An indented line continues the item above it.
+(defn- harvest-items [text]
+  (def items @[])
+  (each line (string/split "\n" (strip-html-comments text))
+    (if-let [[mark rest] (peg/match harvest-item-peg (fm/jtrim line))]
+      (do
+        (def kind (or (find |(string/has-prefix? (string $ ": ") rest) HARVEST-KINDS) "other"))
+        (array/push items @{:kind kind :done (not= mark " ")
+                            :text (if (= kind "other") rest (fm/jtrim (string/slice rest (+ 2 (length kind)))))}))
+      (when (and (not (empty? items)) (not (empty? (fm/jtrim line))) (fm/ws? (get line 0)))
+        (def item (last items))
+        (put item :text (string (item :text) "\n" (fm/jtrim line))))))
+  items)
 
 (defn- fence? [s]
   (some |(at-line-start-ws? s $) (array/concat (string/find-all "```" s) (string/find-all "~~~" s))))
@@ -665,6 +705,44 @@
   (def warn (if (empty? (u :problems)) "" (string "  ⚠ " (string/join (u :problems) "; "))))
   (string (show u) "  [" (jstr (or (fm/fm-get front "phase") "?")) "]  owner: " owner warn))
 
+# A front matter value as JSON: its string or non-empty list, else nil (the field is then left out).
+(defn- fm-value [front k]
+  (def v (fm/fm-get front k))
+  (cond (string? v) (some-str v)
+        (and (indexed? v) (not (empty? v))) (array ;v)))
+
+# Section text keyed by heading, in document order.
+(defn- sections-json [body] (jobj ;(mapcat identity (sections-of body))))
+
+(defn- harvest-json [body]
+  (map |(jobj "kind" ($ :kind) "text" ($ :text) "done" ($ :done)) (harvest-items (section body "Harvest"))))
+
+# What a viewer needs of a unit beyond its place in the tree.
+(defn- unit-detail [u]
+  ["sections" (sections-json (u :body)) "harvest" (harvest-json (u :body))])
+
+# Front matter a record may carry; a field its kind lacks is left out. awaiting-style flags such as
+# needs pass through with whatever value they hold.
+(def- RECORD-FIELDS ["created" "date" "status" "priority" "needs" "refs" "supersedes"])
+
+(defn- record-json [r detail?]
+  (jobj "id" (or (r :id) :null) "kind" (r :kind) "title" (title-of (r :body))
+        "read_if" (list-of (fm/fm-get (r :fm) "read_if"))
+        ;(mapcat |[$ (fm-value (r :fm) $)] RECORD-FIELDS)
+        "problems" (r :problems)
+        ;(if detail? ["sections" (sections-json (r :body))] [])))
+
+(defn- status-record [r args]
+  (if (args "json")
+    (print-json (record-json r true))
+    (do
+      (print (r :id) " " (r :kind) "  " (title-of (r :body)))
+      (each k RECORD-FIELDS
+        (when-let [v (fm-value (r :fm) k)]
+          (print k ": " (if (string? v) v (string/join v ", ")))))
+      (unless (empty? (r :problems))
+        (print "problems:\n  ⚠ " (string/join (r :problems) "\n  ⚠ "))))))
+
 (defn- status-one [ctx root u args]
   (def front (u :fm))
   (def phase (fm/fm-get front "phase"))
@@ -679,7 +757,9 @@
   (if (args "json")
     (print-json (jobj "id" (u :id) "label" (u :label) "mode" (or phase :null) "parent" (or parent :null)
                       "owner" owner "success_criteria" criteria "files" files "children" children
-                      "next" next-phase "gate" gate "problems" (u :problems)))
+                      "next" next-phase "gate" gate "problems" (u :problems)
+                      "created" (fm-value front "created") "awaiting" (fm-value front "awaiting")
+                      ;(unit-detail u)))
     (do
       (print (show u) "\nmode: " (jstr (or phase :null)))
       (when parent
@@ -699,7 +779,9 @@
 (defn- cmd-status [ctx args]
   (def root ((ctx :root)))
   (when-let [id (first (args :pos))]
-    (status-one ctx root (find-unit root id) args)
+    (if-let [r (find |(= ($ :id) id) (root :records))]
+      (status-record r args)
+      (status-one ctx root (find-unit root id) args))
     (break))
   (def units (root :units))
   (if (args "json")
@@ -709,11 +791,10 @@
                            (def front (u :fm))
                            (jobj "id" (u :id) "label" (u :label) "phase" (or (fm/fm-get front "phase") :null)
                                  "parent" (or (parent-of u) :null) "owner" (list-of (fm/fm-get front "owner"))
-                                 "problems" (u :problems)))
+                                 "problems" (u :problems) "awaiting" (fm-value front "awaiting")
+                                 ;(if (args "detail") (unit-detail u) [])))
                          units)
-            "records" (map |(jobj "id" (or ($ :id) :null) "kind" ($ :kind) "title" (title-of ($ :body))
-                                  "read_if" (list-of (fm/fm-get ($ :fm) "read_if")))
-                           (root :records))))
+            "records" (map |(record-json $ (args "detail")) (root :records))))
     (do
       (print "root: " (shown (ctx :top) (root :dir)) (if (root :oob) "  (out-of-band)" ""))
       (when (empty? units) (print "mode: idle — no active units (curate the backlog, or `new`)"))
@@ -733,21 +814,6 @@
     (when (>= (rank (p :type)) (rank type))
       (die (string "parent " (p :label) " must be a higher level than " type)))
     (p :id)))
-
-# [text before the first "## " heading, [[heading text] …]]; "## " lines inside code fences are content.
-(defn- split-sections [text]
-  (def pre @"")
-  (def out @[])
-  (var fence false)
-  (each line (string/split "\n" text)
-    (def t (fm/jtrim line))
-    (def heading? (and (not fence) (string/has-prefix? "## " line)))
-    (when (or (string/has-prefix? "```" t) (string/has-prefix? "~~~" t)) (set fence (not fence)))
-    (cond
-      heading? (array/push out @[(fm/jtrim (string/slice line 3)) @[]])
-      (empty? out) (buffer/push pre line "\n")
-      (array/push ((last out) 1) line)))
-  [(string pre) (map (fn [[h ls]] [h (string/join ls "\n")]) out)])
 
 # The body given with --body - (stdin) or --body-file: each "## Heading" block replaces the section of
 # that name in the template `text`. `taken` names sections another flag has already filled.
@@ -1410,7 +1476,11 @@ alone, so uncommitted work is left out (status shows it).`)
                                            --root (or DEV_PROC_ROOT) dir, else the dev-proc.root dir, if set
   <unit> is a unit id (U-…) or, for active units, its <type>/<name> label
 
-  status [<unit>] [--json]                 tree of units, or one unit's mode + gate
+  status [<unit>|<record>] [--json] [--detail]
+                                           tree of units, or one unit's mode + gate, or one record. --json
+                                           gives a unit or record its sections by heading and a unit its
+                                           harvest items; --detail gives every unit and record in the
+                                           tree the same
   find <words…> [--backlog] [--json]       decisions and learnings whose read_if or title match what you are about to do
   new <type> <name> [--parent <unit>] [--owner a,b] [--from B-…] [--with design,plan]
       [--criterion "…"]… [--purpose "…"] [--execute] [--id|--json] [body]
@@ -1467,7 +1537,7 @@ alone, so uncommitted work is left out (status shows it).`)
    "rescope" cmd-rescope "close" cmd-close "record" cmd-record "check" cmd-check
    "check-msg" cmd-check-msg "trailers" cmd-trailers "note" cmd-note "dig" cmd-dig "hooks" cmd-hooks
    "report" cmd-report})
-(def BOOLEAN {"id" true "execute" true "json" true "scrap" true "staged" true "hook" true "force" true "help" true "backlog" true})
+(def BOOLEAN {"id" true "execute" true "json" true "scrap" true "staged" true "hook" true "force" true "help" true "backlog" true "detail" true})
 (def REPEATABLE {"read-if" true "ref" true "criterion" true})
 
 # Positional arguments live under :pos; flags under their string name. A bare
