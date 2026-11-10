@@ -1,13 +1,37 @@
 ---
+phase: execute
+parent: U-72DAK2PC7YHCMNVN
+owner:
+  - BR
+  - pi
 created: 2026-11-10
+success_criteria:
+  - CI builds wasm32-wasi twice and the compare job shows both copies identical; a wasm smoke job runs chirp.wasm under Node through the same WASI shim the page uses, covering a module, --help query, an error path and a stub
+  - The site has a try page that runs code and searches and reads the full help through chirp.wasm, checked in headless Chrome on the built site
+  - pages.yml publishes chirp.wasm from the release run's artifact and site/check.janet fails a site whose try page or wasm is missing
+  - release.yml leaves the wasm out of release files; native targets build byte-identical to before
+  - The wasm decisions are accepted and the target is no longer marked spike
 ---
 
-# B-CDRIXMENEROYMSMM Ship a try-it page on the site running chirp.wasm, with the full help
+# slice/try-page
 
-## Why
+## Purpose
+Publish a try-it page on the GitHub Pages site that runs chirp.wasm in the browser: run Janet code, and search and read the full help with the binary's own index.
+
+## Scope
+In: TODO
+Out: TODO
+
+## Context & constraints
+TODO: what is already true, what must stay true, resources available.
+
+### Origin
+Promoted from backlog: B-CDRIXMENEROYMSMM Ship a try-it page on the site running chirp.wasm, with the full help
+
+### Why
 Spike U-NEUAT66PBEWJRSWL said go. The repo's build already writes a reproducible bin/chirp.wasm (wasm32-wasi target, marked SPIKE in tools/build/config.jdn) that runs the real chirp image: the format modules, SQLite FTS5 and `--help query`/`--help read` with output byte-identical to the native build. A page hosting it gives people a way to try chirp before downloading, and gives the site the full help with the same search as the binary, with no second search engine and no exported database.
 
-## Notes
+### Notes
 Spike numbers (Node 22): 5.7 MB raw, 1.7 MB gzip; `-e` 26-32 ms plus 13 ms compile; `--help query` 80-160 ms because the FTS5 index is rebuilt per run.
 
 Milestone-sized; likely slices:
@@ -19,3 +43,25 @@ Milestone-sized; likely slices:
 - Size: try wasm-opt-free wins first (dropping unused natives from this target), and check brotli on Pages.
 
 Depends on or pairs with B-GUXSNK7MDKPJWBUW (upstream janet wasi fixes, cryptorand), B-7WXYORKRHKWIAOVW (NOTICES) and B-RS4LEZTDHMQIMIFM (sqlite guard).
+
+
+## Now
+TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+
+## Next
+- TODO
+
+## Evidence
+<!-- Proof against success_criteria: test runs, commits, measurements. -->
+
+## Harvest
+<!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
+     - [ ] decision: …   → record decision
+     - [ ] learning: …   → record learning
+     - [ ] backlog: …    → record backlog
+     - [ ] process: …    → retrospective (change the process, or drop it)
+-->
+
+## Log
+- 2026-11-10 initialized
+- 2026-11-10 phase initialize → execute
