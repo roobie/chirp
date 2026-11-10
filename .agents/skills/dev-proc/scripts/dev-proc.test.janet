@@ -666,6 +666,185 @@
         (check (string/find "decisions +2  learnings +1" ((ok (run dir "report")) :stdout)))
         (check (string/find "is it a range" ((run dir "report" "nope..HEAD") :stderr)))))))
 
+# Adds a front matter line to a work file.
+(defn add-front [file line]
+  (spit file (string/replace "---\n" (string "---\n" line "\n") (string (slurp file)))))
+
+(defn status-json [dir & args]
+  (def r (run dir "status" ;args "--json"))
+  (check (= 0 (r :status)) (r :stderr))
+  (json/decode (r :stdout)))
+
+(def date-peg (peg/compile ~(* (4 :d) "-" (2 :d) "-" (2 :d) -1)))
+(defn date? [v] (and (string? v) (peg/match date-peg v)))
+
+# {heading text} of the decoded sections, in their order, as [heading text] pairs.
+(defn pairs-of [sections] (map |[($ "heading") ($ "text")] sections))
+(defn text-of [sections heading] (get (find |(= ($ "heading") heading) sections) "text"))
+
+(defn record-file [dir kind id]
+  (def sub (string dir "/.work/" kind))
+  (string sub "/" (find |(string/has-prefix? id $) (os/dir sub))))
+
+(test "status <unit> --json gives the sections in document order, without the template's comments"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "page" "--purpose" "Show it.") :status)))
+        (check (= 0 ((run dir "note" "task/page" "now" "Working.") :status)))
+        (def out ((run dir "status" "task/page" "--json") :stdout))
+        (def sections ((json/decode out) "sections"))
+        (check (deep= (map |($ 0) (pairs-of sections))
+                      @["Purpose" "Scope" "Context & constraints" "Now" "Next" "Evidence" "Harvest" "Log"]))
+        (check (= "Show it." (text-of sections "Purpose")))
+        (check (= "Working." (text-of sections "Now")))
+        (check (= "" (text-of sections "Harvest")))
+        (check (string/has-prefix? "- " (text-of sections "Log")))
+        (check (not (string/find "<!--" out)))))))
+
+(test "repeated headings, CRLF lines and fenced ## lines come through as separate, ordered sections"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "page") :status)))
+        (def file (unit-file dir "task/page"))
+        (spit file (string (string/replace-all "\n" "\r\n" (string (slurp file))) "\r\n## Log\r\nsecond\r\n```\r\n## not a heading\r\n```\r\n"))
+        (def sections ((status-json dir "task/page") "sections"))
+        (def logs (filter |(= "Log" ($ "heading")) sections))
+        (check (= 2 (length logs)))
+        (check (= "second\n```\n## not a heading\n```" ((last logs) "text")) (string/format "%q" logs))
+        (check (not (string/find "\r" (string/format "%q" sections))))
+        (check (= "Log" (get (last sections) "heading")))))))
+
+(test "status <unit> --json gives the harvest items with kind, text and done, and tolerates others"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "page") :status)))
+        (check (= 0 ((run dir "note" "task/page" "harvest" "decision: pick the ordered map") :status)))
+        (check (= 0 ((run dir "note" "task/page" "harvest" "backlog: later") :status)))
+        (def file (unit-file dir "task/page"))
+        (spit file (string/replace "- [ ] backlog: later" "- [x] backlog: later\n  and wrapped\n- [ ] a free-form note\n- [X] process: tidy" (string (slurp file))))
+        (def items ((status-json dir "task/page") "harvest"))
+        (check (deep= items @[@{"kind" "decision" "text" "pick the ordered map" "done" false}
+                              @{"kind" "backlog" "text" "later\nand wrapped" "done" true}
+                              @{"kind" "other" "text" "a free-form note" "done" false}
+                              @{"kind" "process" "text" "tidy" "done" true}])
+               (string/format "%q" items))))))
+
+(test "harvest items ignore comments, tolerate spacing, and end a continuation at an unindented line"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "page") :status)))
+        (def file (unit-file dir "task/page"))
+        (spit file (string/replace "\n## Log" "<!-- - [ ] backlog: hidden -->\n- [x]  learning: spaced\n  more\nplain line\n  not a continuation\n- [ ]\n\n## Log"
+                                   (string (slurp file))))
+        (def items ((status-json dir "task/page") "harvest"))
+        (check (deep= items @[@{"kind" "learning" "text" "spaced\nmore" "done" true}
+                              @{"kind" "other" "text" "" "done" false}])
+               (string/format "%q" items))
+        # close counts the same open item, even one with no text
+        (check (= 0 ((run dir "phase" "task/page" "finalize" "--force") :status)))
+        (def c (run dir "close" "task/page"))
+        (check (string/find "1 unchecked item(s)" (c :stderr)) (c :stderr))))))
+
+(test "a unit's awaiting flag shows in its status and in the tree, with any value; absent when unset, and created shows"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "held") :status)))
+        (check (= 0 ((run dir "new" "task" "free") :status)))
+        (check (nil? ((status-json dir "task/held") "awaiting")))
+        (add-front (unit-file dir "task/held") "awaiting: owner")
+        (check (= "owner" ((status-json dir "task/held") "awaiting")))
+        (def by-label (tabseq [u :in ((status-json dir) "units")] (u "label") u))
+        (check (= "owner" (get-in by-label ["task/held" "awaiting"])))
+        (check (not (has-key? (by-label "task/free") "awaiting")))
+        (check (date? ((status-json dir "task/held") "created")))))))
+
+(test "the tree's units carry their sections and harvest only with --detail"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "page" "--purpose" "Show it.") :status)))
+        (def plain (get-in (status-json dir) ["units" 0]))
+        (check (not (or (has-key? plain "sections") (has-key? plain "harvest"))))
+        (def detailed (get-in (status-json dir "--detail") ["units" 0]))
+        (check (= "Show it." (text-of (detailed "sections") "Purpose")))
+        (check (date? (detailed "created")))
+        (check (date? (plain "created")))
+        (check (deep= (detailed "harvest") @[]))))))
+
+(test "records in the tree carry their front matter fields and problems, and sections only with --detail"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def id (string/trim ((run dir "record" "backlog" "Wait for BR" "--id") :stdout)))
+        (def file (record-file dir "backlog" id))
+        (add-front file "needs: owner")
+        (add-front file "priority: \"2\"")
+        (def records (tabseq [r :in ((status-json dir) "records")] (r "kind") r))
+        (def b (records "backlog"))
+        (check (and (= "owner" (b "needs")) (= "2" (b "priority")) (date? (b "created"))) (string/format "%q" b))
+        (check (deep= (b "problems") @[]))
+        (check (not (has-key? b "sections")))
+        (def d (records "decision"))
+        (check (and (= "accepted" (d "status")) (date? (d "date"))))
+        (check (not (has-key? d "needs")))
+        (def detailed (tabseq [r :in ((status-json dir "--detail") "records")] (r "kind") r))
+        (check (string? (text-of (get-in detailed ["backlog" "sections"]) "Why")))
+        (check (string? (text-of (get-in detailed ["decision" "sections"]) "Consequences")))))))
+
+(test "status <record-id> gives one record in full, as JSON or as its fields"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def r (run-with {:in "## Why\nBecause.\n\n## Notes\nSee <!-- hidden --> there."} dir
+                         "record" "backlog" "Second" "--body" "-" "--id"))
+        (check (= 0 (r :status)) (r :stderr))
+        (def id (string/trim (r :stdout)))
+        (def j (status-json dir id))
+        (check (= id (j "id")))
+        (check (= "backlog" (j "kind")))
+        (check (= "Because." (text-of (j "sections") "Why")))
+        (check (= "See  there." (text-of (j "sections") "Notes")))
+        (check (string/find "created: 20" ((run dir "status" id) :stdout)))
+        (def human ((run dir "status" id) :stdout))
+        (check (= 1 (length (string/find-all id (first (string/split "\n" human))))) human)
+        (check (string/find "file: .work/backlog/" human))
+        (def unknown (run dir "status" "B-AAAAAAAAAAAAAAAA"))
+        (check (not= 0 (unknown :status)))
+        (check (string/find "no record \"B-AAAAAAAAAAAAAAAA\"" (unknown :stderr)) (unknown :stderr))))))
+
+(test "status --json lists every backlog record, broken ones too, as many as the human form counts"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (each name ["one" "two" "three"] (check (= 0 ((run dir "record" "backlog" name) :status))))
+        (spit (string dir "/.work/backlog/B-AAAAAAAAAAAAAAAA-broken.md") "no front matter\n")
+        (def listed (filter |(= "backlog" ($ "kind")) ((status-json dir) "records")))
+        (check (= 4 (length listed)))
+        (check (string/find "backlog: 4 " ((run dir "status") :stdout)))
+        (check (some |(not (empty? ($ "problems"))) listed))))))
+
+(test "front matter fields come out by type: scalars as strings, lists as arrays, empty ones left out"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "record" "backlog" "Plain") :status)))
+        (def file (record-file dir "backlog" (string/trim ((run dir "record" "backlog" "Typed" "--id") :stdout))))
+        (add-front file "needs:")
+        (add-front file "refs: one/path#sym")
+        (add-front file "supersedes:\n  - D-AAAAAAAAAAAAAAAA\n  - D-BBBBBBBBBBBBBBBB")
+        (add-front file "priority: [\"1\", \"2\"]")
+        (def r (find |(string/find "Typed" ($ "title")) ((status-json dir) "records")))
+        (check (not (has-key? r "needs")) "an empty value is left out")
+        (check (deep= (r "refs") @["one/path#sym"]) "a single string is a list of one")
+        (check (deep= (r "supersedes") @["D-AAAAAAAAAAAAAAAA" "D-BBBBBBBBBBBBBBBB"]))
+        (check (= "1, 2" (r "priority")) "a list in a scalar field is joined")
+        (check (not (has-key? (find |(string/find "Plain" ($ "title")) ((status-json dir) "records")) "refs")))))))
+
 (when (> failures 0)
   (eprint failures " test(s) failed")
   (os/exit 1))
