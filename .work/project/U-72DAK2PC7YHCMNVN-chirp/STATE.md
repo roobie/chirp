@@ -144,3 +144,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-10 0.11.0 published by BR's tag and approval; release run 42887783417 green, no reruns; main moves to 0.12.0-dev
 - 2026-11-10 merged main (exit codes) into the refuse-links branch; refused-only roots are reported
 - 2026-11-10 new --execute reads back only the new unit, not the root a second time
+- 2026-11-10 backlog: B-ZRD2QVEPG55JNVHB, the wasm page test's teardown race
