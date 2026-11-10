@@ -136,3 +136,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-09 0.10.0 preflight: changelog notes that scripts reading --version take its first line.
 - 2026-11-09 cutting 0.10.0: help by goal (tasks, modules, surprises), short-name import hint, tarray/new docs, windows jsec thread-local buffers; closes #4, #6, #8, #9.
 - 2026-11-09 0.10.0 published by BR's tag; release run 42551719483 green, no reruns; main moves to 0.11.0-dev
+- 2026-11-10 0.11.0 preflight: dry run 42850689842 green; changelog self-update entries merged
