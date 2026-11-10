@@ -28,7 +28,7 @@ chirp does not fork Janet or its libraries. It pins upstream versions and bundle
 chirp                    # REPL, like janet
 chirp script.janet       # run a script, like janet
 echo '(print 1)' | chirp # run code from stdin
-chirp --version          # chirp 0.10.0 (unofficial build, not a Janet release) on Janet …
+chirp --version          # chirp 0.11.0 (unofficial build, not a Janet release) on Janet …
 chirp --help             # chirp's entry points, the help topics, then Janet's options
 chirp --help read tasks  # which bundled module does what, by goal, with examples
 chirp --changelog        # what changed in each release, offline

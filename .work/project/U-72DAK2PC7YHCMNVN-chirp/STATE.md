@@ -139,3 +139,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-10 0.11.0 preflight: dry run 42850689842 green; changelog self-update entries merged
 - 2026-11-10 task main-builds delivered: builds of main on the site, signed, installable with --channel main
 - 2026-11-10 BR confirmed the agents' push token holds neither Deployments: write nor Administration: write (B-7W2ZOVM433NUASIC done)
+- 2026-11-10 cutting 0.11.0: dev-proc status --json detail, the try page, signed builds of main with --self-update --channel main, --force/--output on same-version builds; first release signed in the release environment
