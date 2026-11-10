@@ -37,7 +37,13 @@
 
 # ---------- errors and output
 
+# Exit codes; a program running dev-proc over many directories tells these apart without reading stderr.
+(def EXIT-FAILURE 1)
+(def EXIT-USAGE 2)
+(def EXIT-NO-WORK-DIR 3)
+
 (defn- die [msg] (error @{:usage msg}))
+(defn- die-no-work-dir [msg] (error @{:no-work-dir msg}))
 (defn- strict? [] (= "1" (os/getenv "DEV_PROC_STRICT")))
 
 # JS-style string conversion of a front matter value.
@@ -1210,7 +1216,7 @@
   (each e errors (print "error " e))
   (when (and (empty? errors) (empty? warns))
     (print "ok (" (length roots) " root" (if (= (length roots) 1) "" "s") ")"))
-  (when (and (not (empty? errors)) (or (not (args "hook")) (strict?))) (put ctx :exit 1)))
+  (when (and (not (empty? errors)) (or (not (args "hook")) (strict?))) (put ctx :exit EXIT-FAILURE)))
 
 (def FIND-HELP
   `usage: find <words…> [--backlog] [--json]
@@ -1256,7 +1262,7 @@ match the words, best first. --backlog also searches backlog items. --json is fo
     (unless (peg/match unit-id-peg t)
       (array/push out (string "trailer \"Work: " t "\" is not a unit id (U-<16 base32 chars>)"))))
   (each o out (print (if (strict?) "error" "warn ") " " o))
-  (when (and (not (empty? out)) (strict?)) (put ctx :exit 1)))
+  (when (and (not (empty? out)) (strict?)) (put ctx :exit EXIT-FAILURE)))
 
 (defn- cmd-trailers [ctx args]
   (def top (ctx :top))
@@ -1527,6 +1533,9 @@ alone, so uncommitted work is left out (status shows it).`)
                                            range (default: last tag..HEAD)
   hooks install                            pre-commit + commit-msg hooks (DEV_PROC_STRICT=1 blocks)
 
+  exit codes     0 ok; 1 failure (check found errors, or any other error); 2 usage error; 3 no work dir
+                 found from here (nothing on stdout, so status --json prints nothing)
+
   --root <dir>   use this .work/ instead of dev-proc.root or the nearest one above cwd
   DEV_PROC_ROOT=<abs dir>   the default for --root, so a directory can pin its work dir (e.g. an
                  .envrc with export DEV_PROC_ROOT=$PWD/.mine); it works in and out of a git repo, and
@@ -1630,14 +1639,14 @@ alone, so uncommitted work is left out (status shows it).`)
                         configured configured
                         (nearest-root cwd top)))
          (when (or (not dir) (not (exists? dir)))
-           (die (cond
-                  (some-str (args "root"))
-                  (string (or ((args :from) "root") "--root") " is " dir ", which does not exist — run `dev-proc init`")
-                  (and configured (= dir configured))
-                  (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`")
-                  git-top
-                  (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to the repo root — run `dev-proc init`")
-                  (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to / — run `dev-proc init`"))))
+           (cond
+             (some-str (args "root"))
+             (die (string (or ((args :from) "root") "--root") " is " dir ", which does not exist — run `dev-proc init`"))
+             (and configured (= dir configured))
+             (die (string "dev-proc.root is " dir ", which does not exist — run `dev-proc init`"))
+             (die-no-work-dir
+               (string "no work dir (.work/, or the work_dir of a " CONFIG ") found from here up to "
+                       (if git-top "the repo root" "/") " — run `dev-proc init`"))))
          (root-desc dir top configured)))
   (put ctx :root (fn [] (load-root ((ctx :root-desc)))))
   (f ctx args)
@@ -1647,8 +1656,9 @@ alone, so uncommitted work is left out (status shows it).`)
   (def code
     (try (run argv)
       ([e]
-        (if (and (table? e) (e :usage))
-          (do (eprint "dev-proc: " (e :usage)) 2)
-          (do (eprint "dev-proc: " (string e)) 1)))))
+        (cond
+          (and (table? e) (e :usage)) (do (eprint "dev-proc: " (e :usage)) EXIT-USAGE)
+          (and (table? e) (e :no-work-dir)) (do (eprint "dev-proc: " (e :no-work-dir)) EXIT-NO-WORK-DIR)
+          (do (eprint "dev-proc: " (string e)) EXIT-FAILURE)))))
   (file/flush stdout)
   (unless (= code 0) (os/exit code)))

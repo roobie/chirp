@@ -25,13 +25,14 @@ Codes in use: 1 failure, 2 usage error. Nothing else is distinct, so 3 is the lo
 
 
 ## Now
-Adding the exit code and its tests.
+Review, then finalize by the owner.
 
 ## Next
 - Docs, then review.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- dev-proc.test.janet passes with new exit-code tests (3 for no work dir in/out of git; 1 and 2 kept elsewhere)
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:

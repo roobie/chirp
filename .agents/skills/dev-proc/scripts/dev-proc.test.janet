@@ -845,6 +845,32 @@
         (check (= "1, 2" (r "priority")) "a list in a scalar field is joined")
         (check (not (has-key? (find |(string/find "Plain" ($ "title")) ((status-json dir) "records")) "refs")))))))
 
+(test "a command that needs a work dir exits 3 with nothing on stdout where there is none, in a repo or not"
+  (fn []
+    (def bare (tmp-dir))
+    (def repo (tmp-dir))
+    (defer (do (sh/rm bare) (sh/rm repo))
+      (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
+      (each [where dir] [["outside a repo" bare] ["in a repo" repo]]
+        (each args [["status"] ["status" "--json"] ["status" "--json" "--detail"] ["note" "U-X" "now" "t"]
+                    ["new" "task" "t"] ["phase" "U-X" "execute"] ["record" "backlog" "t"] ["dig" "U-X"]]
+          (def r (run dir ;args))
+          (def what (string where ": " (string/join args " ")))
+          (check (= 3 (r :status)) (string what " exited " (r :status)))
+          (check (= "" (r :stdout)) (string what " printed on stdout"))
+          (check (string/find "no work dir" (r :stderr)) (string what ": " (r :stderr))))))))
+
+(test "failures other than a missing work dir keep their exit codes"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 2 ((run dir "status" "U-AAAAAAAAAAAAAAAA") :status)) "unknown unit")
+        (check (= 0 ((run dir "record" "decision" "Dangling" "--read-if" "x" "--ref" "no/such/path#sym") :status)))
+        (check (= 1 ((run dir "check") :status)) "check finding errors")
+        (check (= 2 ((run dir "frobnicate") :status)) "unknown command")
+        (check (= 2 ((run dir "note" "x") :status)) "bad arguments")
+        (check (= 2 ((run dir "--root" (string dir "/missing") "status") :status)) "--root that does not exist")))))
+
 (when (> failures 0)
   (eprint failures " test(s) failed")
   (os/exit 1))
