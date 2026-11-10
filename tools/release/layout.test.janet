@@ -97,6 +97,23 @@
       (check "key-env unset: exit" c 1)
       (check "key-env unset: names the variable" (truthy? (string/find "CHIRP_NOT_SET_VAR is not set" e)) true)))
 
+  # A dry run signs with a key of its own and needs no key or public key.
+  (let [dry-out (string work "/throwaway")
+        [c so e] (run nil chirp script "release" artifacts dry-out "--throwaway")]
+    (check "throwaway: exit" [c e] [0 e])
+    (check "throwaway: prints only the version" so (string version "\n"))
+    (check "throwaway: files" (sorted (os/dir dry-out)) expected-files)
+    (check "throwaway: sha256sum accepts SHA256SUMS"
+           (first (run nil "sh" "-c" (string "cd " dry-out " && sha256sum -c SHA256SUMS"))) 0)
+    (check "throwaway: not signed by the real key"
+           (crypto/verify (slurp pub) (slurp (string dry-out "/SHA256SUMS")) (slurp (string dry-out "/SHA256SUMS.sig"))) false)
+    (check "throwaway: no private key on stderr" (truthy? (string/find "PRIVATE" e)) false)
+    (check "throwaway: no private key left behind"
+           (truthy? (find |(string/find "PRIVATE" (slurp (string dry-out "/" $))) (os/dir dry-out))) false))
+  (let [[c _ e] (run key chirp script "release" artifacts (string work "/mixed") "--throwaway" "--pub" pub)]
+    (check "throwaway with --pub: exit" c 1)
+    (check "throwaway with --pub: usage" (truthy? (string/find "usage:" e)) true))
+
   (let [[c _ e] (run key chirp script "release" artifacts out "--pub" pub)]
     (check "non-empty out: exit" c 1)
     (check "non-empty out: reason" (truthy? (string/find "is not empty" e)) true))

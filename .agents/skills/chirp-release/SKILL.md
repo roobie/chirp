@@ -5,7 +5,7 @@ description: The full procedure for releasing chirp - preflight, cutting the ver
 
 # chirp-release
 
-A release is a `v*` tag pushed by a maintainer. `.github/workflows/release.yml` runs the full CI on the tagged commit, ships those exact bytes, signs `SHA256SUMS`, creates the GitHub release and closes the milestone. `pages.yml` then rebuilds the site. Every installed `chirp --self-update` picks the release up, so a bad release reaches users. The procedure exists to avoid that.
+A release is a `v*` tag pushed by a maintainer. `.github/workflows/release.yml` runs the full CI on the tagged commit, ships those exact bytes, signs `SHA256SUMS` with the key of the `release` environment, creates the GitHub release and closes the milestone. `pages.yml` then rebuilds the site. Every installed `chirp --self-update` picks the release up, so a bad release reaches users. The procedure exists to avoid that.
 
 Read these first; this skill applies them and does not override them:
 - D-MB5WIOASYBDI7AEB: the tag is a human step. Tooling edits files only and never tags, commits or pushes a tag.
@@ -34,7 +34,7 @@ All of these must hold before the cut. Report each one; don't stop at the first 
 7. **Release notes boilerplate:** if this release bundles a new library or module, `.github/release-notes.md` names it ("It bundles …").
 8. **Users who cannot self-update:** if a fix is to self-update itself (for example #10, windows HTTPS), the changelog entry says those users must download by hand. Repeat it on the issue if useful.
 
-Optional: a manual run of `release` (`gh workflow run release.yml --ref main`) does everything except create the release: it builds, packages, signs and attests, with the Unreleased section standing in for the notes.
+Optional: a manual run of `release` (`gh workflow run release.yml --ref main`) does everything except create the release: it builds, packages, signs and attests, with the Unreleased section standing in for the notes. It signs with a throwaway key made for the run, so it never proves the stored secret.
 
 ## 2. Cut
 
@@ -78,12 +78,12 @@ gh run watch <id> --exit-status --interval 30
 gh run view <id> --log-failed                      # on failure
 ```
 
-The jobs, in order: `ci` (builds every target twice, compares sha256, smoke-tests each on its own runner) → `package` (checks the tag matches the binary's version, finds the changelog section, writes `SHA256SUMS`, signs and verifies it) → `publish` (attests, then `gh release create --verify-tag`) → `close-milestone`.
+The jobs, in order: `ci` (builds every target twice, compares sha256, smoke-tests each on its own runner) → `package` (waits for the owner's approval of the `release` deployment, then checks the tag matches the binary's version, finds the changelog section, writes `SHA256SUMS`, signs and verifies it) → `publish` (attests, then `gh release create --verify-tag`) → `close-milestone`.
 
 Failures and what to do:
 - **`tag … does not match the binary's version`, or `CHANGELOG.md has no '## X.Y.Z' section`:** the wrong commit was tagged, or the cut was not done. Nothing is published. The tag has to move. That is BR's call; propose deleting it and tagging the right commit.
 - **A 5xx from the GitHub API in `publish`** (seen at 0.8.0: `HTTP 500 …/releases`): GitHub's fault. First check no draft or partial release was left (`gh api repos/{owner}/{repo}/releases --jq '.[]|"\(.tag_name) draft=\(.draft) assets=\(.assets|length)"'`), delete one if it was, then `gh run rerun <id> --failed`. A rerun of failed jobs also reruns the jobs that depend on them.
-- **A signing or verify failure in `package`:** the secret does not match `src/chirp/release-key.pem`. Stop and tell BR; never ship around it.
+- **A signing or verify failure in `package` on a tag:** the secret does not match `src/chirp/release-key.pem`. Stop and tell BR; never ship around it. On a manual run it signs with a throwaway key, so the same failure there is a bug in the signing code, not a wrong secret.
 - **A `ci` failure on the tag when main's CI was green:** treat it as a real failure (flaky or not), diagnose before any rerun.
 
 After `release` succeeds, `pages` starts on its own (`workflow_run`); watch it too.
