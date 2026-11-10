@@ -52,3 +52,4 @@ Owner: review, set github-pages environment rules, push
 - 2026-11-10 initialized
 - 2026-11-10 phase initialize → execute
 - 2026-11-10 layout.janet lays out and signs a release for any key; sign.janet takes --key-env
+- 2026-11-10 release.yml calls the layout script; CI runs its test

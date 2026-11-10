@@ -184,3 +184,4 @@ jobs:
           env -i PATH="$PATH" ./dist/chirp tools/skillcheck/skillcheck.janet
           env -i PATH="$PATH" ./dist/chirp tools/skillcheck/test.janet
           env -i PATH="$PATH" ./dist/chirp tools/release/cut.test.janet
+          env -i PATH="$PATH" ./dist/chirp tools/release/layout.test.janet
