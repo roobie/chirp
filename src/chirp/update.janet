@@ -268,7 +268,15 @@
          "Releases are what --self-update installs; use --force to replace it anyway"))
   (def sums-text (verified-sums base key user-agent))
   (def [latest name sha] (latest-release (parse-sums sums-text) target))
-  (def newer? (pos? (compare-versions latest version)))
+  (def order (compare-versions latest version))
+  (def newer? (pos? order))
+  # --force takes an equal version, as a build from main keeps one version
+  # between releases, but never an older one: it would be a downgrade. --output
+  # installs nothing, so it saves whatever verifies.
+  (when (and (opts :force) (neg? order) (not (opts :check)) (not (opts :output)))
+    (die "the latest build is " latest ", older than this chirp " version
+         ", and --force does not downgrade. --output PATH saves it without installing"))
+  (def wanted? (or newer? (opts :output) (and (opts :force) (not (neg? order)))))
   (cond
     (opts :check)
     (do (print "current " version)
@@ -276,8 +284,8 @@
         (print "target  " target)
         (print "update available: " (if newer? "yes" "no")))
 
-    (not newer?)
-    (print "chirp " version " is up to date (latest release: " latest ")")
+    (not wanted?)
+    (print "chirp " version " is up to date (latest: " latest ")")
 
     (do
       (defn download []

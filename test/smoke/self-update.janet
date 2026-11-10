@@ -100,11 +100,44 @@
       (put tree (string "/download/v99.0.0/" (asset "99.0.0" target)) "tampered")
       (fails "hash mismatch" (update "--force") "signed checksum")
 
-      # A replayed older release, correctly signed, must not downgrade.
+      # A replayed older release, correctly signed, does not downgrade on its own.
       (publish :version "0.0.1")
-      (def [ocode oout _] (update "--force"))
-      (assert (and (= 0 ocode) (string/find "up to date" oout)) (string "older release: " ocode " " oout))
+      # A -dev binary refuses a plain update before it compares versions.
+      (unless pre-release?
+        (def [ocode oout _] (update))
+        (assert (and (= 0 ocode) (string/find "up to date" oout)) (string "older release: " ocode " " oout)))
+      (def [scode sout _] (update "--force" "--check"))
+      (assert (and (= 0 scode) (string/find "update available: no" sout)) "--check reports an older release as no update")
       (assert (unchanged?) "an older release replaced the binary")
+
+      # --output saves whatever verifies, newer or not, and installs nothing.
+      (def fake (fake-binary target))
+      (def older-out (string tmp "/older-out"))
+      (def [pcode pout perr] (update "--output" older-out))
+      (assert (and (= 0 pcode) (= fake (string (slurp older-out))))
+              (string "--output of an older release: " pcode " " (string/format "%q" (string pout perr))))
+      (assert (unchanged?) "--output of an older release changed the running binary")
+
+      # --force never downgrades: an older signed build is refused, and the
+      # binary is left alone.
+      (fails "--force of an older release" (update "--force") "does not downgrade")
+
+      # --force takes the same version again: a build from main keeps one
+      # version between releases. The signature and checksum are still checked.
+      (def version (get (peg/match ~(* "chirp " (<- (some (if-not " " 1)))) identity) 0))
+      (publish :version version)
+      (put tree (string "/download/v" version "/" (asset version target)) "tampered")
+      (fails "--force of the same version, hash mismatch" (update "--force") "signed checksum")
+      (publish :version version)
+      (unless pre-release?
+        (def [scode sout _] (update))
+        (assert (and (= 0 scode) (string/find "up to date" sout) (unchanged?))
+                (string "the same version without --force: " scode " " sout)))
+      (def [fcode0 fout0 ferr0] (update "--force"))
+      (assert (and (= 0 fcode0) (= fake (string (slurp exe))))
+              (string "--force of the same version: " fcode0 " " (string/format "%q" (string fout0 ferr0))))
+      (spit exe original)
+      (unless windows? (os/chmod exe 8r755))
 
       # --output saves the release elsewhere and never touches the running binary.
       (publish)

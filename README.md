@@ -32,7 +32,7 @@ chirp --version          # chirp 0.10.0 (unofficial build, not a Janet release) 
 chirp --help             # chirp's entry points, the help topics, then Janet's options
 chirp --help read tasks  # which bundled module does what, by goal, with examples
 chirp --changelog        # what changed in each release, offline
-chirp --self-update      # replace chirp with the latest signed release (--check only reports)
+chirp --self-update      # replace chirp with the latest signed release (--check only reports; --force also takes a build of the same version)
 ```
 
 Inside chirp, every bundled module can be imported without anything on disk:
