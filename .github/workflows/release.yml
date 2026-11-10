@@ -18,6 +18,9 @@ jobs:
   package:
     needs: ci
     runs-on: ubuntu-24.04
+    # The release key lives in the release environment, which allows only v*
+    # tags, so a manual run cannot have it and takes no environment at all.
+    environment: ${{ github.ref_type == 'tag' && 'release' || '' }}
     outputs:
       version: ${{ steps.layout.outputs.version }}
     steps:
@@ -29,23 +32,42 @@ jobs:
         with:
           pattern: chirp-*-a
           path: artifacts
+      # A tag signs with the release key and checks against the key the shipped
+      # binaries trust. A manual run proves the same code paths with a key made
+      # here and thrown away: it never has the real one.
+      - name: Choose the signing key
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            { echo KEY_ENV=CHIRP_RELEASE_SIGNING_KEY
+              echo PUBLIC_KEY=src/chirp/release-key.pem; } >> "$GITHUB_ENV"
+          else
+            openssl genpkey -algorithm ed25519 -out "$RUNNER_TEMP/throwaway.key"
+            openssl pkey -in "$RUNNER_TEMP/throwaway.key" -pubout -out "$RUNNER_TEMP/throwaway.pub"
+            { echo KEY_ENV=CHIRP_THROWAWAY_SIGNING_KEY
+              echo PUBLIC_KEY="$RUNNER_TEMP/throwaway.pub"
+              echo "CHIRP_THROWAWAY_SIGNING_KEY<<END_OF_KEY"
+              cat "$RUNNER_TEMP/throwaway.key"
+              echo END_OF_KEY; } >> "$GITHUB_ENV"
+          fi
+        env:
+          REF_TYPE: ${{ github.ref_type }}
       # The version comes from the binary being shipped, not from a file.
       # chirp --self-update trusts the signature and nothing else in the release.
       # The shipped linux-x64 binary does the work, which also keeps the signing
-      # code exercised by every release. The key to check against is the one the
-      # shipped binaries trust, read from the checkout.
+      # code exercised by every release.
       - name: Lay out and sign the release
         id: layout
         env:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
-          CHIRP_RELEASE_SIGNING_KEY: ${{ secrets.CHIRP_RELEASE_SIGNING_KEY }}
+          # Only this step has the secret, and only on a tag.
+          CHIRP_RELEASE_SIGNING_KEY: ${{ github.ref_type == 'tag' && secrets.CHIRP_RELEASE_SIGNING_KEY || '' }}
         run: |
           chmod +x artifacts/chirp-linux-x64-a/chirp
           tag=
           [ "$REF_TYPE" = tag ] && tag=$REF_NAME
           version=$(artifacts/chirp-linux-x64-a/chirp tools/release/layout.janet release \
-            artifacts out/release --pub src/chirp/release-key.pem ${tag:+--tag "$tag"})
+            artifacts out/release --pub "$PUBLIC_KEY" --key-env "$KEY_ENV" ${tag:+--tag "$tag"})
           echo "version=$version" >> "$GITHUB_OUTPUT"
           cat out/release/SHA256SUMS
 
