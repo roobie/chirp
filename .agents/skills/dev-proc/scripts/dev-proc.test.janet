@@ -1211,6 +1211,32 @@
         (def c (run dir "check"))
         (check (string/find "past the 64 MiB one command may read" (c :stdout)) (c :stdout))))))
 
+(def MIB-BYTES (* 1024 1024))
+
+(defn dir-bytes [dir]
+  (sum (seq [f :in (os/dir dir)] (or (os/stat (string dir "/" f) :size) 0))))
+
+# The new unit is read back to run its gate. Re-reading the whole root would charge every document
+# twice, so a root past half the budget must still leave the new unit readable.
+(test "new --execute does not read the whole work dir a second time"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def records (+ (dir-bytes (string dir "/.work/decisions")) (dir-bytes (string dir "/.work/learnings"))))
+        (os/mkdir (string dir "/.work/project"))
+        (defn big-unit [name bytes]
+          (def udir (string dir "/.work/project/U-AAAAAAAAAAAAAA" name "-big"))
+          (os/mkdir udir)
+          (big-file (string udir "/STATE.md") (- bytes 32)))
+        # Units are read before records and before the new one. 62 of exactly 1 MiB, then a last one sized
+        # to leave 1 MiB and 100 bytes after the first load: a second pass over the root takes one of the
+        # big ones and leaves the new unit 100 bytes, which is not enough.
+        (for i 0 62 (big-unit (string/format "%02d" i) MIB-BYTES))
+        (big-unit "zz" (- MIB-BYTES records 100))
+        (def r (run dir "new" "task" "big" "--execute" "--owner" "me" "--criterion" "done" "--json"))
+        (check (= 0 (r :status)) (r :stderr))
+        (check (string/find "\"phase\": \"execute\"" (string (r :stdout))) (r :stdout))))))
+
 (test "a command that needs a work dir exits 3 with nothing on stdout where there is none, in a repo or not"
   (fn []
     (def bare (tmp-dir))

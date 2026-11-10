@@ -493,6 +493,25 @@
 
 # ---------- model
 
+# One unit, read from its folder `entry` under `dir`/`type`. What is wrong with it is in its :problems.
+(defn- load-unit [dir type entry budget]
+  (def udir (pjoin dir type entry))
+  (def state-path (pjoin udir "STATE.md"))
+  (def m (peg/match unit-dir-peg entry))
+  (def name (if m (m 1) entry))
+  (def unit-problems @[])
+  (def u @{:id (if m (m 0) entry) :label (string type "/" name) :type type :name name
+           :dir udir :state-path state-path :body "" :problems unit-problems})
+  (unless m (array/push unit-problems (string "directory \"" entry "\" must be U-<16 base32 chars>-<kebab-name>")))
+  (if (= (refusal state-path :file) NO-FILE)
+    (array/push unit-problems "missing STATE.md")
+    (let [[ok d] (protect (fm/parse-doc (read-doc state-path budget)))]
+      (if ok
+        (do (put u :fm (d :fm)) (put u :body (d :body))
+            (unless (d :fm) (array/push unit-problems "STATE.md has no front matter")))
+        (array/push unit-problems (string d)))))
+  u)
+
 # A root is described by {:dir :base :oob}. :base is the project dir its refs resolve against and
 # whose files it owns in commits. An out-of-band (:oob) root is one person's own: it sits outside the
 # repo or is git-ignored, and the commit hooks and trailers never ask for it or name it.
@@ -517,21 +536,7 @@
         (each entry entries
           (def udir (pjoin dir type entry))
           (when-let [_ (enter udir (string type "/" entry))]
-            (def state-path (pjoin udir "STATE.md"))
-            (def m (peg/match unit-dir-peg entry))
-            (def name (if m (m 1) entry))
-            (def unit-problems @[])
-            (def u @{:id (if m (m 0) entry) :label (string type "/" name) :type type :name name
-                     :dir udir :state-path state-path :body "" :problems unit-problems})
-            (unless m (array/push unit-problems (string "directory \"" entry "\" must be U-<16 base32 chars>-<kebab-name>")))
-            (if (= (refusal state-path :file) NO-FILE)
-              (array/push unit-problems "missing STATE.md")
-              (let [[ok d] (protect (fm/parse-doc (read-doc state-path budget)))]
-                (if ok
-                  (do (put u :fm (d :fm)) (put u :body (d :body))
-                      (unless (d :fm) (array/push unit-problems "STATE.md has no front matter")))
-                  (array/push unit-problems (string d)))))
-            (array/push units u)))))
+            (array/push units (load-unit dir type entry budget))))))
     (each kind RECORD-KINDS
       (def spec (RECORDS kind))
       (when-let [names (enter (pjoin dir (spec :dir)) (spec :dir))]
@@ -1081,11 +1086,11 @@
     (spit (pjoin dir file) (template file vars))
     (array/push created file))
 
-  # --execute runs the gate of `phase <unit> execute`; the unit exists either way.
+  # --execute runs the gate of `phase <unit> execute`; the unit exists either way. That gate looks at the
+  # unit alone, so only its STATE.md is read back, not the whole root a second time.
   (def gate
     (when (args "execute")
-      (def fresh (load-root root (ctx :budget)))
-      (protect (move-phase fresh (find-unit fresh id) "execute" false))))
+      (protect (move-phase root (load-unit (root :dir) type (string id "-" name) (ctx :budget)) "execute" false))))
   (report args id
           (jobj "id" id "label" lbl "type" type "name" name "path" (shown (ctx :top) dir)
                 "phase" (if (and gate (gate 0)) "execute" "initialize")
