@@ -56,7 +56,7 @@ Front matter (YAML whose values are strings or lists of strings; an empty value 
 - **Learning:** `date`, `read_if`, `refs`.
 - **Backlog item:** `created`.
 
-`read_if` lists the common reasons a future reader would need the document. Before loading durable docs, run `$DP find "<what you're about to do>"` to list the records whose `read_if` matches, and read only those. `$DP status --json` still lists every record's title and `read_if`.
+`read_if` lists the common reasons a future reader would need the document. Before loading durable docs, run `$DP find "<what you're about to do>"` to list the records whose `read_if` matches, and read only those. `$DP status --json` still lists every record's title and `read_if`. For a program that shows the state, `status <unit|record> --json` adds the document's sections by heading and a unit's `## Harvest` items, and `status --json --detail` adds them to every entry in the tree; any `awaiting` (unit) or `needs` (backlog) value, `priority` and the record dates come through as written.
 
 Every id is a kind prefix (`U` unit, `D` decision, `L` learning, `B` backlog) plus 80 crypto-random bits in base32 (RFC 4648, 16 chars), e.g. `D-K7Q2M4XWZ3PB5N6R`. Ids are unique without coordination, so parallel branches never collide and an id is never reused. Refer to things by id; names and slugs are only for humans.
 

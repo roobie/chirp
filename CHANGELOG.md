@@ -6,6 +6,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Added
 
+- `dev-proc status --json` gives a program everything it needs to show a work dir without reading `.work/`. A unit's entry has `awaiting`, and each record's has `created`, `date`, `status`, `priority`, `needs`, `refs` and `supersedes` where it sets them, and `problems`. `status <unit> --json` adds `created`, the `sections` of its document by heading with the template's comments removed, and the `harvest` items as `kind`, `text` and `done`. `status <record id>` shows one record the same way, and `status --json --detail` adds the sections to every unit and record. Existing fields are unchanged.
 - The project site has a try page, https://roobie.github.io/chirp/try.html, that runs chirp in the browser: chirp built for WebAssembly from the same sources as the release, with every bundled module and the full offline help. Edit a script and run it, or search the help as `chirp --help query` does, with the same results. A link can carry a script (`#code=`), a search (`#q=`) or a help entry (`#read=`). Files, subprocesses, the network, HTTPS and threads raise "not available in this build of chirp" there.
 
 ## 0.10.0

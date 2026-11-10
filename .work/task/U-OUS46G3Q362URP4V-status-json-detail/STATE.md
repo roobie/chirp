@@ -48,3 +48,4 @@ Done: sections, harvest, awaiting, record fields, status <record>, --detail; tes
 - 2026-11-10 initialized
 - 2026-11-10 phase initialize → execute
 - 2026-11-10 implemented the JSON extension
+- 2026-11-10 SKILL.md and changelog describe the new JSON
