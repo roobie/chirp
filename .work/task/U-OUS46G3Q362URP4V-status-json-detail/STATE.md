@@ -49,3 +49,4 @@ Done: sections, harvest, awaiting, record fields, status <record>, --detail; tes
 - 2026-11-10 phase initialize → execute
 - 2026-11-10 implemented the JSON extension
 - 2026-11-10 SKILL.md and changelog describe the new JSON
+- 2026-11-10 review fixes: ordered sections array, typed fields, one harvest parser for gate and JSON, CRLF

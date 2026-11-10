@@ -265,7 +265,8 @@
   (def pre @"")
   (def out @[])
   (var fence false)
-  (each line (string/split "\n" text)
+  (each raw (string/split "\n" text)
+    (def line (if (string/has-suffix? "\r" raw) (string/slice raw 0 -2) raw)) # CRLF files read like LF ones
     (def t (fm/jtrim line))
     (def heading? (and (not fence) (string/has-prefix? "## " line)))
     (when (or (string/has-prefix? "```" t) (string/has-prefix? "~~~" t)) (set fence (not fence)))
@@ -298,7 +299,7 @@
     (when (or (= (s k) 10) (= (s k) 13)) (set nl true)))
   (or (= k 0) nl))
 
-# /<!--[\s\S]*?-->/ removed; an unclosed one stays
+# /<!--[\s\S]*?-->/ removed, as HTML reads comments: they do not nest, and an unclosed one stays.
 (defn- strip-html-comments [text]
   (def clean @"")
   (var i 0)
@@ -310,30 +311,33 @@
       (do (buffer/push clean (string/slice text i)) (set i (length text)))))
   (string clean))
 
-(defn- count-open-items [text]
-  (def s (strip-html-comments text))
-  (length (filter |(at-line-start-ws? s $) (string/find-all "- [ ]" s))))
-
 # [[heading text] …] in document order; the template's guidance comments are not content.
 (defn- sections-of [body]
   (map (fn [[h t]] [h (fm/jtrim (strip-html-comments t))]) ((split-sections body) 1)))
 
-(def- harvest-item-peg (peg/compile ~(* "- [" (<- (set " xX")) "] " (<- (any 1)))))
+(def- harvest-item-peg (peg/compile ~(* "- [" (<- (set " xX")) "]" (? " ") (<- (any 1)))))
 
 # Harvest "- [ ] kind: text" lines as {:kind :text :done}; a kind outside decision, learning, backlog and
-# process is "other". An indented line continues the item above it.
+# process is "other". An indented line right after an item continues it. This is the one reading of
+# the section: the finalize gate counts its open items and the JSON lists them.
 (defn- harvest-items [text]
   (def items @[])
+  (var open nil) # the item an indented line would continue
   (each line (string/split "\n" (strip-html-comments text))
-    (if-let [[mark rest] (peg/match harvest-item-peg (fm/jtrim line))]
+    (if-let [[mark raw] (peg/match harvest-item-peg (fm/jtrim line))]
       (do
+        (def rest (fm/jtrim raw))
         (def kind (or (find |(string/has-prefix? (string $ ": ") rest) HARVEST-KINDS) "other"))
-        (array/push items @{:kind kind :done (not= mark " ")
-                            :text (if (= kind "other") rest (fm/jtrim (string/slice rest (+ 2 (length kind)))))}))
-      (when (and (not (empty? items)) (not (empty? (fm/jtrim line))) (fm/ws? (get line 0)))
-        (def item (last items))
-        (put item :text (string (item :text) "\n" (fm/jtrim line))))))
+        (set open @{:kind kind :done (not= mark " ")
+                    :text (if (= kind "other") rest (fm/jtrim (string/slice rest (+ 2 (length kind)))))})
+        (array/push items open))
+      (if (and open (not (empty? (fm/jtrim line))) (fm/ws? (get line 0)))
+        (put open :text (string (open :text) "\n" (fm/jtrim line)))
+        (set open nil))))
   items)
+
+(defn- count-open-items [text]
+  (length (filter |(not ($ :done)) (harvest-items text))))
 
 (defn- fence? [s]
   (some |(at-line-start-ws? s $) (array/concat (string/find-all "```" s) (string/find-all "~~~" s))))
@@ -705,14 +709,20 @@
   (def warn (if (empty? (u :problems)) "" (string "  ⚠ " (string/join (u :problems) "; "))))
   (string (show u) "  [" (jstr (or (fm/fm-get front "phase") "?")) "]  owner: " owner warn))
 
-# A front matter value as JSON: its string or non-empty list, else nil (the field is then left out).
-(defn- fm-value [front k]
+# A scalar front matter field as JSON: always a string, a list joined by ", "; nil (left out) when unset.
+(defn- fm-string [front k]
   (def v (fm/fm-get front k))
-  (cond (string? v) (some-str v)
-        (and (indexed? v) (not (empty? v))) (array ;v)))
+  (some-str (if (string? v) v (string/join (or v []) ", "))))
 
-# Section text keyed by heading, in document order.
-(defn- sections-json [body] (jobj ;(mapcat identity (sections-of body))))
+# A list field as JSON: always an array, a single string being a list of one; nil (left out) when empty.
+(defn- fm-list [front k]
+  (def items (list-of (fm/fm-get front k)))
+  (unless (empty? items) (array ;items)))
+
+# Section text as an array of {heading, text} in document order: JSON objects decode unordered, and a
+# heading may repeat.
+(defn- sections-json [body]
+  (map (fn [[h t]] (jobj "heading" h "text" t)) (sections-of body)))
 
 (defn- harvest-json [body]
   (map |(jobj "kind" ($ :kind) "text" ($ :text) "done" ($ :done)) (harvest-items (section body "Harvest"))))
@@ -721,25 +731,30 @@
 (defn- unit-detail [u]
   ["sections" (sections-json (u :body)) "harvest" (harvest-json (u :body))])
 
-# Front matter a record may carry; a field its kind lacks is left out. awaiting-style flags such as
-# needs pass through with whatever value they hold.
-(def- RECORD-FIELDS ["created" "date" "status" "priority" "needs" "refs" "supersedes"])
+# The front matter fields a record may carry, by how they read; one its kind lacks is left out.
+# Other fields are not passed on.
+(def- RECORD-SCALARS ["created" "date" "status" "priority" "needs"])
+(def- RECORD-LISTS ["refs" "supersedes"])
+
+(defn- record-fields [r]
+  [;(mapcat |[$ (fm-string (r :fm) $)] RECORD-SCALARS)
+   ;(mapcat |[$ (fm-list (r :fm) $)] RECORD-LISTS)])
 
 (defn- record-json [r detail?]
   (jobj "id" (or (r :id) :null) "kind" (r :kind) "title" (title-of (r :body))
         "read_if" (list-of (fm/fm-get (r :fm) "read_if"))
-        ;(mapcat |[$ (fm-value (r :fm) $)] RECORD-FIELDS)
+        ;(record-fields r)
         "problems" (r :problems)
         ;(if detail? ["sections" (sections-json (r :body))] [])))
 
-(defn- status-record [r args]
+(defn- status-record [ctx r args]
   (if (args "json")
     (print-json (record-json r true))
     (do
-      (print (r :id) " " (r :kind) "  " (title-of (r :body)))
-      (each k RECORD-FIELDS
-        (when-let [v (fm-value (r :fm) k)]
-          (print k ": " (if (string? v) v (string/join v ", ")))))
+      (print (title-of (r :body)) "  [" (r :kind) "]")
+      (print "file: " (shown (ctx :top) (r :file)))
+      (each [k v] (partition 2 (record-fields r))
+        (when v (print k ": " (if (string? v) v (string/join v ", ")))))
       (unless (empty? (r :problems))
         (print "problems:\n  ⚠ " (string/join (r :problems) "\n  ⚠ "))))))
 
@@ -758,7 +773,7 @@
     (print-json (jobj "id" (u :id) "label" (u :label) "mode" (or phase :null) "parent" (or parent :null)
                       "owner" owner "success_criteria" criteria "files" files "children" children
                       "next" next-phase "gate" gate "problems" (u :problems)
-                      "created" (fm-value front "created") "awaiting" (fm-value front "awaiting")
+                      "created" (fm-string front "created") "awaiting" (fm-string front "awaiting")
                       ;(unit-detail u)))
     (do
       (print (show u) "\nmode: " (jstr (or phase :null)))
@@ -779,8 +794,8 @@
 (defn- cmd-status [ctx args]
   (def root ((ctx :root)))
   (when-let [id (first (args :pos))]
-    (if-let [r (find |(= ($ :id) id) (root :records))]
-      (status-record r args)
+    (if (peg/match record-id-peg id)
+      (status-record ctx (find-record root id) args)
       (status-one ctx root (find-unit root id) args))
     (break))
   (def units (root :units))
@@ -791,7 +806,8 @@
                            (def front (u :fm))
                            (jobj "id" (u :id) "label" (u :label) "phase" (or (fm/fm-get front "phase") :null)
                                  "parent" (or (parent-of u) :null) "owner" (list-of (fm/fm-get front "owner"))
-                                 "problems" (u :problems) "awaiting" (fm-value front "awaiting")
+                                 "problems" (u :problems) "created" (fm-string front "created")
+                                 "awaiting" (fm-string front "awaiting")
                                  ;(if (args "detail") (unit-detail u) [])))
                          units)
             "records" (map |(record-json $ (args "detail")) (root :records))))
@@ -1478,8 +1494,8 @@ alone, so uncommitted work is left out (status shows it).`)
 
   status [<unit>|<record>] [--json] [--detail]
                                            tree of units, or one unit's mode + gate, or one record. --json
-                                           gives a unit or record its sections by heading and a unit its
-                                           harvest items; --detail gives every unit and record in the
+                                           gives a unit or record its sections and a unit its harvest
+                                           items; with --json, --detail gives every unit and record in the
                                            tree the same
   find <words…> [--backlog] [--json]       decisions and learnings whose read_if or title match what you are about to do
   new <type> <name> [--parent <unit>] [--owner a,b] [--from B-…] [--with design,plan]
