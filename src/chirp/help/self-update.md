@@ -7,6 +7,7 @@ chirp --self-update --check     # show current and latest version; change nothin
 chirp --self-update             # update if the latest release is newer
 chirp --self-update --force     # also install a build of the same version, or from a pre-release chirp; never an older one
 chirp --self-update --output DIR   # save the verified build in DIR, newer or not; change nothing
+chirp --self-update --channel main --force   # a build of main, trusting its own key
 chirp --self-update --base URL --key release-key.pem   # a mirror
 ```
 
@@ -15,6 +16,12 @@ chirp --self-update --base URL --key release-key.pem   # a mirror
 Only the signature. chirp fetches `SHA256SUMS` and `SHA256SUMS.sig` and verifies the Ed25519 signature before it reads anything in the file. The release version and the expected sha256 of the binary then come from the signed file, so a tampered mirror or release asset is refused. Without `--force`, chirp updates only to a release that is newer than itself; with it, to one of the same version as well. An older signed release is never installed, so replaying one cannot downgrade chirp. `--output` installs nothing, so it saves any verified build.
 
 The signature does not say which workflow run built the binary. That can be checked separately with `gh attestation verify <file> --repo roobie/chirp`.
+
+## Channels
+
+By default chirp reads releases and trusts only the release key. `--channel main` reads the builds of the main branch from the project site and trusts only the main-build key, a second key built into chirp. The two never overlap: the release key does not verify a build of main, and the main-build key does not verify a release, so a wrong `--base` cannot turn a release update into a build of main. The channels, with their base and key file, are listed in `src/chirp/chirp.jdn`.
+
+`--base` alone keeps the release key; `--channel main --base URL` reads a mirror of the main channel with the main-build key; `--key` overrides the key in either case. A build of main is a pre-release, so installing it needs `--force`.
 
 ## Pre-release builds
 
@@ -38,4 +45,4 @@ latest/download/SHA256SUMS.sig
 download/v<version>/chirp-<version>-<target>
 ```
 
-`SHA256SUMS` is in `sha256sum` format and lists `chirp-<version>-<target>` for every target; the Windows binary ends in `.exe`. The targets are `linux-x64`, `linux-arm64`, `macos-arm64` and `windows-x64`. `SHA256SUMS.sig` is the raw 64-byte Ed25519 signature over the exact bytes of `SHA256SUMS`. `--key` names a PEM file with the matching public key; without it chirp uses the key it was built with.
+`SHA256SUMS` is in `sha256sum` format and lists `chirp-<version>-<target>` for every target; the Windows binary ends in `.exe`. The targets are `linux-x64`, `linux-arm64`, `macos-arm64` and `windows-x64`. `SHA256SUMS.sig` is the raw 64-byte Ed25519 signature over the exact bytes of `SHA256SUMS`. `--key` names a PEM file with the matching public key; without it chirp uses the key it was built with, for the channel if one is given.

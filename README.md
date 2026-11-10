@@ -33,6 +33,7 @@ chirp --help             # chirp's entry points, the help topics, then Janet's o
 chirp --help read tasks  # which bundled module does what, by goal, with examples
 chirp --changelog        # what changed in each release, offline
 chirp --self-update      # replace chirp with the latest signed release (--check only reports; --force also takes a build of the same version)
+chirp --self-update --channel main --force   # a signed build of main instead, trusting a key of its own
 ```
 
 Inside chirp, every bundled module can be imported without anything on disk:

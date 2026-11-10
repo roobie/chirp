@@ -3,6 +3,7 @@
 (import spork/http)
 (import spork/sh)
 (import jsec/crypto)
+(import ../../src/chirp/update)
 
 (def targets ["linux-x64" "linux-arm64" "macos-arm64" "windows-x64"])
 (def windows? (truthy? (index-of (os/which) [:windows :mingw])))
@@ -27,7 +28,46 @@
    (string/replace-all "\r" "" (string out))
    (string/replace-all "\r" "" (string err))])
 
+(defn- trust-separation
+  "The release key and the main-build key each verify their own tree and never
+  the other's, whatever --base says."
+  []
+  (def release (crypto/generate-key :ed25519))
+  (def main-build (crypto/generate-key :ed25519))
+  (def config
+    {:base "https://example.test/releases"
+     :key (crypto/export-public-key release)
+     :channels {:main {:base "https://example.test/latest"
+                       :key (crypto/export-public-key main-build)}
+                :keyless {:base "https://example.test/keyless"}}})
+  (def sums "chirp-1.0.0-linux-x64\n")
+  (def by-release (crypto/sign release sums))
+  (def by-main (crypto/sign main-build sums))
+  (defn verifies? [trust sig] (truthy? (crypto/verify (trust :key) sums sig)))
+  (defn trust [& flags] (update/resolve-trust (tabseq [[k v] :in (partition 2 flags)] k v) config))
+
+  (let [t (trust)]
+    (assert (= "https://example.test/releases" (t :base)) "default base")
+    (assert (verifies? t by-release) "the release key verifies a release")
+    (assert (not (verifies? t by-main)) "the release key must not verify a main build"))
+  (let [t (trust :channel "main")]
+    (assert (= "https://example.test/latest" (t :base)) "channel base")
+    (assert (verifies? t by-main) "the main-build key verifies a main build")
+    (assert (not (verifies? t by-release)) "the main-build key must not verify a release"))
+  (let [t (trust :base "https://mirror.test/x/")]
+    (assert (= "https://mirror.test/x" (t :base)) "--base replaces the base, trailing slash dropped")
+    (assert (verifies? t by-release) "--base alone keeps the release key")
+    (assert (not (verifies? t by-main)) "--base alone must not trust the main-build key"))
+  (let [t (trust :channel "main" :base "https://mirror.test/x")]
+    (assert (= "https://mirror.test/x" (t :base)) "--channel with --base reads the mirror")
+    (assert (verifies? t by-main) "--channel with --base keeps the channel's key")
+    (assert (not (verifies? t by-release)) "--channel with --base must not trust the release key"))
+  (assert (not (first (protect (trust :channel "nightly")))) "an unknown channel is refused")
+  (assert (not (first (protect (trust :channel "keyless"))))
+          "a channel without a key is refused, not given the release key"))
+
 (defn main [&]
+  (trust-separation)
   (def tmp (string (or (os/getenv "TMPDIR") (os/getenv "TEMP") (os/getenv "TMP") ".")
                    "/chirp-smoke-update-" (os/time) "-" (math/floor (* 1e6 (math/random)))))
   (sh/create-dirs tmp)
@@ -91,6 +131,20 @@
 
       (publish :signer other-key)
       (fails "signature by another key" (update "--force") "does not verify")
+
+      # The main channel trusts the key built into this binary, not the test's
+      # release key: a tree signed with it is refused unless --key says otherwise.
+      (publish)
+      (defn channel [& flags] (run-copy exe "--self-update" "--channel" "main" "--base" base ;flags))
+      (let [[code _ err] (channel "--check")]
+        (assert (and (not= 0 code) (string/find "does not verify" err))
+                (string "--channel main accepted a tree signed by another key: " code " " (string/format "%q" err))))
+      (let [[code out err] (channel "--key" key-file "--check")]
+        (assert (and (= 0 code) (string/find "latest  99.0.0" out))
+                (string "--channel main --key: " code " " (string/format "%q" (string out err)))))
+      (let [[code _ err] (run-copy exe "--self-update" "--channel" "nightly" "--check")]
+        (assert (and (not= 0 code) (string/find "unknown channel" err)) "--channel nightly is refused"))
+      (assert (unchanged?) "a channel check changed the binary")
 
       (publish)
       (put tree "/latest/download/SHA256SUMS.sig" nil)

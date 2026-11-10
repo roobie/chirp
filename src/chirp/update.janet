@@ -247,19 +247,37 @@
       "--check" (put opts :check true)
       "--force" (put opts :force true)
       "--output" (put opts :output (value a))
+      "--channel" (put opts :channel (value a))
       "--base" (put opts :base (value a))
       "--key" (put opts :key (value a))
-      (die "unknown argument " a ". Usage: chirp --self-update [--check] [--force] [--output PATH] [--base URL] [--key PEM]"))
+      (die "unknown argument " a ". Usage: chirp --self-update [--check] [--force] [--output PATH] [--channel NAME] [--base URL] [--key PEM]"))
     (++ i))
   opts)
 
-(defn- self-update [args {:version version :base default-base :targets targets :key key-pem}]
+(defn resolve-trust
+  "Where to read from and which public key (PEM) to trust. A channel brings its
+  own base and key and nothing else is trusted for it; without one the release
+  base and key apply. --base alone keeps the key, --channel with --base keeps
+  the channel's key, and --key overrides the key whatever else was chosen.
+  config has :base and :key for releases and :channels, a table of name to
+  {:base :key}. A channel without a key is an error, never the release key."
+  [opts {:base default-base :key default-key :channels channels}]
+  (def channel
+    (when-let [name (opts :channel)]
+      (or (get channels (keyword name))
+          (die "unknown channel " name ", known: " (string/join (sorted (map string (keys channels))) ", ")))))
+  (when (and channel (not (channel :key)))
+    (die "channel " (opts :channel) " has no key, so nothing could be verified"))
+  (def base (or (opts :base) (get channel :base) default-base))
+  {:base (if (string/has-suffix? "/" base) (string/slice base 0 -2) base)
+   :key (if (opts :key)
+          (try (slurp (opts :key)) ([e] (die "cannot read key file " (opts :key) ": " e)))
+          (if channel (channel :key) default-key))})
+
+(defn- self-update [args config]
+  (def {:version version :targets targets} config)
   (def opts (parse-args args))
-  (def base (let [b (or (opts :base) default-base)]
-              (if (string/has-suffix? "/" b) (string/slice b 0 -2) b)))
-  (def key (if (opts :key)
-             (try (slurp (opts :key)) ([e] (die "cannot read key file " (opts :key) ": " e)))
-             key-pem))
+  (def {:base base :key key} (resolve-trust opts config))
   (def user-agent (string "chirp/" version))
   (def target (target-name targets))
   # --output leaves the running build alone, so a pre-release may use it freely.
@@ -317,7 +335,8 @@
 
 (defn run
   "Run `chirp --self-update`. args are the words after it; config has :version,
-  :base, :targets and :key (the public key as PEM). Failures print to stderr and
+  :base, :targets, :key (the public key as PEM) and :channels (name to
+  {:base :key}, the key as PEM). Failures print to stderr and
   exit 1, leaving the running binary as it was."
   [args config]
   (def [ok err] (protect (self-update args config)))
