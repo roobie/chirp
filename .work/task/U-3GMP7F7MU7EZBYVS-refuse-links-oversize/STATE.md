@@ -19,15 +19,14 @@ success_criteria:
 Over a checkout that is not trusted, a committed symlink or a huge file makes dev-proc read what is outside it or exhaust memory (chirp issue 15). The rules belong in dev-proc, not in every consumer.
 
 ## Scope
-In: one loader helper that reads a document safely; link and size checks while loading a root; refusing a team work dir that leads out of the repo; tests, SKILL.md, CHANGELOG, site page.
-Out: refs read by check (source files, where symlinks are legitimate); writes through a symlinked STATE.md beyond refusing to read it.
+In: one loader helper that reads a document safely; link and size checks while loading a root; refusing a team work dir that leads out of the repo; tests, SKILL.md, CHANGELOG.
+Out: the site page, which does not document loading.
 
 ## Context & constraints
 Roots named by the operator (--root, DEV_PROC_ROOT, dev-proc.root) stay exempt from the work-dir rule. The cap is a constant, never read from the checkout.
 
-
 ## Now
-Implemented and tested; awaiting review.
+Review fixes done; awaiting re-review.
 
 ## Next
 - Owner: judge the 1 MiB cap; review; finalize
@@ -35,6 +34,7 @@ Implemented and tested; awaiting review.
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - dev-proc, find, frontmatter tests pass; new tests cover symlinked STATE.md and record, symlinked unit/type/record dirs, oversize (cap+1 refused, cap accepted), fifo, .work leading outside refused, explicit --root/DEV_PROC_ROOT/dev-proc.root accepted, in-repo .work link accepted. D-JYZH36C56HAGEIHI records the design.
+- Review fixes: refs bounded and confined to the repo; one refusal check behind read, write and descent; ensure-dir for writes below the root; linked team work dirs, dangling links and .dev-proc.toml failures refused as root problems; per-root 64 MiB budget; run-with has a deadline. New tests per rule; dev-proc, find, frontmatter, skillcheck and leakcheck pass.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -43,7 +43,6 @@ Implemented and tested; awaiting review.
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
-- [ ] backlog: check-ref reads a ref's source file whole and through links (needed for symbol lookup); bound it for untrusted checkouts without breaking linked skill dirs
 
 ## Log
 - 2026-11-10 initialized
