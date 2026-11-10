@@ -46,3 +46,4 @@ Review fixes done; awaiting re-review.
 
 ## Log
 - 2026-11-10 initialized
+- 2026-11-10 docs, changelog and decision brought in line with the review fixes
