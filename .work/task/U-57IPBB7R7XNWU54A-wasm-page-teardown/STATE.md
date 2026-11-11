@@ -35,13 +35,14 @@ The wasm CI job fails now and then at teardown: the page test removes Chrome's p
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+Done pending owner/reviewer; commit made.
 
 ## Next
-- TODO
+Harvest/finalize by the driver.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- page.mjs awaits Chrome's exit event (stopChrome) before rmSync, no retry. Built chirp.wasm with tools/build/container.sh wasm32-wasi, built+checked site, ran 'CHROME=/usr/bin/chromium node test/wasm/page.mjs <site>' 8 times in a row: all 'page checks ok', exit 0, no chirp-page-* dirs left in tmp.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -50,7 +51,9 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] learning: SIGKILL of the main Chrome process may leave helper processes writing to the profile; the fallback is only reached if SIGTERM is ignored for 10s
 
 ## Log
 - 2026-11-11 initialized
 - 2026-11-11 phase initialize → execute
+- 2026-11-11 page.mjs: stopChrome() awaits the exit event, SIGKILL fallback after 10s, then rmSync

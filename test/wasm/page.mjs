@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 
 const site = path.resolve(process.argv[2] ?? 'out/site');
 const types = { '.html': 'text/html', '.mjs': 'text/javascript', '.css': 'text/css',
@@ -162,8 +163,22 @@ await check('#read= shows a core docstring', async () => {
   expect(text.includes('(string/trim str &opt bytes)'), text.slice(0, 200));
 });
 
+// Chrome keeps writing to its profile until it exits, so the profile can only
+// be removed after the exit event. The startup handler above is already settled
+// by now, so this exit is not reported as a startup failure.
+async function stopChrome(graceSeconds = 10) {
+  const exited = once(chrome, 'exit');
+  chrome.kill();
+  const force = setTimeout(() => {
+    console.log(`chrome ignored SIGTERM for ${graceSeconds}s; sending SIGKILL`);
+    chrome.kill('SIGKILL');
+  }, graceSeconds * 1000);
+  await exited;
+  clearTimeout(force);
+}
+
 ws.close();
-chrome.kill();
+await stopChrome();
 server.close();
 fs.rmSync(profile, { recursive: true, force: true });
 if (failed) {
