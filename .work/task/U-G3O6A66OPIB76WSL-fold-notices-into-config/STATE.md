@@ -36,13 +36,15 @@ D-KPP2PSBZKFSROC44 and the comment atop tools/build/notices.jdn keep the notice 
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+Done pending owner review; unit not closed
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- criterion 3: linux-x64 built before (c814157) and after, fresh out dirs; bin/chirp sha256 bbb9439b7612741f99fa1013397b3abb4362b71838593d17f875b64dce898567 and bin/NOTICES.txt 0c154cd340b15d37dd2462d0eb75d83821a91c425e38dc2f375f553fa5164347 identical in both
+- criteria 1,2: notices.jdn removed, data under config.jdn :notices; D-MFWFKRO3I2W4SWIR supersedes D-KPP2PSBZKFSROC44; L-A75ZR5MHIETRGB4I refs config.jdn; dev-proc check ok; only history/work docs name notices.jdn
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:

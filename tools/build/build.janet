@@ -12,7 +12,6 @@
 (def pins (load-data "pins.jdn"))
 (def config (load-data "tools/build/config.jdn"))
 (def natives (load-data "tools/build/natives.jdn"))
-(def notices (load-data "tools/build/notices.jdn"))
 
 (def target-name (keyword (os/getenv "CHIRP_TARGET" "")))
 (def target
@@ -431,7 +430,7 @@
 
 (spit "bin/NOTICES.txt"
       (string/join
-        (seq [n :in notices
+        (seq [n :in (config :notices)
               :when (and (or (not (n :targets)) (index-of target-name (n :targets)))
                          (or (not (n :openssl)) tgt-openssl?))]
           (notice-section n))
