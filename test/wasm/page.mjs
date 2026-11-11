@@ -195,6 +195,10 @@ async function stopChrome(graceSeconds = 10) {
   const asked = Date.now();
   const escalation = [['SIGTERM', graceSeconds], ['SIGKILL', 2 * graceSeconds]];
   while (groupAlive()) {
+    // A helper nobody reaps (no init in a container) would outlive SIGKILL.
+    if (Date.now() - asked > 3 * graceSeconds * 1000) {
+      throw new Error(`chrome's process group ${chrome.pid} survived SIGKILL; its profile is left at ${profile}`);
+    }
     if (escalation.length && Date.now() - asked > escalation[0][1] * 1000) {
       const [signal] = escalation.shift();
       console.log(`chrome still running after Browser.close; sending ${signal} to its group`);

@@ -33,6 +33,7 @@ page.mjs now runs Chrome in its own process group, closes it with Browser.close 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - Built linux-x64 and wasm32-wasi with tools/build/container.sh, site with chirp site/build.janet --wasm. Old teardown: CHROME=chromium node page.mjs out/site x30 gave 30/30 passes, so the ENOTEMPTY race did not reproduce locally. New code, same loop: 30/30 pass, no SIGTERM/SIGKILL escalation needed in any run, no chromium process of the runs left afterwards. The ci run on main is still to check.
+- review: the wait after SIGKILL is now bounded (3x grace) and fails naming the group and the profile, instead of hanging the job
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
