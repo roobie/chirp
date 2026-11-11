@@ -153,3 +153,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-11 drive: closed task config-jdn-hash-input (U-ILCUNCJK3HY56H64): the cause was collector timing, already fixed on main by 7544abd; notices.jdn's stale reason gated for the owner as B-XVGIPKGVKMLHDM33
 - 2026-11-11 drive: started task dev-proc-help-flag (U-Z7VUMCHAJIKFBRVN)
 - 2026-11-11 drive: owner released B-XVGIPKGVKMLHDM33 (fold notices back into config.jdn); started task fold-notices-into-config (U-G3O6A66OPIB76WSL)
+- 2026-11-11 drive: merged and closed task dev-proc-help-flag (U-Z7VUMCHAJIKFBRVN)
