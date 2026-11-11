@@ -156,3 +156,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-11 drive: merged and closed task dev-proc-help-flag (U-Z7VUMCHAJIKFBRVN)
 - 2026-11-11 drive: folded notices.jdn into config.jdn (D-MFWFKRO3I2W4SWIR supersedes D-KPP2PSBZKFSROC44); binary and NOTICES.txt unchanged
 - 2026-11-11 drive: omap marshal, omap/equal? and per-thread guard merged after Opus review (D-JJECECVXGNYXPGEI)
+- 2026-11-11 release prep for 0.12.0: changelog gains the dev-proc unknown-flag entry; CI on main red on the page test's profile removal (U-NLRVSKT5FG5RSCPE)
