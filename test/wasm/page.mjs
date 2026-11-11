@@ -7,7 +7,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { once } from 'node:events';
 
 const site = path.resolve(process.argv[2] ?? 'out/site');
 const types = { '.html': 'text/html', '.mjs': 'text/javascript', '.css': 'text/css',
@@ -29,7 +28,7 @@ const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'chirp-page-'));
 const chrome = spawn(process.env.CHROME ?? 'google-chrome',
   ['--headless=new', '--no-sandbox', '--disable-gpu', '--no-first-run',
    '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'],
-  { stdio: ['ignore', 'ignore', 'pipe'] });
+  { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
 const browserWs = await new Promise((resolve, reject) => {
   let err = '';
   chrome.stderr.on('data', (d) => {
@@ -163,20 +162,46 @@ await check('#read= shows a core docstring', async () => {
   expect(text.includes('(string/trim str &opt bytes)'), text.slice(0, 200));
 });
 
-// Chrome keeps writing to its profile until it exits, so the profile can only
-// be removed after the exit event. The startup handler above is already settled
-// by now, so this exit is not reported as a startup failure.
+// Chrome's helper processes (network service, crashpad, ...) keep writing the
+// profile after the main process exits, so the main pid's exit says nothing
+// about the profile being quiet. Chrome runs in its own process group
+// (detached), and the profile is only safe to remove once that group is empty.
+const groupAlive = () => {
+  try {
+    process.kill(-chrome.pid, 0);
+    return true;
+  } catch (e) {
+    if (e.code === 'ESRCH') return false;
+    throw e;
+  }
+};
+
+// Browser.close makes Chrome wind down its own helpers before it exits. It
+// needs the browser-level socket; the page's socket cannot do it.
+async function closeBrowser() {
+  const browser = new WebSocket(browserWs);
+  await new Promise((resolve) => {
+    browser.addEventListener('open', resolve, { once: true });
+    browser.addEventListener('error', resolve, { once: true });
+  });
+  if (browser.readyState === WebSocket.OPEN) {
+    browser.send(JSON.stringify({ id: 1, method: 'Browser.close' }));
+  }
+}
+
 async function stopChrome(graceSeconds = 10) {
-  // An exit that already happened would never fire again.
-  if (chrome.exitCode !== null || chrome.signalCode !== null) return;
-  const exited = once(chrome, 'exit');
-  chrome.kill();
-  const force = setTimeout(() => {
-    console.log(`chrome ignored SIGTERM for ${graceSeconds}s; sending SIGKILL`);
-    chrome.kill('SIGKILL');
-  }, graceSeconds * 1000);
-  await exited;
-  clearTimeout(force);
+  // An exit that already happened leaves no browser to ask.
+  if (chrome.exitCode === null && chrome.signalCode === null) await closeBrowser();
+  const asked = Date.now();
+  const escalation = [['SIGTERM', graceSeconds], ['SIGKILL', 2 * graceSeconds]];
+  while (groupAlive()) {
+    if (escalation.length && Date.now() - asked > escalation[0][1] * 1000) {
+      const [signal] = escalation.shift();
+      console.log(`chrome still running after Browser.close; sending ${signal} to its group`);
+      process.kill(-chrome.pid, signal);
+    }
+    await new Promise((r) => setTimeout(r, 50));
+  }
 }
 
 ws.close();
