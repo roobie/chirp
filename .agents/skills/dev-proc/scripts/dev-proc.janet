@@ -1393,7 +1393,6 @@ Lists the decisions and learnings (every .work/ root in the repo) whose read_if 
 match the words, best first. --backlog also searches backlog items. --json is for agents.`)
 
 (defn- cmd-find [ctx args]
-  (when (or (args "help") (index-of "-h" (args :pos))) (print FIND-HELP) (break))
   (def query (fm/jtrim (string/join (args :pos) " ")))
   (when (empty? query) (die FIND-HELP))
   (def kinds @{"decision" true "learning" true})
@@ -1594,7 +1593,6 @@ alone, so uncommitted work is left out (status shows it).`)
     {:type (w :type) :name (w :name) :label (string (w :type) "/" (w :name)) :parent (when (string? p) p)}))
 
 (defn- cmd-report [ctx args]
-  (when (or (args "help") (index-of "-h" (args :pos))) (print REPORT-HELP) (break))
   (def top (ctx :top))
   (def arg (some-str (first (args :pos))))
   (def since (some-str (args "since")))
@@ -1738,12 +1736,12 @@ alone, so uncommitted work is left out (status shows it).`)
   --             end of options: later arguments are text even if they start with --
                  (note <unit> log -- "--force was needed")`))
 
-# Each command: the function that runs it and the flags it accepts besides ENV-OPTIONS; any other
-# flag is a usage error.
+# Each command: the function that runs it, the flags it accepts besides COMMON-FLAGS and ENV-OPTIONS
+# (any other flag is a usage error), and optionally the :help text --help prints in place of HELP.
 (def COMMANDS
   {"init" {:run cmd-init :flags []}
    "status" {:run cmd-status :flags ["json" "detail"]}
-   "find" {:run cmd-find :flags ["backlog" "json" "help"]}
+   "find" {:run cmd-find :flags ["backlog" "json"] :help FIND-HELP}
    "new" {:run cmd-new :flags ["parent" "owner" "from" "with" "criterion" "purpose" "execute" "id" "json" "body" "body-file"]}
    "phase" {:run cmd-phase :flags ["force"]}
    "rescope" {:run cmd-rescope :flags ["type" "name" "parent"]}
@@ -1755,7 +1753,7 @@ alone, so uncommitted work is left out (status shows it).`)
    "note" {:run cmd-note :flags []}
    "dig" {:run cmd-dig :flags []}
    "hooks" {:run cmd-hooks :flags []}
-   "report" {:run cmd-report :flags ["since" "json" "help"]}})
+   "report" {:run cmd-report :flags ["since" "json"] :help REPORT-HELP}})
 # Every flag and what it takes: nothing (:boolean), one value (:value), or a value that may repeat
 # (:repeatable).
 (def FLAGS
@@ -1766,6 +1764,9 @@ alone, so uncommitted work is left out (status shows it).`)
    "body" :value "body-file" :value "type" :value "name" :value "decision" :value "supersedes" :value
    "since" :value})
 
+# The flags every command accepts.
+(def COMMON-FLAGS ["help"])
+
 # The options that hold for every command, and the environment variable that gives each its default,
 # so a directory can pin them (with direnv, say) in or out of a git repo. The command line wins. A
 # :path value must be absolute: a relative one would mean something else in each subdirectory.
@@ -1775,7 +1776,7 @@ alone, so uncommitted work is left out (status shows it).`)
 # -- ends the flags, so later arguments are positional even if they start with --.
 # A flag the command does not accept is a usage error naming the ones it does.
 (defn- parse-args [cmd command argv]
-  (def accepted [;(command :flags) ;(sort (keys ENV-OPTIONS))])
+  (def accepted [;(command :flags) ;COMMON-FLAGS ;(sort (keys ENV-OPTIONS))])
   (def args @{:pos @[]})
   (var flags? true)
   (var i 0)
@@ -1827,6 +1828,10 @@ alone, so uncommitted work is left out (status shows it).`)
     (break 0))
   (def command (or (COMMANDS cmd) (die (string "unknown command \"" cmd "\"\n\n" HELP))))
   (def args (env-defaults (parse-args cmd command (slice argv 1))))
+  # -h counts only alone, where it cannot be text meant for the command.
+  (when (or (args "help") (deep= (slice argv 1) ["-h"]))
+    (print (or (command :help) HELP))
+    (break 0))
   (def cwd (os/cwd))
   (def git-top (repo-top cwd))
   (when (and (nil? git-top) (or (NEEDS-GIT cmd) (and (= cmd "check") (or (args "staged") (args "hook")))))

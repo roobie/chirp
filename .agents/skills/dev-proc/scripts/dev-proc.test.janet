@@ -85,10 +85,10 @@
   (fn []
     (with-repo
       (fn [dir]
-        (each [args valid] [[["status" "--bogus" "x"] "--json, --detail, --root"]
+        (each [args valid] [[["status" "--bogus" "x"] "--json, --detail, --help, --root"]
                             [["record" "learning" "Zqxv" "--section" "Why=y"] "--read-if"]
                             [["status" "--bogus=x"] "--json"]
-                            [["note" "--bogus"] "it takes --root"]]
+                            [["note" "--bogus"] "it takes --help, --root"]]
           (def r (run dir ;args))
           (check (= 2 (r :status)) (string/format "%q" r))
           (check (string/find "unknown flag --" (r :stderr)) (r :stderr))
@@ -1394,10 +1394,19 @@
           (check (= 0 (r :status)) (string what " exited " (r :status) ": " (r :stderr)))
           (check (= "" (string (r :stdout) (r :stderr))) (string what " printed: " (r :stdout) (r :stderr))))))))
 
+(test "--help prints the command's own usage where it has one, else the main help, and exits 0"
+  (fn []
+    (each [args text] [[["find" "--help"] dp/FIND-HELP] [["report" "-h"] dp/REPORT-HELP]
+                       [["note" "--help"] dp/HELP] [["status" "--help"] dp/HELP]]
+      (def r (run-with {} (os/cwd) ;args))
+      (check (= 0 (r :status)) (string (string/join args " ") " exited " (r :status) ": " (r :stderr)))
+      (check (= (string text "\n") (r :stdout)) (string (string/join args " ") " printed " (r :stdout))))))
+
 (test "the flags commands list and the flags with a kind are the same set"
   (fn []
     (def listed @{})
     (each command dp/COMMANDS (each flag (command :flags) (put listed flag true)))
+    (each flag dp/COMMON-FLAGS (put listed flag true))
     (each flag (keys dp/ENV-OPTIONS) (put listed flag true))
     (each flag (keys listed) (check (dp/FLAGS flag) (string "no kind for --" flag)))
     (each flag (keys dp/FLAGS) (check (listed flag) (string "--" flag " is used by no command")))))

@@ -41,6 +41,7 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- every command's --help exits 0 and prints its :help or the main HELP; new test covers find, report -h, note, status; all suites green
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -53,3 +54,4 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
 ## Log
 - 2026-11-11 initialized
 - 2026-11-11 phase initialize → execute
+- 2026-11-11 help is a COMMON-FLAGS entry; COMMANDS entries may carry :help; dispatch prints it; -h counts only as the sole argument
