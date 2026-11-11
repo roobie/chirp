@@ -54,8 +54,10 @@ Owner review; finalize.
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
 - [ ] decision: unknown flags are a usage error (exit 2) naming the command's valid flags
+- [ ] backlog: <cmd> --help exits 2 on commands other than find and report; --help should print usage for every command
 
 ## Log
 - 2026-11-11 initialized
 - 2026-11-11 phase initialize → execute
 - 2026-11-11 COMMANDS holds each command's :run and :flags; parse-args rejects other flags
+- 2026-11-11 FLAGS gives each flag its kind; a test keeps FLAGS and COMMANDS :flags in step

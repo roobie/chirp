@@ -2,6 +2,7 @@
 # Run: chirp dev-proc.test.janet   (exits non-zero on failure)
 (import spork/json)
 (import spork/sh)
+(import ./dev-proc :as dp)
 
 (def cli
   (let [file (dyn :current-file)
@@ -1392,6 +1393,14 @@
           (def what (string (string/join args " ") (if strict " (strict)" "")))
           (check (= 0 (r :status)) (string what " exited " (r :status) ": " (r :stderr)))
           (check (= "" (string (r :stdout) (r :stderr))) (string what " printed: " (r :stdout) (r :stderr))))))))
+
+(test "the flags commands list and the flags with a kind are the same set"
+  (fn []
+    (def listed @{})
+    (each command dp/COMMANDS (each flag (command :flags) (put listed flag true)))
+    (each flag (keys dp/ENV-OPTIONS) (put listed flag true))
+    (each flag (keys listed) (check (dp/FLAGS flag) (string "no kind for --" flag)))
+    (each flag (keys dp/FLAGS) (check (listed flag) (string "--" flag " is used by no command")))))
 
 (when (> failures 0)
   (eprint failures " test(s) failed")

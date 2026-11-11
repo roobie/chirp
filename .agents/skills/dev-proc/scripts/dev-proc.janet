@@ -1756,22 +1756,26 @@ alone, so uncommitted work is left out (status shows it).`)
    "dig" {:run cmd-dig :flags []}
    "hooks" {:run cmd-hooks :flags []}
    "report" {:run cmd-report :flags ["since" "json" "help"]}})
-(def BOOLEAN {"id" true "execute" true "json" true "scrap" true "staged" true "hook" true "force" true "help" true "backlog" true "detail" true})
-(def REPEATABLE {"read-if" true "ref" true "criterion" true})
+# Every flag and what it takes: nothing (:boolean), one value (:value), or a value that may repeat
+# (:repeatable).
+(def FLAGS
+  {"id" :boolean "execute" :boolean "json" :boolean "scrap" :boolean "staged" :boolean "hook" :boolean
+   "force" :boolean "help" :boolean "backlog" :boolean "detail" :boolean
+   "read-if" :repeatable "ref" :repeatable "criterion" :repeatable
+   "root" :value "parent" :value "owner" :value "from" :value "with" :value "purpose" :value
+   "body" :value "body-file" :value "type" :value "name" :value "decision" :value "supersedes" :value
+   "since" :value})
 
 # The options that hold for every command, and the environment variable that gives each its default,
 # so a directory can pin them (with direnv, say) in or out of a git repo. The command line wins. A
 # :path value must be absolute: a relative one would mean something else in each subdirectory.
 (def ENV-OPTIONS {"root" {:env "DEV_PROC_ROOT" :path true}})
 
-(defn- accepted-flags [command]
-  (array/concat (array ;(command :flags)) (sort (keys ENV-OPTIONS))))
-
 # Positional arguments live under :pos; flags under their string name. A bare
 # -- ends the flags, so later arguments are positional even if they start with --.
 # A flag the command does not accept is a usage error naming the ones it does.
 (defn- parse-args [cmd command argv]
-  (def accepted (accepted-flags command))
+  (def accepted [;(command :flags) ;(sort (keys ENV-OPTIONS))])
   (def args @{:pos @[]})
   (var flags? true)
   (var i 0)
@@ -1786,7 +1790,7 @@ alone, so uncommitted work is left out (status shows it).`)
         (unless (index-of key accepted)
           (die (string "unknown flag --" key " for " cmd "; it takes "
                        (string/join (map |(string "--" $) accepted) ", "))))
-        (if (BOOLEAN key)
+        (if (= (FLAGS key) :boolean)
           (put args key true)
           (do
             (var val (when eq (string/slice s (+ eq 1))))
@@ -1794,7 +1798,7 @@ alone, so uncommitted work is left out (status shows it).`)
               (++ i)
               (when (>= i (length argv)) (die (string "--" key " needs a value")))
               (set val (argv i)))
-            (if (REPEATABLE key)
+            (if (= (FLAGS key) :repeatable)
               (do (unless (args key) (put args key @[])) (array/push (args key) val))
               (put args key val))))))
     (++ i))
