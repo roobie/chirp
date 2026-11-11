@@ -20,7 +20,7 @@ Start here when you know what you want to do but not which module does it. Each 
 
 ## Keep the key order of a map
 
-Janet tables have no order. An `omap` keeps keys in the order they were added, and `spork/json` and `yaml` encode it in that order. Their decoders return omaps when their `ordered` argument is true; `json-omap` is the JSON decoder behind that flag, not for calling directly.
+Janet tables have no order. An `omap` keeps keys in the order they were added, and `spork/json` and `yaml` encode it in that order. Their decoders return omaps when their `ordered` argument is true; `json-omap` is the JSON decoder behind that flag, not for calling directly. `=` tells two omaps apart by identity; `omap/equal?` compares them by content. An omap can be marshalled, so it can be saved in an image or sent to another ev thread.
 
 ```janet
 (import omap)

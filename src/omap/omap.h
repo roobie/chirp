@@ -27,6 +27,7 @@
 #define OMAP_UNUSED
 #endif
 
+
 #define OMAP_NAME "omap"
 #define OMAP_MIN_CAP 8
 
@@ -196,15 +197,24 @@ static size_t omap_cb_length(void *p, size_t len) {
     return (size_t) ((Omap *) p)->live;
 }
 
-/* A map holding itself would print forever. */
-static int omap_print_depth = 0;
+/* A map holding itself would recurse forever when printed, compared or hashed.
+ * The count is per thread: ev threads run these callbacks at the same time. */
+static JANET_THREAD_LOCAL int omap_depth = 0;
+
+static void omap_enter(const char *doing) {
+    if (++omap_depth > JANET_RECURSION_GUARD) {
+        omap_depth = 0;
+        janet_panicf("omap: nested too deeply to %s", doing);
+    }
+}
+
+static void omap_leave(void) {
+    omap_depth--;
+}
 
 static void omap_cb_tostring(void *p, JanetBuffer *buffer) {
     Omap *o = p;
-    if (++omap_print_depth > JANET_RECURSION_GUARD) {
-        omap_print_depth = 0;
-        janet_panic("omap: nested too deeply to print");
-    }
+    omap_enter("print");
     janet_buffer_push_u8(buffer, '{');
     int first = 1;
     for (int32_t i = 0; i < o->used; i++) {
@@ -218,7 +228,34 @@ static void omap_cb_tostring(void *p, JanetBuffer *buffer) {
         janet_buffer_push_bytes(buffer, v, janet_string_length(v));
     }
     janet_buffer_push_u8(buffer, '}');
-    omap_print_depth--;
+    omap_leave();
+}
+
+/* Marshalled as the number of entries, then each key and value in order. A map
+ * holding itself works: it is registered as seen before its contents. */
+static void omap_cb_marshal(void *p, JanetMarshalContext *ctx) {
+    const Omap *o = p;
+    janet_marshal_abstract(ctx, p);
+    janet_marshal_int(ctx, o->live);
+    for (int32_t i = 0; i < o->used; i++) {
+        if (!omap_live(&o->entries[i])) continue;
+        janet_marshal_janet(ctx, o->entries[i].key);
+        janet_marshal_janet(ctx, o->entries[i].value);
+    }
+}
+
+/* Janet finds the type by the name written with the map, so the map made here
+ * is of the one registered type every native copy shares. */
+static void *omap_cb_unmarshal(JanetMarshalContext *ctx) {
+    int32_t n = janet_unmarshal_int(ctx);
+    if (n < 0) janet_panic("omap: invalid entry count");
+    Omap *o = janet_unmarshal_abstract(ctx, sizeof(Omap));
+    memset(o, 0, sizeof *o);
+    for (int32_t i = 0; i < n; i++) {
+        Janet key = janet_unmarshal_janet(ctx);
+        omap_put(o, key, janet_unmarshal_janet(ctx));
+    }
+    return o;
 }
 
 /* (m key) and (m key default), as a lookup. */
@@ -235,6 +272,8 @@ static const JanetAbstractType omap_local_type = {
     .gcmark = omap_cb_gcmark,
     .get = omap_cb_get,
     .put = omap_cb_put,
+    .marshal = omap_cb_marshal,
+    .unmarshal = omap_cb_unmarshal,
     .tostring = omap_cb_tostring,
     .next = omap_cb_next,
     .call = omap_cb_call,
@@ -263,6 +302,68 @@ OMAP_UNUSED static Omap *omap_create(int32_t hint) {
         omap_rebuild_to(o, cap);
     }
     return o;
+}
+
+/* Equal by content: the same keys in the same order with equal values. Values
+ * are equal by content when they are omaps, arrays, tuples, tables, structs or
+ * buffers, and as `=` finds them otherwise. This is a function and not the
+ * type's compare and hash callbacks, because Janet's marshaller and any table
+ * keyed by a map treat values that compare equal as one: two separate maps with
+ * the same entries would come back from a marshal as a single map. */
+OMAP_UNUSED static int omap_equal_values(Janet a, Janet b) {
+    if (janet_type(a) != janet_type(b)) return 0;
+    const Janet *xs, *ys;
+    int32_t nx, ny;
+    if (janet_checktype(a, JANET_ABSTRACT)) {
+        if (!omap_is(a) || !omap_is(b)) return janet_equals(a, b);
+        omap_enter("compare");
+        const Omap *x = janet_unwrap_abstract(a);
+        const Omap *y = janet_unwrap_abstract(b);
+        int same = x->live == y->live;
+        int32_t i = 0, j = 0;
+        while (same) {
+            while (i < x->used && !omap_live(&x->entries[i])) i++;
+            while (j < y->used && !omap_live(&y->entries[j])) j++;
+            if (i >= x->used || j >= y->used) break;
+            same = janet_equals(x->entries[i].key, y->entries[j].key) &&
+                   omap_equal_values(x->entries[i].value, y->entries[j].value);
+            i++;
+            j++;
+        }
+        omap_leave();
+        return same;
+    }
+    if (janet_indexed_view(a, &xs, &nx)) {
+        janet_indexed_view(b, &ys, &ny);
+        if (nx != ny) return 0;
+        omap_enter("compare");
+        int same = 1;
+        for (int32_t i = 0; same && i < nx; i++) same = omap_equal_values(xs[i], ys[i]);
+        omap_leave();
+        return same;
+    }
+    const JanetKV *kx, *ky;
+    int32_t capx, capy;
+    if (janet_dictionary_view(a, &kx, &nx, &capx)) {
+        janet_dictionary_view(b, &ky, &ny, &capy);
+        if (nx != ny) return 0;
+        omap_enter("compare");
+        int same = 1;
+        for (int32_t i = 0; same && i < capx; i++) {
+            if (janet_checktype(kx[i].key, JANET_NIL)) continue;
+            Janet other = janet_dictionary_get(ky, capy, kx[i].key);
+            same = omap_equal_values(kx[i].value, other);
+        }
+        omap_leave();
+        return same;
+    }
+    if (janet_checktype(a, JANET_BUFFER)) {
+        const uint8_t *bx, *by;
+        janet_bytes_view(a, &bx, &nx);
+        janet_bytes_view(b, &by, &ny);
+        return nx == ny && memcmp(bx, by, (size_t) nx) == 0;
+    }
+    return janet_equals(a, b);
 }
 
 #endif

@@ -10,7 +10,7 @@
   (assert (not ok) (string "expected an error mentioning " needle))
   (assert (string/find needle (string err)) (string "error " err " lacks " needle)))
 
-# Omaps do not pass deep=, so comparisons go through plain tables and arrays.
+# Decoded documents are compared with the parsers' tables, so omaps are flattened first.
 (defn- plain [x]
   (cond
     (omap/omap? x) (tabseq [[k v] :in (omap/pairs x)] k (plain v))
@@ -72,6 +72,81 @@
   (assert (nil? (big 4000)) "removed key stays removed")
   (put big 4000 :back)
   (assert (= 4000 (last (keys big)) ) "re-added key goes last"))
+
+(defn- self-holding []
+  (def m (omap/new :k 1))
+  (put m :self m)
+  m)
+
+(defn- equality-checks []
+  (def v @[2])
+  (assert (not= (omap/new "a" 1) (omap/new "a" 1)) "= tells maps apart by identity")
+  (assert (omap/equal? (omap/new "b" 1 "a" v) (omap/new "b" 1 "a" v)) "same entries, same order")
+  (assert (omap/equal? (omap/new "a" @[2] "b" @{:k @"s"}) (omap/new "a" @[2] "b" @{:k @"s"})) "mutable values by content")
+  (assert (not (omap/equal? (omap/new "b" 1 "a" 2) (omap/new "a" 2 "b" 1))) "order matters")
+  (assert (not (omap/equal? (omap/new "b" 1) (omap/new "b" 2))) "values matter")
+  (assert (not (omap/equal? (omap/new "b" 1) (omap/new "c" 1))) "keys matter")
+  (assert (not (omap/equal? (omap/new "b" 1) (omap/new "b" 1 "c" 2))) "size matters")
+  (assert (not (omap/equal? (omap/new "a" @[1]) (omap/new "a" @[2]))) "nested array values matter")
+  (assert (not (omap/equal? (omap/new "a" "s") (omap/new "a" @"s"))) "a string is not a buffer")
+  (assert (omap/equal? (omap/new) (omap/new)) "empty maps")
+  (def removed (omap/new "x" 1 "y" 2))
+  (put removed "x" nil)
+  (assert (omap/equal? removed (omap/new "y" 2)) "a removed entry does not count")
+  (assert (omap/equal? (omap/new "k" @[(omap/new "n" 1)]) (omap/new "k" @[(omap/new "n" 1)])) "omap in an array in an omap")
+  (assert (not (omap/equal? (omap/new "k" @[(omap/new "n" 1)]) (omap/new "k" @[(omap/new "n" 2)]))) "and it differs there")
+  (fails |(omap/equal? (omap/new) @{}) "expected omap")
+  (fails |(omap/equal? (self-holding) (self-holding)) "nested too deeply to compare")
+  (assert (= 1 (get (self-holding) :k)) "the guard leaves the map usable"))
+
+(defn- marshal-checks []
+  (def src (omap/new "b" 1 "a" (omap/new "n" @[1 2]) :c "s"))
+  (put src "gone" 5)
+  (put src "gone" nil)
+  (def back (unmarshal (marshal src)))
+  (assert (omap/omap? back) "unmarshals to an omap")
+  (assert (deep= @["b" "a" :c] (keys back)) "order survives")
+  (assert (omap/omap? (back "a")) "nested omap survives")
+  (assert (deep= (plain src) (plain back)) "keys and values survive")
+  (put back "z" 1)
+  (assert (deep= @["b" "a" :c "z"] (keys back)) "an unmarshalled map is a working map")
+  (assert (omap/equal? (omap/new) (unmarshal (marshal (omap/new)))) "empty map")
+  # A map holding itself comes back holding itself.
+  (def me (unmarshal (marshal (self-holding))))
+  (assert (= me (me :self)) "a self-holding map keeps its shape")
+  # The same map twice in one message is one map afterwards.
+  (def shared (omap/new "k" 1))
+  (def pair (unmarshal (marshal [shared shared])))
+  (assert (= (pair 0) (pair 1)) "shared structure survives")
+  # Two separate maps with equal contents stay separate.
+  (def [x y] (unmarshal (marshal [(omap/new "k" 1) (omap/new "k" 1)])))
+  (put x "k" 2)
+  (assert (= 1 (y "k")) "equal maps do not merge")
+  # A truncated message is an error, not a crash.
+  (def bytes (marshal (omap/new "k" 1 "j" 2)))
+  (assert (not (first (protect (unmarshal (slice bytes 0 (- (length bytes) 2)))))) "truncated message"))
+
+(defn- thread-checks []
+  (def ch (ev/thread-chan 1))
+  (ev/thread (fn [] (ev/give ch (omap/new "from" "thread" "n" (omap/new "k" 1)))) nil :n)
+  (def got (ev/take ch))
+  (assert (omap/omap? got) "an omap crosses to another thread")
+  (assert (deep= @["from" "n"] (keys got)) "order survives the crossing")
+  (assert (= 1 ((got "n") "k")) "nested content survives the crossing")
+  # Threads print a map holding itself at the same time; each guard counts its own.
+  (def results (ev/thread-chan 4))
+  (repeat 4
+    (ev/thread (fn []
+                 (var failures 0)
+                 (repeat 200
+                   (def inner (omap/new "k" 1))
+                   (put inner :self inner)
+                   (unless (first (protect (string inner))) (++ failures))
+                   (assert (= ``{"k" 1}`` (string (omap/new "k" 1))) "a plain map prints fine"))
+                 (ev/give results failures)) nil :n))
+  (var total 0)
+  (repeat 4 (+= total (ev/take results)))
+  (assert (= 800 total) "every self-holding print fails, and no thread's count leaks into another"))
 
 (def- yaml-src
   ``
@@ -209,6 +284,9 @@
 
 (defn main [&]
   (type-checks)
+  (equality-checks)
+  (marshal-checks)
+  (thread-checks)
   (yaml-checks)
   (json-checks)
   (parity-checks)

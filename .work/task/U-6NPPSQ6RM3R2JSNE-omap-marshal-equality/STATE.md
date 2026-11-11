@@ -35,13 +35,14 @@ Janet abstract types can supply marshal and unmarshal callbacks; `deep=` has no 
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+builds twice and runs the wasm build, then hands back
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- smoke omap.janet: marshal round trip incl. self-holding map, shared and equal-but-separate maps; another ev thread receives an omap; omap/equal? by content; four threads print self-holding maps. linux-x64 smoke: all checks passed
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -50,6 +51,9 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] decision: omap equality is the function omap/equal?, not the type's compare/hash callbacks, because Janet's marshaller (seen table) and tables treat compare-equal values as one: two separate equal omaps came back from a marshal as one aliased map (verified). So = and deep= stay identity.
+- [ ] learning: Janet 1.43 deep= has no abstract hook; it falls to = which calls the type's compare; a compare hook also makes hash content-based, which conflates mutable keys in marshal
+- [ ] learning: JANET_THREAD_LOCAL (janet.h) gives a per-thread static, __thread under gcc/clang, empty when single-threaded (wasm); needs no -fms-extensions
 
 ## Log
 - 2026-11-11 initialized

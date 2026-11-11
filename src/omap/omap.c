@@ -54,12 +54,24 @@ JANET_FN(omap_fn_is, "(omap/omap? x)", "Returns true if x is an ordered map.") {
     return janet_wrap_boolean(omap_is(argv[0]));
 }
 
+JANET_FN(omap_fn_equal, "(omap/equal? a b)",
+         "Returns true if the ordered maps a and b hold equal keys and values in "
+         "the same order. Unlike `=`, which tells maps apart by identity, it "
+         "compares by content, going into nested omaps, arrays, tuples, tables, "
+         "structs and buffers.") {
+    janet_fixarity(argc, 2);
+    get_omap(argv, 0);
+    get_omap(argv, 1);
+    return janet_wrap_boolean(omap_equal_values(argv[0], argv[1]));
+}
+
 JANET_MODULE_ENTRY(JanetTable *env) {
     static const JanetRegExt cfuns[] = {
         JANET_REG("new", omap_fn_new),
         JANET_REG("from-pairs", omap_fn_from_pairs),
         JANET_REG("pairs", omap_fn_pairs),
         JANET_REG("omap?", omap_fn_is),
+        JANET_REG("equal?", omap_fn_equal),
         JANET_REG_END};
     janet_cfuns_ext(env, "omap", cfuns);
     omap_type(); /* registered now, so the type exists before any map does */
