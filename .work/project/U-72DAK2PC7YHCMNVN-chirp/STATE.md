@@ -148,3 +148,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-11 drive: triaged the backlog for bugs and gaps; started task dev-proc-unknown-flags (U-6KHEW3PKWAZMEY2P) and task wasm-page-teardown (U-57IPBB7R7XNWU54A)
 - 2026-11-11 drive: merged and closed task dev-proc-unknown-flags (U-6KHEW3PKWAZMEY2P); D-2XADU7R2GPTW35JR, B-NYH6ZSXTHFNZJI42
 - 2026-11-11 drive: started task config-jdn-hash-input
+- 2026-11-11 drive: merged and closed task wasm-page-teardown (U-57IPBB7R7XNWU54A)
