@@ -43,6 +43,7 @@ Harvest/finalize by the driver.
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - page.mjs awaits Chrome's exit event (stopChrome) before rmSync, no retry. Built chirp.wasm with tools/build/container.sh wasm32-wasi, built+checked site, ran 'CHROME=/usr/bin/chromium node test/wasm/page.mjs <site>' 8 times in a row: all 'page checks ok', exit 0, no chirp-page-* dirs left in tmp.
+- On main after cherry-pick plus an already-exited guard: 3 more page.mjs runs against the built site, all 'page checks ok', no chirp-page-* left in tmp
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -51,7 +52,7 @@ Harvest/finalize by the driver.
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
-- [ ] learning: SIGKILL of the main Chrome process may leave helper processes writing to the profile; the fallback is only reached if SIGTERM is ignored for 10s
+- [x] learning (dropped, untested guess; see commit): SIGKILL of the main Chrome process may leave helper processes writing to the profile; the fallback is only reached if SIGTERM is ignored for 10s
 
 ## Log
 - 2026-11-11 initialized

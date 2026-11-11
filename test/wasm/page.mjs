@@ -167,6 +167,8 @@ await check('#read= shows a core docstring', async () => {
 // be removed after the exit event. The startup handler above is already settled
 // by now, so this exit is not reported as a startup failure.
 async function stopChrome(graceSeconds = 10) {
+  // An exit that already happened would never fire again.
+  if (chrome.exitCode !== null || chrome.signalCode !== null) return;
   const exited = once(chrome, 'exit');
   chrome.kill();
   const force = setTimeout(() => {
