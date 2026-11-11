@@ -96,8 +96,23 @@
   (assert (omap/equal? (omap/new "k" @[(omap/new "n" 1)]) (omap/new "k" @[(omap/new "n" 1)])) "omap in an array in an omap")
   (assert (not (omap/equal? (omap/new "k" @[(omap/new "n" 1)]) (omap/new "k" @[(omap/new "n" 2)]))) "and it differs there")
   (fails |(omap/equal? (omap/new) @{}) "expected omap")
+  (assert (omap/equal? (omap/new "a" {:k [1 2]}) (omap/new "a" {:k [1 2]})) "structs inside values")
+  (assert (not (omap/equal? (omap/new "a" {:k 1}) (omap/new "a" {:k 2}))) "struct values matter")
+  (assert (not (omap/equal? (omap/new "a" @{:k 1}) (omap/new "a" @{:j 1}))) "same-size tables with different keys")
+  (assert (not (omap/equal? (omap/new "a" @{:k 1}) (omap/new "a" @{:k 1 :j 2}))) "tables of different size")
+  (assert (not (omap/equal? (omap/new "a" @{:k 1}) (omap/new "a" {:k 1}))) "a table is not a struct")
+  (assert (not (omap/equal? (omap/new @"k" 1) (omap/new @"k" 1))) "keys compare as = does: separate buffer keys differ")
+  # The same object is equal to itself without a walk, so shared parts cost nothing.
+  (var x @[])
+  (repeat 40 (set x @[x x]))
+  (assert (omap/equal? (omap/new :a x) (omap/new :a x)) "a shared structure is not walked once per path")
+  (def me (self-holding))
+  (assert (omap/equal? me me) "a self-holding map equals itself")
   (fails |(omap/equal? (self-holding) (self-holding)) "nested too deeply to compare")
-  (assert (= 1 (get (self-holding) :k)) "the guard leaves the map usable"))
+  # A failed deep walk must leave the per-thread count as it found it.
+  (def nested (omap/new "a" (omap/new "b" (omap/new "c" 1))))
+  (assert (= (string nested) (string (omap/new "a" (omap/new "b" (omap/new "c" 1))))) "printing works after the failure")
+  (assert (omap/equal? nested (omap/new "a" (omap/new "b" (omap/new "c" 1)))) "comparing works after the failure"))
 
 (defn- marshal-checks []
   (def src (omap/new "b" 1 "a" (omap/new "n" @[1 2]) :c "s"))
@@ -124,7 +139,17 @@
   (assert (= 1 (y "k")) "equal maps do not merge")
   # A truncated message is an error, not a crash.
   (def bytes (marshal (omap/new "k" 1 "j" 2)))
-  (assert (not (first (protect (unmarshal (slice bytes 0 (- (length bytes) 2)))))) "truncated message"))
+  (assert (not (first (protect (unmarshal (slice bytes 0 (- (length bytes) 2)))))) "truncated message")
+  # An entry count larger than the message holds is an error too. The empty
+  # map's count is its last byte.
+  (def empty (marshal (omap/new)))
+  (each claimed [1 100 200]
+    (def hostile (buffer (slice empty 0 -2)))
+    (buffer/push-byte hostile claimed)
+    (assert (not (first (protect (unmarshal hostile)))) (string "claims " claimed " entries")))
+  # A negative count, as the marshaller writes -1.
+  (def negative (buffer (slice empty 0 -2) (marshal -1)))
+  (fails |(unmarshal negative) "invalid entry count"))
 
 (defn- thread-checks []
   (def ch (ev/thread-chan 1))

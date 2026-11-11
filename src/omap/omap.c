@@ -57,8 +57,11 @@ JANET_FN(omap_fn_is, "(omap/omap? x)", "Returns true if x is an ordered map.") {
 JANET_FN(omap_fn_equal, "(omap/equal? a b)",
          "Returns true if the ordered maps a and b hold equal keys and values in "
          "the same order. Unlike `=`, which tells maps apart by identity, it "
-         "compares by content, going into nested omaps, arrays, tuples, tables, "
-         "structs and buffers.") {
+         "compares by content, going into nested omaps, arrays, tuples, tables "
+         "(not their prototypes), structs and buffers. Keys are compared as `=` "
+         "compares them, as a lookup does. A map is equal to itself, but two "
+         "different maps that hold themselves are too deeply nested to compare "
+         "and raise an error.") {
     janet_fixarity(argc, 2);
     get_omap(argv, 0);
     get_omap(argv, 1);

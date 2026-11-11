@@ -43,6 +43,7 @@ builds twice and runs the wasm build, then hands back
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - smoke omap.janet: marshal round trip incl. self-holding map, shared and equal-but-separate maps; another ev thread receives an omap; omap/equal? by content; four threads print self-holding maps. linux-x64 smoke: all checks passed
+- review fixes: omap/equal? identity shortcut (shared DAG of depth 40 returns at once, self-comparison true); keys documented as =, table protos documented as ignored; tests for hostile counts, structs, same-size tables; linux-x64 smoke all checks passed
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:

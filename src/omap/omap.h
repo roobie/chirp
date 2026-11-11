@@ -304,14 +304,21 @@ OMAP_UNUSED static Omap *omap_create(int32_t hint) {
     return o;
 }
 
-/* Equal by content: the same keys in the same order with equal values. Values
- * are equal by content when they are omaps, arrays, tuples, tables, structs or
- * buffers, and as `=` finds them otherwise. This is a function and not the
+/* Equal by content: the same keys in the same order with equal values. Keys
+ * are compared as `=` compares them, as a lookup does. Values are equal by
+ * content when they are omaps, arrays, tuples, tables (their prototypes are not
+ * looked at), structs or buffers, and as `=` finds them otherwise. The same
+ * object is equal to itself without a walk, which also keeps a structure that
+ * shares parts from being walked once per path to them. This is a function and not the
  * type's compare and hash callbacks, because Janet's marshaller and any table
  * keyed by a map treat values that compare equal as one: two separate maps with
  * the same entries would come back from a marshal as a single map. */
 OMAP_UNUSED static int omap_equal_values(Janet a, Janet b) {
     if (janet_type(a) != janet_type(b)) return 0;
+    if (janet_checktypes(a, JANET_TFLAG_ARRAY | JANET_TFLAG_TABLE | JANET_TFLAG_BUFFER | JANET_TFLAG_ABSTRACT |
+                            JANET_TFLAG_TUPLE | JANET_TFLAG_STRUCT) &&
+        janet_unwrap_pointer(a) == janet_unwrap_pointer(b))
+        return 1;
     const Janet *xs, *ys;
     int32_t nx, ny;
     if (janet_checktype(a, JANET_ABSTRACT)) {
