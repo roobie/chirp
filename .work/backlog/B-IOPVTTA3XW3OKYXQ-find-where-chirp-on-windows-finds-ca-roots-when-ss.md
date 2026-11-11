@@ -1,5 +1,6 @@
 ---
 created: 2026-10-24
+needs: owner
 ---
 
 # B-IOPVTTA3XW3OKYXQ Find where chirp on windows finds CA roots when SSL_CERT_FILE is empty

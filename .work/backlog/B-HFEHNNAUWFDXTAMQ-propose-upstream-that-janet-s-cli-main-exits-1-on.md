@@ -1,5 +1,6 @@
 ---
 created: 2026-10-25
+needs: owner
 ---
 
 # B-HFEHNNAUWFDXTAMQ Propose upstream that Janet's cli-main exits 1 on an unknown flag

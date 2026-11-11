@@ -1,5 +1,6 @@
 ---
 created: 2026-11-01
+needs: owner
 ---
 
 # B-4XR7XIFFSIWKFM2Z File upstream janet issue: os/spawn :cd on musl, its docstring, and the stale errno

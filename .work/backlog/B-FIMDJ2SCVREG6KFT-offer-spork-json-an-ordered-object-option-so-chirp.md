@@ -1,5 +1,6 @@
 ---
 created: 2026-10-25
+needs: owner
 ---
 
 # B-FIMDJ2SCVREG6KFT Offer spork/json an ordered-object option so chirp's decoder copy can go

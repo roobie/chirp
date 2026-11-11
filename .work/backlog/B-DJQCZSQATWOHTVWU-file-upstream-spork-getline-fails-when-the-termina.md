@@ -1,5 +1,6 @@
 ---
 created: 2026-11-02
+needs: owner
 ---
 
 # B-DJQCZSQATWOHTVWU File upstream: spork/getline fails when the terminal has no room for the prompt

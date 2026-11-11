@@ -1,5 +1,6 @@
 ---
 created: 2026-10-24
+needs: owner
 ---
 
 # B-DZXWHDHHXMIJKCKR Decide whether to ship janet-pm inside chirp

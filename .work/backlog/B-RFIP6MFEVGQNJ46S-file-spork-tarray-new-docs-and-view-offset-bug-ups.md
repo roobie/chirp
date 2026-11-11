@@ -1,5 +1,6 @@
 ---
 created: 2026-11-09
+needs: owner
 ---
 
 # B-RFIP6MFEVGQNJ46S File spork tarray/new docs and view-offset bug upstream; drop the tarray overlay when fixed

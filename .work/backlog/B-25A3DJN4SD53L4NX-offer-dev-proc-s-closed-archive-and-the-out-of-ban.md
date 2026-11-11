@@ -1,5 +1,6 @@
 ---
 created: 2026-11-04
+needs: owner
 ---
 
 # B-25A3DJN4SD53L4NX Offer dev-proc's closed/ archive and the out-of-band Supersedes fix to spartan's copy

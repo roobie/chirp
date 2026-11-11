@@ -1,5 +1,6 @@
 ---
 created: 2026-10-24
+needs: owner
 ---
 
 # B-MKHM34WSTBQOE626 Make spork/tasker image-deterministic upstream and re-bundle it

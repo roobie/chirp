@@ -1,5 +1,6 @@
 ---
 created: 2026-11-10
+needs: owner
 ---
 
 # B-RS4LEZTDHMQIMIFM Offer janet-lang/sqlite3 a guard for builds without extension loading

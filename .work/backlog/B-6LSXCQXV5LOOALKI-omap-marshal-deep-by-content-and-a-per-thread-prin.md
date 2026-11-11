@@ -1,5 +1,6 @@
 ---
 created: 2026-10-25
+priority: "3"
 ---
 
 # B-6LSXCQXV5LOOALKI omap marshal, deep= by content, and a per-thread print guard

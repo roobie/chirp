@@ -1,5 +1,6 @@
 ---
 created: 2026-11-05
+needs: owner
 ---
 
 # B-CJNYKLBSXESBPAQY Hand TLS verification to the OS verifier on macOS and windows

@@ -1,5 +1,6 @@
 ---
 created: 2026-11-10
+priority: "1"
 ---
 
 # B-ZRD2QVEPG55JNVHB Wait for Chrome to exit before removing its profile in the wasm page test
