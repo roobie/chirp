@@ -80,6 +80,26 @@
           (check (= 0 (r :status)))
           (check (string/has-prefix? "usage: find <words…>" (r :stdout))))))))
 
+(test "a flag the command does not accept is a usage error naming it and the valid ones"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (each [args valid] [[["status" "--bogus" "x"] "--json, --detail, --root"]
+                            [["record" "learning" "Zqxv" "--section" "Why=y"] "--read-if"]
+                            [["status" "--bogus=x"] "--json"]
+                            [["note" "--bogus"] "it takes --root"]]
+          (def r (run dir ;args))
+          (check (= 2 (r :status)) (string/format "%q" r))
+          (check (string/find "unknown flag --" (r :stderr)) (r :stderr))
+          (check (string/find valid (r :stderr)) (r :stderr)))
+        (def r (run dir "status" "--bogus" "x"))
+        (check (string/find "unknown flag --bogus for status" (r :stderr)) (r :stderr))
+        # nothing was created by the rejected record
+        (check (not (string/find "Zqxv" ((run dir "status" "--json" "--detail") :stdout))))
+        # global options and end-of-options still work
+        (check (= 0 ((run dir "status" "--root" (string dir "/.work")) :status)))
+        (check (= 0 ((run dir "record" "learning" "Dash" "--read-if" "x" "--" "--bogus") :status)))))))
+
 (test "find lists matching records with their cues, as text and JSON"
   (fn []
     (with-repo

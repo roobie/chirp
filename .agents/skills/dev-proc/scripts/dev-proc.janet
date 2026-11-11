@@ -1738,17 +1738,40 @@ alone, so uncommitted work is left out (status shows it).`)
   --             end of options: later arguments are text even if they start with --
                  (note <unit> log -- "--force was needed")`))
 
+# Each command: the function that runs it and the flags it accepts besides ENV-OPTIONS; any other
+# flag is a usage error.
 (def COMMANDS
-  {"init" cmd-init "status" cmd-status "find" cmd-find "new" cmd-new "phase" cmd-phase
-   "rescope" cmd-rescope "close" cmd-close "record" cmd-record "check" cmd-check
-   "check-msg" cmd-check-msg "trailers" cmd-trailers "note" cmd-note "dig" cmd-dig "hooks" cmd-hooks
-   "report" cmd-report})
+  {"init" {:run cmd-init :flags []}
+   "status" {:run cmd-status :flags ["json" "detail"]}
+   "find" {:run cmd-find :flags ["backlog" "json" "help"]}
+   "new" {:run cmd-new :flags ["parent" "owner" "from" "with" "criterion" "purpose" "execute" "id" "json" "body" "body-file"]}
+   "phase" {:run cmd-phase :flags ["force"]}
+   "rescope" {:run cmd-rescope :flags ["type" "name" "parent"]}
+   "close" {:run cmd-close :flags ["scrap" "decision"]}
+   "record" {:run cmd-record :flags ["read-if" "ref" "supersedes" "id" "json" "body" "body-file"]}
+   "check" {:run cmd-check :flags ["staged" "hook"]}
+   "check-msg" {:run cmd-check-msg :flags []}
+   "trailers" {:run cmd-trailers :flags []}
+   "note" {:run cmd-note :flags []}
+   "dig" {:run cmd-dig :flags []}
+   "hooks" {:run cmd-hooks :flags []}
+   "report" {:run cmd-report :flags ["since" "json" "help"]}})
 (def BOOLEAN {"id" true "execute" true "json" true "scrap" true "staged" true "hook" true "force" true "help" true "backlog" true "detail" true})
 (def REPEATABLE {"read-if" true "ref" true "criterion" true})
 
+# The options that hold for every command, and the environment variable that gives each its default,
+# so a directory can pin them (with direnv, say) in or out of a git repo. The command line wins. A
+# :path value must be absolute: a relative one would mean something else in each subdirectory.
+(def ENV-OPTIONS {"root" {:env "DEV_PROC_ROOT" :path true}})
+
+(defn- accepted-flags [command]
+  (array/concat (array ;(command :flags)) (sort (keys ENV-OPTIONS))))
+
 # Positional arguments live under :pos; flags under their string name. A bare
 # -- ends the flags, so later arguments are positional even if they start with --.
-(defn- parse-args [argv]
+# A flag the command does not accept is a usage error naming the ones it does.
+(defn- parse-args [cmd command argv]
+  (def accepted (accepted-flags command))
   (def args @{:pos @[]})
   (var flags? true)
   (var i 0)
@@ -1760,6 +1783,9 @@ alone, so uncommitted work is left out (status shows it).`)
       (let [s (string/slice a 2)
             eq (string/find "=" s)
             key (if eq (string/slice s 0 eq) s)]
+        (unless (index-of key accepted)
+          (die (string "unknown flag --" key " for " cmd "; it takes "
+                       (string/join (map |(string "--" $) accepted) ", "))))
         (if (BOOLEAN key)
           (put args key true)
           (do
@@ -1773,11 +1799,6 @@ alone, so uncommitted work is left out (status shows it).`)
               (put args key val))))))
     (++ i))
   args)
-
-# The options that hold for every command, and the environment variable that gives each its default,
-# so a directory can pin them (with direnv, say) in or out of a git repo. The command line wins. A
-# :path value must be absolute: a relative one would mean something else in each subdirectory.
-(def ENV-OPTIONS {"root" {:env "DEV_PROC_ROOT" :path true}})
 
 # Fills args from ENV-OPTIONS where the command line left an option out; records under :from which
 # variable set it, for error messages.
@@ -1800,8 +1821,8 @@ alone, so uncommitted work is left out (status shows it).`)
   (when (or (nil? cmd) (= cmd "") (= cmd "help") (= cmd "--help") (= cmd "-h"))
     (print HELP)
     (break 0))
-  (def f (or (COMMANDS cmd) (die (string "unknown command \"" cmd "\"\n\n" HELP))))
-  (def args (env-defaults (parse-args (slice argv 1))))
+  (def command (or (COMMANDS cmd) (die (string "unknown command \"" cmd "\"\n\n" HELP))))
+  (def args (env-defaults (parse-args cmd command (slice argv 1))))
   (def cwd (os/cwd))
   (def git-top (repo-top cwd))
   (when (and (nil? git-top) (or (NEEDS-GIT cmd) (and (= cmd "check") (or (args "staged") (args "hook")))))
@@ -1833,7 +1854,7 @@ alone, so uncommitted work is left out (status shows it).`)
          (when (desc :refused) (die (string (shown top dir) ": " (desc :refused))))
          desc))
   (put ctx :root (fn [] (load-root ((ctx :root-desc)) (ctx :budget))))
-  (f ctx args)
+  ((command :run) ctx args)
   (ctx :exit))
 
 (defn main [_ & argv]

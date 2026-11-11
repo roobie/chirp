@@ -36,13 +36,15 @@ Promoted from backlog: B-IPLFSODIGG5YM6EW dev-proc fails on an unknown flag inst
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+Implemented; awaiting owner review.
 
 ## Next
-- TODO
+Owner review; finalize.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- dev-proc, find, frontmatter tests, skillcheck + its test and dev-proc check pass; status --bogus x exits 2: unknown flag --bogus for status; it takes --json, --detail, --root
+- smoke dev-proc-install compares the binary's embedded skill with the repo, so it differs until a rebuild; expected
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -51,7 +53,9 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] decision: unknown flags are a usage error (exit 2) naming the command's valid flags
 
 ## Log
 - 2026-11-11 initialized
 - 2026-11-11 phase initialize → execute
+- 2026-11-11 COMMANDS holds each command's :run and :flags; parse-args rejects other flags
