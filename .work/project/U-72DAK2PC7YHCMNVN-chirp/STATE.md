@@ -26,13 +26,13 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-DGT7DONSVJESO5FV (superseding D-B2RTYH6CNDO6SRF5), D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
 ## Now
-0.11.0 is published (2026-11-10) and main carries 0.12.0-dev. 0.11.0 holds the richer dev-proc status --json, the site's try page running chirp.wasm, signed builds of main installable with --self-update --channel main, and --force/--output for same-version builds; it is the first release signed in the release environment behind the owner's approval. close-milestone closed nothing (no 0.11.0 milestone).
+0.12.0 is published (2026-11-12) and main carries 0.13.0-dev. It held omap marshal and omap/equal?, the per-thread omap print guard, dev-proc exit codes 3 and 4, unknown-flag rejection and refusal of links and oversize documents. No milestone: no issue was fixed in it.
 
 ## Next
 - BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
 - BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
 - BR files the spork tarray/new docs and view-offset issue; the draft is in B-RFIP6MFEVGQNJ46S
-- Candidate for 0.12: bundle a CSV reader and writer (B-3U2LXKLBUDLJGUOO)
+- Candidate for 0.13: bundle a CSV reader and writer (B-3U2LXKLBUDLJGUOO)
 
 ## Evidence
 - Os-trust-stores (U-OWEKBTPLIF7KEK7U): run 41942352002 builds all four targets twice with matching sha256; every smoke passes, macOS https-get example.com from 153 keychain roots and windows from 417 store roots with no SSL_CERT_FILE; a start without TLS takes 14 ms on both.
@@ -64,6 +64,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Self-update 0.8.0 -> 0.9.0 verified by BR on linux-x64 after the 504s cleared: the updated binary reports chirp 0.9.0 on Janet 1.43.0-chirp-e4b50456.
 - Release 0.10.0: https://github.com/roobie/chirp/releases/tag/v0.10.0 (run 42551719483, 22443b2): not a draft, 10 assets, Latest, notes from the changelog section; milestone 0.10.0 closed with #4 #6 #8 #9 each commented 'Shipped in chirp 0.10.0'; 0.9.0 linux-x64 --self-update -> 0.10.0, which gives the json import hint and lists 54 modules; pages run 42552919062 green, help/tasks.html serves 200.
 - Release 0.11.0: https://github.com/roobie/chirp/releases/tag/v0.11.0 (run 42887783417, 85f41e0): 10 assets, Latest, notes carry the 0.11.0 section; owner approved the release deployment; 0.10.0 linux-x64 --self-update -> 0.11.0 with sha256 equal to SHA256SUMS; pages run 42892097763 green with no main-build tree, as designed; dry run 42850689842 before the tag.
+- Release 0.12.0: https://github.com/roobie/chirp/releases/tag/v0.12.0 (run 43130401158, 14ed03b): 10 assets, not a draft, Latest, notes carry the 0.12.0 changelog section; 0.11.0 linux-x64 --self-update went to 0.12.0; pages run 43136013915 green; no rerun
 
 ## Harvest
 
@@ -159,3 +160,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-11 release prep for 0.12.0: changelog gains the dev-proc unknown-flag entry; CI on main red on the page test's profile removal (U-NLRVSKT5FG5RSCPE)
 - 2026-11-12 page test closes Chrome over CDP and waits for its process group; ci green on 1f40e2d (run 43120891764)
 - 2026-11-12 cutting 0.12.0: omap marshal and omap/equal?, dev-proc exit codes 3 and 4, unknown-flag rejection and refusal of links and oversize documents
+- 2026-11-12 0.12.0 published by BR's tag; release run 43130401158 green, pages 43136013915 green, self-update from 0.11.0 checked; main moves to 0.13.0-dev
