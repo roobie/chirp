@@ -31,7 +31,7 @@ Implemented and tested; awaiting review and finalize.
 - Review, then finalize.
 
 ## Evidence
-- `chirp dev-proc.test.janet` in .agents/skills/dev-proc/scripts: all tests passed, including the new test comparing each --detail unit with `status <unit> --json` and checking plain status lacks the fields.
+- `chirp dev-proc.test.janet` in .agents/skills/dev-proc/scripts: all tests passed (re-run after the duplicate-key fix), including the new test comparing each --detail unit with `status <unit> --json` and checking plain status lacks the fields.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -45,3 +45,4 @@ Implemented and tested; awaiting review and finalize.
 - 2026-11-13 initialized
 - 2026-11-13 phase initialize → execute
 - 2026-11-13 --detail carries success_criteria and gate via shared unit-criteria and unit-gate
+- 2026-11-13 fixed duplicate success_criteria/gate keys in status <unit> --json: unit-detail is the only emitter; test scans for repeated keys

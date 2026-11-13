@@ -934,8 +934,8 @@
   (def gate (unit-gate root u))
   (if (args "json")
     (print-json (jobj "id" (u :id) "label" (u :label) "mode" (or phase :null) "parent" (or parent :null)
-                      "owner" owner "success_criteria" criteria "files" files "children" children
-                      "next" next-phase "gate" gate "problems" (u :problems)
+                      "owner" owner "files" files "children" children
+                      "next" next-phase "problems" (u :problems)
                       "created" (fm-string front "created") "awaiting" (fm-string front "awaiting")
                       ;(unit-detail root u)))
     (do
