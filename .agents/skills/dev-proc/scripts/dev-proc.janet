@@ -879,9 +879,20 @@
 (defn- harvest-json [body]
   (map |(jobj "kind" ($ :kind) "text" ($ :text) "done" ($ :done)) (harvest-items (section body "Harvest"))))
 
+(def- NEXT-PHASE {"initialize" "execute" "execute" "finalize" "finalize" "closed"})
+
+# The problems keeping a unit from its next phase; none once it is closed.
+(defn- unit-gate [root u]
+  (if-let [next-phase (NEXT-PHASE (fm/fm-get (u :fm) "phase"))]
+    (gate-problems root u next-phase)
+    @[]))
+
+(defn- unit-criteria [u] (list-of (fm/fm-get (u :fm) "success_criteria")))
+
 # What a viewer needs of a unit beyond its place in the tree.
-(defn- unit-detail [u]
-  ["sections" (sections-json (u :body)) "harvest" (harvest-json (u :body))])
+(defn- unit-detail [root u]
+  ["success_criteria" (unit-criteria u) "gate" (unit-gate root u)
+   "sections" (sections-json (u :body)) "harvest" (harvest-json (u :body))])
 
 # The front matter fields a record may carry, by how they read; one its kind lacks is left out.
 # Other fields are not passed on.
@@ -913,20 +924,20 @@
 (defn- status-one [ctx root u args]
   (def front (u :fm))
   (def phase (fm/fm-get front "phase"))
-  (def next-phase (get {"initialize" "execute" "execute" "finalize" "finalize" "closed"} phase))
+  (def next-phase (NEXT-PHASE phase))
   (def parent (parent-of u))
   (def owner (list-of (fm/fm-get front "owner")))
-  (def criteria (list-of (fm/fm-get front "success_criteria")))
+  (def criteria (unit-criteria u))
   (def files (filter |(not (refusal (pjoin (u :dir) $) :file)) ["DESIGN.md" "PLAN.md" "STATE.md"]))
   (def children (map |(string (show $) " [" (jstr (or (fm/fm-get ($ :fm) "phase") "?")) "]")
                      (children-of root (u :id))))
-  (def gate (if next-phase (gate-problems root u next-phase) @[]))
+  (def gate (unit-gate root u))
   (if (args "json")
     (print-json (jobj "id" (u :id) "label" (u :label) "mode" (or phase :null) "parent" (or parent :null)
-                      "owner" owner "success_criteria" criteria "files" files "children" children
-                      "next" next-phase "gate" gate "problems" (u :problems)
+                      "owner" owner "files" files "children" children
+                      "next" next-phase "problems" (u :problems)
                       "created" (fm-string front "created") "awaiting" (fm-string front "awaiting")
-                      ;(unit-detail u)))
+                      ;(unit-detail root u)))
     (do
       (print (show u) "\nmode: " (jstr (or phase :null)))
       (when parent
@@ -960,7 +971,7 @@
                                  "parent" (or (parent-of u) :null) "owner" (list-of (fm/fm-get front "owner"))
                                  "problems" (u :problems) "created" (fm-string front "created")
                                  "awaiting" (fm-string front "awaiting")
-                                 ;(if (args "detail") (unit-detail u) [])))
+                                 ;(if (args "detail") (unit-detail root u) [])))
                          units)
             "records" (map |(record-json $ (args "detail")) (root :records))
             "problems" (root :problems)))
@@ -1675,7 +1686,7 @@ alone, so uncommitted work is left out (status shows it).`)
                                            tree of units, or one unit's mode + gate, or one record. --json
                                            gives a unit or record its sections and a unit its harvest
                                            items; with --json, --detail gives every unit and record in the
-                                           tree the same
+                                           tree the same, and every unit its success_criteria and gate
   find <words…> [--backlog] [--json]       decisions and learnings whose read_if or title match what you are about to do
   new <type> <name> [--parent <unit>] [--owner a,b] [--from B-…] [--with design,plan]
       [--criterion "…"]… [--purpose "…"] [--execute] [--id|--json] [body]

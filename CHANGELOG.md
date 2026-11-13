@@ -4,6 +4,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Added
+
+- `dev-proc status --json --detail` gives every unit in the tree its `success_criteria` and `gate`, the same as `status <unit> --json`, so a program showing the gates of many units runs dev-proc once. Without `--detail` the output is unchanged.
+
 ## 0.12.0
 
 Released 2026-11-12.

@@ -804,6 +804,48 @@
         (check (date? (plain "created")))
         (check (deep= (detailed "harvest") @[]))))))
 
+(test "--detail gives every unit the success criteria and gate status <unit> --json gives"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "ready" "--criterion" "it holds" "--owner" "me") :status)))
+        (check (= 0 ((run dir "new" "task" "bare") :status)))
+        (def plain (get-in (status-json dir) ["units" 0]))
+        (check (not (or (has-key? plain "success_criteria") (has-key? plain "gate"))))
+        (each u ((status-json dir "--detail") "units")
+          (def one (status-json dir (u "label")))
+          (check (deep= (u "success_criteria") (one "success_criteria")))
+          (check (deep= (u "gate") (one "gate"))))
+        (def by-label (tabseq [u :in ((status-json dir "--detail") "units")] (u "label") u))
+        (check (deep= (get-in by-label ["task/ready" "success_criteria"]) @["it holds"]))
+        (check (not (empty? (get-in by-label ["task/bare" "gate"]))))))))
+
+# The first key a JSON text repeats within one object, or nil. The encoder indents by nesting, so a
+# line's keys belong to the object whose keys share its indent; a line less indented ends deeper ones.
+(defn repeated-key [text]
+  (def seen @{})
+  (var dup nil)
+  (each line (string/split "\n" text)
+    (def indent (- (length line) (length (string/triml line))))
+    (each depth (filter |(> $ indent) (keys seen)) (put seen depth nil))
+    (when-let [m (peg/match ~(* (capture (any " ")) "\"" (capture (to "\"")) "\": ") line)]
+      (def [pad key] m)
+      (def keys (or (seen (length pad)) (let [fresh @{}] (put seen (length pad) fresh) fresh)))
+      (when (keys key) (set dup (or dup key)))
+      (put keys key true)))
+  dup)
+
+(test "no JSON object in a unit's or the detailed tree's status repeats a key"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "one" "--criterion" "it holds" "--owner" "me") :status)))
+        (check (= 0 ((run dir "new" "task" "two") :status)))
+        (each args [["task/one" "--json"] ["--json" "--detail"]]
+          (def r (run dir "status" ;args))
+          (check (nil? (repeated-key (r :stdout))) (string args " repeats " (repeated-key (r :stdout)))))
+        (check (= "x" (repeated-key "{\n  \"x\": 1,\n  \"x\": 2\n}")))))))
+
 (test "records in the tree carry their front matter fields and problems, and sections only with --detail"
   (fn []
     (with-repo
