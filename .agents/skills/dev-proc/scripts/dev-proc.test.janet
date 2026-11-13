@@ -804,6 +804,22 @@
         (check (date? (plain "created")))
         (check (deep= (detailed "harvest") @[]))))))
 
+(test "--detail gives every unit the success criteria and gate status <unit> --json gives"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (check (= 0 ((run dir "new" "task" "ready" "--criterion" "it holds" "--owner" "me") :status)))
+        (check (= 0 ((run dir "new" "task" "bare") :status)))
+        (def plain (get-in (status-json dir) ["units" 0]))
+        (check (not (or (has-key? plain "success_criteria") (has-key? plain "gate"))))
+        (each u ((status-json dir "--detail") "units")
+          (def one (status-json dir (u "label")))
+          (check (deep= (u "success_criteria") (one "success_criteria")))
+          (check (deep= (u "gate") (one "gate"))))
+        (def by-label (tabseq [u :in ((status-json dir "--detail") "units")] (u "label") u))
+        (check (deep= (get-in by-label ["task/ready" "success_criteria"]) @["it holds"]))
+        (check (not (empty? (get-in by-label ["task/bare" "gate"]))))))))
+
 (test "records in the tree carry their front matter fields and problems, and sections only with --detail"
   (fn []
     (with-repo

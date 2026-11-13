@@ -17,21 +17,21 @@ success_criteria:
 dert's Gates view needs every open unit's success criteria and gate from one status --json --detail run; today only status <unit> --json carries them, so dert would run dev-proc once per unit.
 
 ## Scope
-In: TODO
-Out: TODO
+In: success_criteria and gate on every unit of status --json --detail; skill, changelog, help.
+Out: any change to status --json without --detail.
 
 ## Context & constraints
-TODO: what is already true, what must stay true, resources available.
+The gate is computed in memory from loaded units, so --detail adds no reads against the run's byte budget.
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+Implemented and tested; awaiting review and finalize.
 
 ## Next
-- TODO
+- Review, then finalize.
 
 ## Evidence
-<!-- Proof against success_criteria: test runs, commits, measurements. -->
+- `chirp dev-proc.test.janet` in .agents/skills/dev-proc/scripts: all tests passed, including the new test comparing each --detail unit with `status <unit> --json` and checking plain status lacks the fields.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -44,3 +44,4 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
 ## Log
 - 2026-11-13 initialized
 - 2026-11-13 phase initialize → execute
+- 2026-11-13 --detail carries success_criteria and gate via shared unit-criteria and unit-gate
