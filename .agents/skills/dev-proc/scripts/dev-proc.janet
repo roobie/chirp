@@ -866,6 +866,11 @@
   (def v (fm/fm-get front k))
   (some-str (if (string? v) v (string/join (or v []) ", "))))
 
+# A unit with open children that is not held has no cursor of its own: its present is its children.
+# A held unit keeps one, as the reason for the hold lasts exactly as long as the hold.
+(defn- cursorless? [root u]
+  (and (not (empty? (children-of root (u :id)))) (nil? (fm-string (u :fm) "awaiting"))))
+
 # A list field as JSON: always an array, a single string being a list of one; nil (left out) when empty.
 (defn- fm-list [front k]
   (def items (list-of (fm/fm-get front k)))
@@ -1128,8 +1133,8 @@
   (def root ((ctx :root)))
   (def u (find-unit-to-change root ref))
   (need-section (u :body) heading)
-  (when (and (= sec "next") (not (empty? (children-of root (u :id)))))
-    (error (string (show u) " has open children, so its present is theirs and its plan belongs in Scope or PLAN.md, not in Next")))
+  (when (and (= sec "next") (cursorless? root u))
+    (error (string (show u) " has open children, so its present is theirs and its plan belongs in Scope or PLAN.md, not in Next (unless it is held: awaiting)")))
   (case sec
     "log" (append-log (u :state-path) text)
     (write-doc (u :state-path)
@@ -1357,9 +1362,9 @@
         (def sections (sections-of (u :body)))
         (when (find |(= ($ 0) "Now") sections)
           (array/push warns (string at ": has a \"## Now\" section — fold it into Next and Log; only the unit being worked keeps a cursor, and that is Next")))
-        (when (and (not (empty? (children-of root (u :id))))
+        (when (and (cursorless? root u)
                    (find |(and (= ($ 0) "Next") (not (empty? ($ 1)))) sections))
-          (array/push warns (string at ": has open children but a non-empty \"## Next\" — a parent's present is its children; keep its plan in Scope or PLAN.md")))
+          (array/push warns (string at ": has open children and is not held, but has a non-empty \"## Next\" — a parent's present is its children; keep its plan in Scope or PLAN.md")))
         (def phase (fm/fm-get (u :fm) "phase"))
         (unless (and (string? phase) (index-of phase PHASES))
           (array/push errors (string at ": phase \"" (jstr phase) "\" invalid")))

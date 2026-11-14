@@ -22,7 +22,7 @@ In: the STATE.md template, `note`, `check`, SKILL.md, the site docs, the CHANGEL
 Out: migrating existing units' STATE.md files (check tells their owners), and `status` surfacing the new warnings (they are check-only, like the other warnings).
 
 ## Context & constraints
-Decision D-JJOVR67F7QSSVGVL records the rule. Warnings, not errors, so units written before this stay valid.
+Decision D-JJOVR67F7QSSVGVL records the rule. A held (awaiting) parent keeps a Next for the reason of the hold. Warnings, not errors, so units written before this stay valid.
 
 ## Next
 - hand over for review; leave the unit in execute
@@ -40,6 +40,7 @@ Decision D-JJOVR67F7QSSVGVL records the rule. Warnings, not errors, so units wri
 -->
 
 ## Log
+- 2026-11-14 review: a held parent keeps Next (note and check exempt it); SKILL, decision, site, changelog and tests updated
 - 2026-11-14 Now dropped, Next only on a unit with no open children: template, note, check, docs, tests; recorded D-JJOVR67F7QSSVGVL
 - 2026-11-14 initialized
 - 2026-11-14 phase initialize → execute

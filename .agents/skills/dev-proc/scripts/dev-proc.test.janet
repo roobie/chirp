@@ -378,6 +378,23 @@
         (check (= before (string (slurp file))))
         (check (= 0 ((run dir "note" "slice/parent" "log" "waiting on the kid") :status)))))))
 
+(test "a held parent keeps a Next; check warns about it once the hold is lifted"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def parent (new-id dir "slice" "parent" "--execute"))
+        (new-id dir "task" "kid" "--parent" parent "--execute")
+        (def file (unit-file dir "slice/parent"))
+        (def held (string/replace "owner:" "awaiting: owner\nowner:" (string (slurp file))))
+        (spit file held)
+        (def r (run dir "note" "slice/parent" "next" "waiting on the owner: which API?"))
+        (check (= 0 (r :status)) (r :stderr))
+        (check (not (string/find "slice/parent" ((run dir "check") :stdout))) "check is quiet while held")
+        (spit file (string/replace "awaiting: owner\n" "" (string (slurp file))))
+        (def c (run dir "check"))
+        (check (string/find "open children and is not held" (c :stdout)) (c :stdout))
+        (check (not= 0 ((run dir "note" "slice/parent" "next" "x") :status)))))))
+
 (test "check warns on a Now section, and on a Next with content in a unit with open children"
   (fn []
     (with-repo
@@ -394,7 +411,7 @@
         (check (= 0 (r :status)) "a warning does not fail check")
         (check (string/find "slice/parent" (r :stdout)) (r :stdout))
         (check (string/find "\"## Now\" section" (r :stdout)) (r :stdout))
-        (check (string/find "open children but a non-empty \"## Next\"" (r :stdout)) (r :stdout))
+        (check (string/find "open children and is not held, but has a non-empty \"## Next\"" (r :stdout)) (r :stdout))
         (check (not (string/find "kid" (r :stdout))) "the leaf kid is not warned about")))))
 
 (defn ok [r] (check (= 0 (r :status)) (string (r :stdout) (r :stderr))) r)
