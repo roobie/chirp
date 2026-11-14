@@ -29,7 +29,7 @@ Out: the User-Agent half of the overlay (stays), the two jsec build patches (sti
 
 
 ## Now
-pin bumped; next drop fix-tls from the overlay
+overlay keeps only the User-Agent fix; building linux-x64 and windows-x64 while the smoke check learns exclusivity
 
 ## Next
 - TODO
@@ -50,3 +50,4 @@ pin bumped; next drop fix-tls from the overlay
 - 2026-11-14 initialized
 - 2026-11-14 phase initialize → execute
 - 2026-11-14 jsec pin moved to 9b57288e (0.2.0 branch tip); source list, flags and LICENSE status checked against 08a92f6
+- 2026-11-14 fix-tls and its doc suffix removed; https help, README and CHANGELOG say :ca now trusts only that CA

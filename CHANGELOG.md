@@ -8,6 +8,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 - `dev-proc status --json --detail` gives every unit in the tree its `success_criteria` and `gate`, the same as `status <unit> --json`, so a program showing the gates of many units runs dev-proc once. Without `--detail` the output is unchanged.
 
+### Changed
+
+- A client's `:tls-opts {:ca ...}` (or `:stream-opts`) now trusts only that CA: a server it did not sign is refused, even one the system store trusts. Before, chirp added the CA to the system store, so any publicly trusted certificate was accepted as well. `:security {:ca-file ...}` and `:trusted-cert` still add to the system store. This comes from jsec's 0.2.0 series, which chirp now pins.
+
 ## 0.12.0
 
 Released 2026-11-12.

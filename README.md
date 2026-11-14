@@ -194,10 +194,7 @@ chirp checks certificates by default, against what your OS trusts; it ships no t
 
 ## How chirp's spork-https differs
 
-From 0.2.0, chirp layers two fixes over the bundled spork-https client, without forking it:
-
-- A request with no `User-Agent` header sends `User-Agent: chirp/<version>`, because some services, GitHub's API among them, reject requests without one. A `User-Agent` you set is sent unchanged.
-- `:tls-opts {:ca "ca.pem"}` makes the client trust that CA, as the spork-https docs describe. jsec's client otherwise ignores `:ca` and falls back to the system store.
+From 0.2.0, chirp layers one fix over the bundled spork-https client, without forking it: a request with no `User-Agent` header sends `User-Agent: chirp/<version>`, because some services, GitHub's API among them, reject requests without one. A `User-Agent` you set is sent unchanged.
 
 The server is unchanged.
 
