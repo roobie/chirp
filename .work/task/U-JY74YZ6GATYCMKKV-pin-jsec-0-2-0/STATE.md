@@ -19,15 +19,17 @@ success_criteria:
 Move the jsec pin to its 0.2.0 development branch (9b57288e), where clients honour :ca as the only trust anchor (llmII/jsec#1). Today chirp's overlay maps :ca onto the additive :security {:ca-file}, so a request meant to trust only a private CA also accepts any publicly trusted cert.
 
 ## Scope
-In: TODO
-Out: TODO
+In: the jsec pin, the overlay's :ca mapping (fix-tls) and its doc suffix, a hermetic smoke check of :ca exclusivity, the learning, help, README and CHANGELOG.
+Out: the User-Agent half of the overlay (stays), the two jsec build patches (still needed), moving to a tagged 0.2.0 (none exists yet).
 
 ## Context & constraints
-TODO: what is already true, what must stay true, resources available.
+- 9b57288e is the tip of jsec's 0.2.0 branch; there is no 0.2.0 tag yet, so the pin carries no :tag.
+- Its source tree keeps the dirs natives.jdn compiles (two new files land in src/jutils, which is globbed), project.janet only adds sanitizer and toolchain targets and a Janet >= 1.41.1 floor (chirp pins 1.43.0), and it still has no LICENSE, so the notice in tools/build/notices stays (D-BPDFOMM2OH7HMPZB).
+- :trusted-cert and :security {:ca-file} stay additive on 0.2.0; only :ca is exclusive.
 
 
 ## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
+pin bumped; next drop fix-tls from the overlay
 
 ## Next
 - TODO
@@ -42,7 +44,9 @@ TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a hi
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] backlog: move the jsec pin to the tagged 0.2.0 release (with :tag) once llmII/jsec tags it
 
 ## Log
 - 2026-11-14 initialized
 - 2026-11-14 phase initialize → execute
+- 2026-11-14 jsec pin moved to 9b57288e (0.2.0 branch tip); source list, flags and LICENSE status checked against 08a92f6
