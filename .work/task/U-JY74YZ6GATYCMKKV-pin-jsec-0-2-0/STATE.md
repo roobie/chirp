@@ -8,7 +8,7 @@ created: 2026-11-14
 success_criteria:
   - pins.jdn pins jsec at 9b57288eaf2c65d9aedbde1864a0f4a14cde41e5 and linux-x64 and windows-x64 builds succeed with both jsec patches applied
   - the spork-https overlay no longer rewrites :ca; fix-tls and its doc suffix are gone
-  - 'a smoke check shows :ca trusts only that CA: the private-CA server is trusted and a server the system store trusts is refused'
+  - 'a smoke check shows :ca trusts only that CA: the private-CA server is trusted and a server only the system store trusts is refused'
   - test/smoke/run.janet and the CI checks pass on the built binary
   - L-CPIUGJI6EY2HEID2 is superseded or removed, and CHANGELOG notes the :ca behaviour change
 ---
@@ -50,9 +50,9 @@ finalize: harvest the two backlog items and the learning item (record or drop), 
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
-- [ ] backlog: move the jsec pin to the tagged 0.2.0 release (with :tag) once llmII/jsec tags it
-- [ ] learning: on jsec 0.2.0 a :ca next to :security {:ca-file} is still exclusive, so the removed overlay mapping would not have reopened the system store; removing fix-tls is cleanup, not a fix
-- [ ] backlog: run-windows.sh mounts only test/smoke, so self-update and dev-proc-install cannot find the repo under Wine, and its Wine image lacks git; mount the repo and add git so local windows smoke matches CI
+- [x] backlog: move the jsec pin to the tagged 0.2.0 release (with :tag) once llmII/jsec tags it → B-6UDB6YVY3NJFAAMU
+- [x] learning: on jsec 0.2.0 a :ca next to :security {:ca-file} is still exclusive, so the removed overlay mapping would not have reopened the system store; removing fix-tls is cleanup, not a fix → dropped, too narrow (owner)
+- [x] backlog → B-5KGECVCNU6SWGW4B: run-windows.sh mounts only test/smoke, so self-update and dev-proc-install cannot find the repo under Wine, and its Wine image lacks git; mount the repo and add git so local windows smoke matches CI
 
 ## Log
 - 2026-11-14 initialized
@@ -63,3 +63,4 @@ finalize: harvest the two backlog items and the learning item (record or drop), 
 - 2026-11-14 criterion 3 reworded from a publicly trusted host to a server the system store trusts, so smoke stays hermetic (the owner's brief preferred a local server)
 - 2026-11-14 L-CPIUGJI6EY2HEID2 superseded by L-3ESBZZEAYDWS4KNQ (why plus refs only)
 - 2026-11-14 phase execute → finalize
+- 2026-11-14 owner: criterion 3 says "only the system store trusts"; D-DBGBXVNNTRBBRHMQ context brought to current state (in-repo docs hold current state, git holds history); harvest done
