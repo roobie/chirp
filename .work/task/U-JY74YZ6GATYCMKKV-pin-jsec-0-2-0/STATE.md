@@ -8,7 +8,7 @@ created: 2026-11-14
 success_criteria:
   - pins.jdn pins jsec at 9b57288eaf2c65d9aedbde1864a0f4a14cde41e5 and linux-x64 and windows-x64 builds succeed with both jsec patches applied
   - the spork-https overlay no longer rewrites :ca; fix-tls and its doc suffix are gone
-  - 'a smoke check shows :ca trusts only that CA: the private-CA server is trusted and a publicly trusted host is refused'
+  - 'a smoke check shows :ca trusts only that CA: the private-CA server is trusted and a server the system store trusts is refused'
   - test/smoke/run.janet and the CI checks pass on the built binary
   - L-CPIUGJI6EY2HEID2 is superseded or removed, and CHANGELOG notes the :ca behaviour change
 ---
@@ -29,13 +29,17 @@ Out: the User-Agent half of the overlay (stays), the two jsec build patches (sti
 
 
 ## Now
-overlay keeps only the User-Agent fix; building linux-x64 and windows-x64 while the smoke check learns exclusivity
+linux verified; windows-x64 build running, then smoke under wine
 
 ## Next
 - TODO
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- linux-x64 build (container.sh, cached zig+OpenSSL only) applies spork-deterministic-native-prefixes, jsec-iocp-accept-state-padding and jsec-windows-connectex and compiles the new src/jutils files; natives.jdn unchanged
+- linux-x64: test/smoke/run.janet all 26 checks pass, incl. https-ca (:ca path and PEM trust the private-CA server; the server the child's SSL_CERT_FILE trusts is refused under :ca)
+- mutation: the same check with :security {:ca-file} in place of :ca (the old overlay's effective behaviour) FAILs 'other server, :ca path', so the check tells exclusive from additive
+- linux-x64: CI leakcheck job commands (leakcheck all, leakcheck/skillcheck tests, release cut/layout tests) under env -i all exit 0
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -45,9 +49,12 @@ overlay keeps only the User-Agent fix; building linux-x64 and windows-x64 while 
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
 - [ ] backlog: move the jsec pin to the tagged 0.2.0 release (with :tag) once llmII/jsec tags it
+- [ ] learning: on jsec 0.2.0 a :ca next to :security {:ca-file} is still exclusive, so the removed overlay mapping would not have reopened the system store; removing fix-tls is cleanup, not a fix
 
 ## Log
 - 2026-11-14 initialized
 - 2026-11-14 phase initialize → execute
 - 2026-11-14 jsec pin moved to 9b57288e (0.2.0 branch tip); source list, flags and LICENSE status checked against 08a92f6
 - 2026-11-14 fix-tls and its doc suffix removed; https help, README and CHANGELOG say :ca now trusts only that CA
+- 2026-11-14 smoke https-server gains https-ca, proving :ca exclusivity hermetically; L-CPIUGJI6EY2HEID2 superseded by L-3ESBZZEAYDWS4KNQ
+- 2026-11-14 criterion 3 reworded from a publicly trusted host to a server the system store trusts, so smoke stays hermetic (the owner's brief preferred a local server)
