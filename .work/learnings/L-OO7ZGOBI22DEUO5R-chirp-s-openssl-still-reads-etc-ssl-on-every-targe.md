@@ -13,4 +13,4 @@ refs:
 tools/build/config.jdn configures OpenSSL with `--openssldir=/etc/ssl` for every target. So whenever SSL_CERT_FILE and SSL_CERT_DIR are unset, chirp's OpenSSL reads `/etc/ssl/cert.pem` and `/etc/ssl/certs` on every OS, macOS and windows included. When SSL_CERT_FILE is set, the hash dir `/etc/ssl/certs` is still consulted.
 
 ## Why it matters
-A test that trusts a host can pass on roots that don't come from the store chirp names. Under Wine, `/etc/ssl` reaches the container's real store, which probably explains B-IOPVTTA3XW3OKYXQ. To prove which trust a check uses, run in a container with no `/etc/ssl`, such as busybox: there chirp says `none found` and https-get fails verification.
+A test that trusts a host can pass on roots that don't come from the store chirp names. Under Wine, `/etc/ssl` reaches the container's real store, which probably explains why a windows chirp under Wine still verifies public hosts with `SSL_CERT_FILE` naming an empty file. To prove which trust a check uses, run in a container with no `/etc/ssl`, such as busybox: there chirp says `none found` and https-get fails verification.
