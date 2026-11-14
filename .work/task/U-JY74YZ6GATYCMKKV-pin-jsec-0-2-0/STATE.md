@@ -1,5 +1,5 @@
 ---
-phase: execute
+phase: finalize
 parent: U-72DAK2PC7YHCMNVN
 owner:
   - BR
@@ -29,10 +29,10 @@ Out: the User-Agent half of the overlay (stays), the two jsec build patches (sti
 
 
 ## Now
-linux verified; windows-x64 build running, then smoke under wine
+all criteria hold; in finalize, awaiting the owner to harvest and close
 
 ## Next
-- TODO
+finalize: harvest the two backlog items and the learning item (record or drop), then close
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
@@ -40,6 +40,8 @@ linux verified; windows-x64 build running, then smoke under wine
 - linux-x64: test/smoke/run.janet all 26 checks pass, incl. https-ca (:ca path and PEM trust the private-CA server; the server the child's SSL_CERT_FILE trusts is refused under :ca)
 - mutation: the same check with :security {:ca-file} in place of :ca (the old overlay's effective behaviour) FAILs 'other server, :ca path', so the check tells exclusive from additive
 - linux-x64: CI leakcheck job commands (leakcheck all, leakcheck/skillcheck tests, release cut/layout tests) under env -i all exit 0
+- windows-x64 build (container.sh) applies both jsec patches and links; chirp.exe under Wine (test/smoke/wine image, repo mounted): 27 of 28 checks pass incl. https-ca; dev-proc-install fails only because the Wine image has no git (it runs git init), which the CI windows runner has
+- site/build.janet with the linux binary builds 16 pages; site/check.janet fails only on the missing chirp.wasm, which this task did not build (wasm job out of scope)
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -50,6 +52,7 @@ linux verified; windows-x64 build running, then smoke under wine
 -->
 - [ ] backlog: move the jsec pin to the tagged 0.2.0 release (with :tag) once llmII/jsec tags it
 - [ ] learning: on jsec 0.2.0 a :ca next to :security {:ca-file} is still exclusive, so the removed overlay mapping would not have reopened the system store; removing fix-tls is cleanup, not a fix
+- [ ] backlog: run-windows.sh mounts only test/smoke, so self-update and dev-proc-install cannot find the repo under Wine, and its Wine image lacks git; mount the repo and add git so local windows smoke matches CI
 
 ## Log
 - 2026-11-14 initialized
@@ -59,3 +62,4 @@ linux verified; windows-x64 build running, then smoke under wine
 - 2026-11-14 smoke https-server gains https-ca, proving :ca exclusivity hermetically; L-CPIUGJI6EY2HEID2 superseded by L-3ESBZZEAYDWS4KNQ
 - 2026-11-14 criterion 3 reworded from a publicly trusted host to a server the system store trusts, so smoke stays hermetic (the owner's brief preferred a local server)
 - 2026-11-14 L-CPIUGJI6EY2HEID2 superseded by L-3ESBZZEAYDWS4KNQ (why plus refs only)
+- 2026-11-14 phase execute → finalize
