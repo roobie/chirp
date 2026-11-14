@@ -18,25 +18,14 @@
   (unless (has-user-agent? h) (put h "User-Agent" user-agent))
   h)
 
-# jsec clients ignore :ca and read :security {:ca-file ...} instead.
-(defn- fix-tls [tls]
-  (if (and tls (tls :ca))
-    (let [t (table ;(kvs tls))
-          security (table ;(kvs (or (tls :security) {})))]
-      (unless (security :ca-file) (put security :ca-file (tls :ca)))
-      (put t :security security))
-    tls))
-
 (defn- fix-opts [opts]
   (def o (table ;(kvs opts)))
   (put o :headers (fix-headers (o :headers)))
-  (each k [:tls-opts :stream-opts]
-    (when (o k) (put o k (fix-tls (o k)))))
   (kvs o))
 
 (defmacro- wrap [name params]
   (def doc (((require "spork-https") name) :doc))
-  ~(defn ,name ,(string doc "\n\nchirp adds: a default User-Agent header, and :ca in :tls-opts and :stream-opts as :security {:ca-file}.")
+  ~(defn ,name ,(string doc "\n\nchirp adds: a default User-Agent header.")
      [,;params &keys opts]
      (,(symbol "up/" name) ,;params ;(fix-opts opts))))
 

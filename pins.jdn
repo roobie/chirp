@@ -3,7 +3,7 @@
  :zig {:version "0.15.2" :url "https://ziglang.org/download/0.15.2/zig-x86_64-linux-0.15.2.tar.xz" :sha256 "02aa270f183da276e5b5920b1dac44a63f1a49e55050ebde3aecc9eb82f93239"}
  :janet {:url "https://github.com/janet-lang/janet.git" :tag "v1.43.0" :commit "e4b504568364b5aaeae2a764294b25ed84b402f4"}
  :spork {:url "https://github.com/janet-lang/spork.git" :commit "26af769b7fd8f7214ea8f95dad5c2d360a79f6b4"}
- :jsec {:url "https://github.com/llmII/jsec.git" :commit "08a92f6336f283097298c0f0f917a0fabd2040c8"}
+ :jsec {:url "https://github.com/llmII/jsec.git" :commit "9b57288eaf2c65d9aedbde1864a0f4a14cde41e5"}
  :spork-https {:url "https://github.com/llmII/spork-https.git" :commit "910a525a1ca74b6978c4de19af56507e91dfcf52"}
  :sqlite3 {:url "https://github.com/janet-lang/sqlite3.git" :commit "9126fe46ff1c7e42ca3d7bb9c8aed95a8236a32c"}
  :tomlin {:url "https://github.com/pyrmont/tomlin.git" :commit "3ed6587e8460af4d2e7fcc2a40dd7591e07a953d"}

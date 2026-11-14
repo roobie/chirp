@@ -13,7 +13,7 @@ refs:
 # D-DBGBXVNNTRBBRHMQ chirp corrects bundled modules with an overlay of replacement bindings
 
 ## Context
-Bundled spork-https behaved against its own docs: clients ignored `:ca`, and requests carried no User-Agent, so GitHub's API refused them. chirp never forks upstream (D-ZBIADZDYXYPWLX5L, D-2SHG5CGZYE2DZCQG), and scripts should keep writing `(import spork-https)`.
+Bundled spork-https sends requests with no User-Agent, so GitHub's API refuses them. chirp never forks upstream (D-ZBIADZDYXYPWLX5L, D-2SHG5CGZYE2DZCQG), and scripts should keep writing `(import spork-https)`.
 
 ## Decision
 When a bundled module needs a correction, a chirp-owned module supplies replacement public bindings. chirp.jdn maps the bundled module to that overlay, and they are placed over the upstream env before the image is made.

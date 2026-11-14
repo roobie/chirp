@@ -23,13 +23,15 @@ Some services, GitHub's API among them, reject requests without a `User-Agent`. 
            :headers {"User-Agent" "my-tool"})
 ```
 
-## The :ca option
+## Trusting only your own CA
 
-Upstream documents `:tls-opts {:ca "ca.pem"}` as a path to a CA file, but jsec's client ignores it and falls back to the system store. chirp copies `:ca` into `:security {:ca-file ...}`, which jsec does read, for both `:tls-opts` and `:stream-opts`:
+`:tls-opts {:ca "ca.pem"}` makes that CA the only one the request trusts: a server whose certificate it did not sign is refused, even one your OS trusts. `:ca` takes a path or the PEM itself, in `:tls-opts` or `:stream-opts`:
 
 ```janet
 (https/get "https://internal.example/" :tls-opts {:ca "internal-ca.pem"})
 ```
+
+`:security {:ca-file ...}` adds a CA to the system store instead of replacing it.
 
 ## Trusting one certificate
 
