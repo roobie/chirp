@@ -22,4 +22,4 @@ A unit keeps a cursor, just Next, when it has no open children or is held (await
 State written twice disagrees sooner or later; the children are the one source for what a parent is doing, and they cannot go stale the way a copy does. One cursor on the unit actually being worked is enough, and Log already holds what just happened. A held parent is the exception because the reason for the hold, which is what a reader needs first, belongs to the parent alone and lasts exactly as long as the hold; once the hold is lifted the leftover Next is stale, so the warning that then appears is the prompt to clean it up.
 
 ## Consequences
-A parent's STATE.md says less, so a reader finds its status by reading its children. A held leaf puts the reason first in Next, as that is where the next reader looks.
+A parent's STATE.md says less, so a reader finds its status by reading its children. A held unit puts the reason first in Next, as that is where the next reader looks.
