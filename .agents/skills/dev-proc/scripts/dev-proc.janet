@@ -1116,16 +1116,20 @@
   (def root ((ctx :root)))
   (print (move-phase root (find-unit-to-change root id) to (args "force"))))
 
-(def NOTE-SECTIONS {"now" "Now" "next" "Next" "evidence" "Evidence" "harvest" "Harvest" "log" "Log"})
+(def NOTE-SECTIONS {"next" "Next" "evidence" "Evidence" "harvest" "Harvest" "log" "Log"})
 
 (defn- cmd-note [ctx args]
   (def [ref sec & words] (args :pos))
   (def heading (get NOTE-SECTIONS sec))
+  (when (= sec "now") (die "there is no Now section: it was folded into Next (what is about to happen) and Log (what just did)"))
   (unless (and ref heading) (die (string "usage: note <unit> <" (string/join (sort (keys NOTE-SECTIONS)) "|") "> \"text\"")))
   (def text (fm/jtrim (string/join (or words []) " ")))
   (when (empty? text) (die "a note needs text"))
-  (def u (find-unit-to-change ((ctx :root)) ref))
+  (def root ((ctx :root)))
+  (def u (find-unit-to-change root ref))
   (need-section (u :body) heading)
+  (when (and (= sec "next") (not (empty? (children-of root (u :id)))))
+    (error (string (show u) " has open children, so its present is theirs and its plan belongs in Scope or PLAN.md, not in Next")))
   (case sec
     "log" (append-log (u :state-path) text)
     (write-doc (u :state-path)
@@ -1350,6 +1354,12 @@
       (def at (string where "/" (u :label) " " (u :id)))
       (each p (u :problems) (array/push errors (string at ": " p)))
       (when (u :fm)
+        (def sections (sections-of (u :body)))
+        (when (find |(= ($ 0) "Now") sections)
+          (array/push warns (string at ": has a \"## Now\" section — fold it into Next and Log; only the unit being worked keeps a cursor, and that is Next")))
+        (when (and (not (empty? (children-of root (u :id))))
+                   (find |(and (= ($ 0) "Next") (not (empty? ($ 1)))) sections))
+          (array/push warns (string at ": has open children but a non-empty \"## Next\" — a parent's present is its children; keep its plan in Scope or PLAN.md")))
         (def phase (fm/fm-get (u :fm) "phase"))
         (unless (and (string? phase) (index-of phase PHASES))
           (array/push errors (string at ": phase \"" (jstr phase) "\" invalid")))
@@ -1695,8 +1705,9 @@ alone, so uncommitted work is left out (status shows it).`)
                                            kept and the exit is nonzero when owner or criteria are missing);
                                            --id prints only the id, --json one object
   phase <unit> <phase>      [--force]      move a unit (forward moves are gated)
-  note <unit> <now|next|evidence|harvest|log> "text"
-                                           now/next replace that section; evidence/harvest/log append one line
+  note <unit> <next|evidence|harvest|log> "text"
+                                           next replaces that section (a unit with open children has none);
+                                           evidence/harvest/log append one line
                                            (log gets today's date, harvest "backlog: …" becomes "- [ ] backlog: …")
   rescope <unit> [--type t] [--name n] [--parent <unit>|none]
   close <unit> [--scrap --decision D-…]   delete a finalized unit's docs; a work dir with no git history

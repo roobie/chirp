@@ -12,11 +12,9 @@ Out: TODO
 TODO: what is already true, what must stay true, resources available.
 <!-- origin -->
 
-## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
-
 ## Next
-- TODO
+<!-- The cursor of the unit being worked: what is about to happen, and for a held unit the reason first.
+     Rewrite it freely. A unit with open children keeps none: its present is its children. -->
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->

@@ -10,7 +10,7 @@ It is a convention plus a script, not a service. The script is [`dev-proc.janet`
 
 **Every unit has the same life: initialize, execute, finalize.** Initialize writes down the purpose, scope and success criteria. The CLI will not move a unit to execute without an owner and criteria someone can check. Execute is a loop of plan, act, look at the evidence, adapt and save. Finalize checks the criteria, keeps what is worth keeping and deletes the unit's files.
 
-**State is on disk, not in a chat.** A unit's `STATE.md` holds a cursor (`Now`, `Next`), the evidence against its criteria, and a `Harvest` list. Anyone who picks the work up, human or agent, starts by reading it, not by asking what happened.
+**State is on disk, not in a chat.** A unit's `STATE.md` holds a cursor (`Next`, kept only by a unit with no open children, since a parent's present is its children), the evidence against its criteria, and a `Harvest` list. Anyone who picks the work up, human or agent, starts by reading it, not by asking what happened.
 
 **Ephemeral and durable records are kept apart.** Unit files and backlog items say *what* and *how*, and they are deleted when the work ends. Decisions and learnings outlive the work, and they may only say *why*, with pointers into the code (`refs: path#symbol`). Code rarely lies about what it does, but prose copied from it drifts. `dev-proc check` fails a reference that no longer resolves and flags step lists in durable records.
 
