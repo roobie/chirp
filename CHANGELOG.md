@@ -10,6 +10,7 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Changed
 
+- A dev-proc unit's `STATE.md` no longer has a `## Now` section, and only a unit with no open children, or one that is held (`awaiting` set), keeps a `## Next` cursor. On a parent the cursor repeated what its children already say and went stale. `note <unit> now` is now a usage error (exit 2), `note <unit> next` on a unit with open children is refused unless the unit is held, and `check` warns about a `## Now` heading anywhere and about a non-empty `## Next` on a parent that is not held. An existing unit keeps working: fold its Now into Next or Log when `check` says so.
 - A client's `:tls-opts {:ca ...}` (or `:stream-opts`) now trusts only that CA: a server it did not sign is refused, even one the system store trusts. Before, chirp added the CA to the system store, so any publicly trusted certificate was accepted as well. `:security {:ca-file ...}` and `:trusted-cert` still add to the system store. This comes from jsec's 0.2.0 series, which chirp now pins.
 
 ## 0.12.0

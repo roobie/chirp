@@ -75,7 +75,7 @@ Establish **purpose, scope, context, constraints, resources, ownership and succe
 
 ### execute (loop)
 Repeat: **plan → act → inspect evidence → adapt → persist.**
-- Keep `## Now` and `## Next` current; it is a cursor, so rewrite freely. `$DP note` writes these and the other execute sections, so keeping them current costs one command.
+- Keep `## Next` current while the unit has no open children or is held (`awaiting` set); it is the cursor, so rewrite freely (what is about to happen, and for a held unit the reason first, which lasts as long as the hold). A parent that is not held keeps none: its present is its open children and its remaining plan lives in Scope or `PLAN.md`; once a hold is lifted, clear the leftover Next. `$DP note` writes `## Next` and the other execute sections, so keeping them current costs one command.
 - Put proof against the criteria in `## Evidence`.
 - The moment you notice a decision, a learning or deferred work, add a `- [ ] decision|learning|backlog: …` line to `## Harvest`. Finalize depends on this list. Friction with the way of working itself goes in as `- [ ] process: …` and feeds the retrospective.
 - Append notable events to `## Log`, which is always the last section.

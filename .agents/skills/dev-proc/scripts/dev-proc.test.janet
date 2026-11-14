@@ -317,19 +317,19 @@
       (new-id dir "task" "noted")
       (f dir (unit-file dir "task/noted")))))
 
-(test "note replaces Now and Next and appends to Evidence, Harvest and Log"
+(test "note replaces Next and appends to Evidence, Harvest and Log"
   (fn []
     (note-test
       (fn [dir file]
         (defn note [& args] (def r (run dir "note" "task/noted" ;args)) (check (= 0 (r :status)) (r :stderr)))
-        (note "now" "doing" "it")
         (note "next" "- one\n- two")
         (note "evidence" "tests pass")
         (note "evidence" "and again")
         (note "harvest" "backlog: later")
         (note "log" "a thing happened")
         (def text (string (slurp file)))
-        (check (string/find "## Now\ndoing it\n\n## Next\n- one\n- two\n\n## Evidence\n" text) text)
+        (check (string/find "## Next\n- one\n- two\n\n## Evidence\n" text) text)
+        (check (not (string/find "## Now" text)) text)
         (check (string/find "-->\n- tests pass\n- and again\n\n## Harvest" text) text)
         (check (string/find "-->\n- [ ] backlog: later\n\n## Log\n- " text) text)
         (check (peg/match ~(* (thru "initialized\n- ") (repeat 4 :d) "-" (repeat 2 :d) "-" (repeat 2 :d) " a thing happened\n" -1) text) text)
@@ -351,8 +351,68 @@
     (note-test
       (fn [dir _]
         (check (string/find "usage: note" ((run dir "note" "task/noted" "purpose" "x") :stderr)))
-        (check (string/find "needs text" ((run dir "note" "task/noted" "now") :stderr)))
-        (check (string/find "no active unit" ((run dir "note" "task/none" "now" "x") :stderr)))))))
+        (check (string/find "needs text" ((run dir "note" "task/noted" "next") :stderr)))
+        (check (string/find "no active unit" ((run dir "note" "task/none" "next" "x") :stderr)))))))
+
+(test "note now is a usage error that says Now was folded into Next and Log"
+  (fn []
+    (note-test
+      (fn [dir file]
+        (def before (string (slurp file)))
+        (def r (run dir "note" "task/noted" "now" "x"))
+        (check (= 2 (r :status)) (r :stderr))
+        (check (string/find "folded into Next" (r :stderr)) (r :stderr))
+        (check (= before (string (slurp file))))))))
+
+(test "note next is refused on a unit with open children, which are its present"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def parent (new-id dir "slice" "parent" "--execute"))
+        (new-id dir "task" "kid" "--parent" parent "--execute")
+        (def file (unit-file dir "slice/parent"))
+        (def before (string (slurp file)))
+        (def r (run dir "note" "slice/parent" "next" "- later"))
+        (check (= 1 (r :status)) (r :stderr))
+        (check (string/find "Scope or PLAN.md" (r :stderr)) (r :stderr))
+        (check (= before (string (slurp file))))
+        (check (= 0 ((run dir "note" "slice/parent" "log" "waiting on the kid") :status)))))))
+
+(test "a held parent keeps a Next; check warns about it once the hold is lifted"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def parent (new-id dir "slice" "parent" "--execute"))
+        (new-id dir "task" "kid" "--parent" parent "--execute")
+        (def file (unit-file dir "slice/parent"))
+        (def held (string/replace "owner:" "awaiting: owner\nowner:" (string (slurp file))))
+        (spit file held)
+        (def r (run dir "note" "slice/parent" "next" "waiting on the owner: which API?"))
+        (check (= 0 (r :status)) (r :stderr))
+        (check (not (string/find "slice/parent" ((run dir "check") :stdout))) "check is quiet while held")
+        (spit file (string/replace "awaiting: owner\n" "" (string (slurp file))))
+        (def c (run dir "check"))
+        (check (string/find "open children and is not held" (c :stdout)) (c :stdout))
+        (check (not= 0 ((run dir "note" "slice/parent" "next" "x") :status)))))))
+
+(test "check warns on a Now section, and on a Next with content in a unit with open children"
+  (fn []
+    (with-repo
+      (fn [dir]
+        (def parent (new-id dir "slice" "parent" "--execute"))
+        (new-id dir "task" "kid" "--parent" parent "--execute")
+        (def clean (run dir "check"))
+        (check (= 0 (clean :status)) (string (clean :stdout) (clean :stderr)))
+        (check (not (string/find "slice/parent" (clean :stdout))) (clean :stdout))
+        (def file (unit-file dir "slice/parent"))
+        (def text (string (slurp file)))
+        (spit file (string/replace "## Next\n" "## Now\nbusy\n\n## Next\n- later\n" text))
+        (def r (run dir "check"))
+        (check (= 0 (r :status)) "a warning does not fail check")
+        (check (string/find "slice/parent" (r :stdout)) (r :stdout))
+        (check (string/find "\"## Now\" section" (r :stdout)) (r :stdout))
+        (check (string/find "open children and is not held, but has a non-empty \"## Next\"" (r :stdout)) (r :stdout))
+        (check (not (string/find "kid" (r :stdout))) "the leaf kid is not warned about")))))
 
 (defn ok [r] (check (= 0 (r :status)) (string (r :stdout) (r :stderr))) r)
 
@@ -483,7 +543,7 @@
       (def sub (string dir "/sub"))
       (def task (new-id sub "task" "loose" "--execute"))
       (check (os/stat (string dir "/.work/task/" task "-loose/STATE.md")))
-      (ok (run sub "note" task "now" "working"))
+      (ok (run sub "note" task "next" "working"))
       (ok (run sub "rescope" task "--name" "looser"))
       (def s (ok (run sub "status")))
       (check (string/has-prefix? "root: .work\n" (s :stdout)) (s :stdout))
@@ -719,13 +779,13 @@
     (with-repo
       (fn [dir]
         (check (= 0 ((run dir "new" "task" "page" "--purpose" "Show it.") :status)))
-        (check (= 0 ((run dir "note" "task/page" "now" "Working.") :status)))
+        (check (= 0 ((run dir "note" "task/page" "next" "Working.") :status)))
         (def out ((run dir "status" "task/page" "--json") :stdout))
         (def sections ((json/decode out) "sections"))
         (check (deep= (map |($ 0) (pairs-of sections))
-                      @["Purpose" "Scope" "Context & constraints" "Now" "Next" "Evidence" "Harvest" "Log"]))
+                      @["Purpose" "Scope" "Context & constraints" "Next" "Evidence" "Harvest" "Log"]))
         (check (= "Show it." (text-of sections "Purpose")))
-        (check (= "Working." (text-of sections "Now")))
+        (check (= "Working." (text-of sections "Next")))
         (check (= "" (text-of sections "Harvest")))
         (check (string/has-prefix? "- " (text-of sections "Log")))
         (check (not (string/find "<!--" out)))))))
@@ -1307,7 +1367,7 @@
     (defer (do (sh/rm bare) (sh/rm repo))
       (check (= 0 (os/proc-wait (os/spawn ["git" "-C" repo "init" "-q"] :p))) "git init failed")
       (each [where dir] [["outside a repo" bare] ["in a repo" repo]]
-        (each args [["status"] ["status" "--json"] ["status" "--json" "--detail"] ["note" "U-X" "now" "t"]
+        (each args [["status"] ["status" "--json"] ["status" "--json" "--detail"] ["note" "U-X" "next" "t"]
                     ["new" "task" "t"] ["phase" "U-X" "execute"] ["record" "backlog" "t"] ["dig" "U-X"]
                     ["check"] ["find" "anything"] ["find" "anything" "--json"]]
           (def r (run dir ;args))
@@ -1330,7 +1390,7 @@
         (each [what args]
               [["status by id" ["status" unit]] ["status by label" ["status" "task/none"]]
                ["status of a record" ["status" gone]] ["status --json" ["status" unit "--json"]]
-               ["note" ["note" unit "now" "x"]] ["note by label" ["note" "task/none" "now" "x"]]
+               ["note" ["note" unit "next" "x"]] ["note by label" ["note" "task/none" "next" "x"]]
                ["phase" ["phase" unit "execute"]] ["rescope" ["rescope" unit "--name" "x"]]
                ["rescope --parent" ["rescope" real "--parent" unit]]
                ["close" ["close" unit]] ["close --decision" ["close" real "--scrap" "--decision" gone]]
@@ -1340,7 +1400,7 @@
           (exits 4 what ;args))
         (each [what args]
               [["status, malformed id" ["status" "U-short"]] ["status, a bare word" ["status" "nothing"]]
-               ["note, malformed id" ["note" "U-short" "now" "x"]]
+               ["note, malformed id" ["note" "U-short" "next" "x"]]
                ["status, a path" ["status" "foo/bar"]] ["status, ./x/y" ["status" "./x/y"]]
                ["status, a bad label" ["status" "task/Bad Name"]]
                ["new --parent, malformed" ["new" "task" "child" "--parent" "U-short"]]
