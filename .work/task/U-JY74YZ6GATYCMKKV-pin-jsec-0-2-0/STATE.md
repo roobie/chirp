@@ -58,3 +58,4 @@ linux verified; windows-x64 build running, then smoke under wine
 - 2026-11-14 fix-tls and its doc suffix removed; https help, README and CHANGELOG say :ca now trusts only that CA
 - 2026-11-14 smoke https-server gains https-ca, proving :ca exclusivity hermetically; L-CPIUGJI6EY2HEID2 superseded by L-3ESBZZEAYDWS4KNQ
 - 2026-11-14 criterion 3 reworded from a publicly trusted host to a server the system store trusts, so smoke stays hermetic (the owner's brief preferred a local server)
+- 2026-11-14 L-CPIUGJI6EY2HEID2 superseded by L-3ESBZZEAYDWS4KNQ (why plus refs only)
