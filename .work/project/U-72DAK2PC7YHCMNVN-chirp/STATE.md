@@ -161,3 +161,5 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-12 page test closes Chrome over CDP and waits for its process group; ci green on 1f40e2d (run 43120891764)
 - 2026-11-12 cutting 0.12.0: omap marshal and omap/equal?, dev-proc exit codes 3 and 4, unknown-flag rejection and refusal of links and oversize documents
 - 2026-11-12 0.12.0 published by BR's tag; release run 43130401158 green, pages 43136013915 green, self-update from 0.11.0 checked; main moves to 0.13.0-dev
+- 2026-11-15 dev-proc-vendored: dev-proc is now a vendored copy of the owner's private upstream; installer refuses links out of the install dir
+- 2026-11-15 dev-proc-vendored: guard refuses any link at the skill dir (second review)
