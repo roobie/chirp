@@ -32,6 +32,7 @@ Under Wine, an HTTPS GET to a public site still succeeded with `SSL_CERT_FILE` p
 ### Notes
 Verification itself is on: a self-signed certificate is rejected with `certificate verify failed`. Suspects are jsec's CA path probing and OpenSSL's compiled-in `--openssldir=/etc/ssl`, which Wine maps to the container's real `/etc/ssl`. Check on real windows too.
 - 2026-11-05: windows chirp now exports the ROOT store and real windows CI passes https-get without a hand-set bundle. The likely extra source is still OpenSSL's `--openssldir=/etc/ssl` hash dir, which Wine maps to the container's store (L-OO7ZGOBI22DEUO5R); unconfirmed on real windows.
+- Related jsec fossil tickets (https://code.amlegion.org/jsec/), all fixed in the pin: 14044e9441 (client `:ca` was ignored, the origin of L-3ESBZZEAYDWS4KNQ), 6cff424957 (the default client SSL_CTX is cached, so the trust store loads once per process, not per connection) and b50c059aa9 (`:security` struct literals were silently ignored).
 
 
 ## Next
