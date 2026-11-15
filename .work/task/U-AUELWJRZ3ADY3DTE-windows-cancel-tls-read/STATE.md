@@ -32,6 +32,7 @@ On windows, `ev/cancel` of a fiber blocked in a jsec TLS read, with its zero-byt
 ### Notes
 - Suspects: the IOCP state layout already patched for accept (L-ZDKYOLHCJKJJIE3R), here in jsec's `TLSState` (jtls/internal.h), or the probe state freed while the read is still in flight.
 - Repro shape: test/smoke/tls-connect-wait.janet with the client cancelled instead of reset. Wine may hide it, as it hid #10; it needs real windows, which means a pushed CI run.
+- The jsec fixes under test, all in the pin (9b57288, 2026-10-18), are fossil tickets (https://code.amlegion.org/jsec/): 6e1a853d70 (crash on external cancellation), 1377def05c and d4cd1f7993 (fiber GC and teardown freed the embedded TLSState; fix 39b8153927 heap-allocates the async TLSState when suspending), c7dd939d28 (pending_read/pending_write stale after cancel) and 12ec930dcd (a stale timeout cancels a later wait).
 
 
 ## Next
