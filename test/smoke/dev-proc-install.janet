@@ -124,6 +124,42 @@
     (assert (string/find "skipped" skipped) skipped)
     (assert (deep= ["mine.txt"] (tuple ;(walk (string foreign "/.claude/skills/" skill)))) "foreign dir was touched")
 
+    # The canonical skill dir is made by the installer as a real directory, so a
+    # link there is somebody's checkout, wherever it lies (a global install's
+    # base is the home directory, which holds the checkouts): it is refused,
+    # with or without --force, and nothing is written through it.
+    (unless windows?
+      (each [where args] [["project" []] ["global" ["-g"]]]
+        (def linked (string tmp "/linked-" where))
+        (def checkout (string linked "/devel/checkout"))
+        (sh/create-dirs checkout)
+        (spit (string checkout "/mine.txt") "mine")
+        (sh/create-dirs (string linked "/.agents/skills"))
+        (os/symlink checkout (string linked "/.agents/skills/" skill))
+        (def home-env {"HOME" linked "USERPROFILE" linked})
+        (each force [[] ["--force"]]
+          (def msg (exits (string where " link to a checkout under the install dir") 1
+                          (run linked home-env "--dev-proc" "--install" ;args ;force)))
+          (assert (and (string/find "refused" msg) (string/find "is a link to" msg) (string/find "remove the link" msg)) msg)
+          (assert (deep= ["mine.txt"] (tuple ;(walk checkout))) "a link was written through")
+          (assert (not (os/stat (string linked "/.claude"))) "an agent dir was made beside a refused link")))
+      # A link that leads nowhere is refused as well.
+      (def dangling (string tmp "/dangling"))
+      (sh/create-dirs (string dangling "/.agents/skills"))
+      (os/symlink "../../gone" (string dangling "/.agents/skills/" skill))
+      (def gone (exits "dangling link" 1 (run dangling no-env "--dev-proc" "--install" "--force")))
+      (assert (and (string/find "does not exist" gone) (string/find "remove the link" gone)) gone)
+      (assert (not (os/stat (string dangling "/gone"))) "a dangling link was written through")
+      # A link above the skill dir (a dotfiles manager's) is the user's choice and works.
+      (def dotfiles (string tmp "/dotfiles"))
+      (def store (string dotfiles "/store"))
+      (sh/create-dirs (string store "/skills"))
+      (def user (string dotfiles "/user"))
+      (sh/create-dirs user)
+      (os/symlink store (string user "/.agents"))
+      (exits "linked parent dir" 0 (run user no-env "--dev-proc" "--install"))
+      (assert (same-as-source? (string store "/skills/" skill)) "a linked parent dir was not installed through"))
+
     # --copy: real directory, no canonical dir.
     (def copy (string tmp "/copy"))
     (sh/create-dirs copy)

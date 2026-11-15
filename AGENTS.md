@@ -20,3 +20,9 @@ The repo is public and used from many machines, so local paths, account names, h
 and credential env vars never get committed; keep them in your own notes or memory.
 `tools/leakcheck` enforces this in the commit hooks; enable them once per clone with
 `git config core.hooksPath tools/hooks`.
+
+## Vendored: dev-proc
+
+`.agents/skills/dev-proc` is a one-way copy of the skill from the owner's private tools repo
+(D-RFPRKKRRWYW54RHC). Do not edit it here; a change goes upstream and arrives with the next
+vendor sync, whose commit names the upstream commit its tree matches.

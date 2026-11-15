@@ -134,6 +134,21 @@
         (do (print "cannot link " shown " (" err "); copying instead")
           (put-copy path shown files force))))))
 
+# The installer only ever makes the canonical skill dir as a real directory, so
+# a link there was made by the user, usually to a checkout of the skill.
+# Writing the shipped files through it would overwrite that checkout, with or
+# without --force, so any link is refused, wherever it leads.
+(defn- linked?
+  "Whether path is a link; if so, says why the install stops."
+  [shown path]
+  (when (= :link (os/lstat path :mode))
+    (if-let [target (real path)]
+      (do (eprint "refused: " shown " is a link to " target ", so installing would not write here but into it")
+        (eprint "  Update that directory's own source instead, or remove the link to install here."))
+      (do (eprint "refused: " shown " is a link to " (os/readlink path) ", which does not exist")
+        (eprint "  There is nothing to update there; remove the link and install again.")))
+    true))
+
 (defn- install-skill [opts name files conf]
   (def base (opts :base))
   (def canon (string (conf :canonical) "/" name))
@@ -146,7 +161,8 @@
       (note (if (= :link (os/lstat path :mode))
               (skip shown path :link)
               (put-copy path shown files (opts :force)))))
-    (if (put-copy (string base "/" canon) canon files (opts :force))
+    (if (and (not (linked? canon (string base "/" canon)))
+             (put-copy (string base "/" canon) canon files (opts :force)))
       (let [canon-real (real (string base "/" canon))]
         (each dir (conf :links)
           (note (link-or-copy base (string dir "/" name) canon-real files (opts :force)))))
