@@ -147,25 +147,47 @@
                 [(fn [name] (when (and (tls-module? name) (bundled name)) name)) :chirp-tls]))
 
 # A short name of a bundled module (json for spork/json, toml for tomlin) maps to
-# the import line that works. Two modules sharing a last segment both show.
-(def- import-hints
+# the modules it can mean. Two modules sharing a last segment both count.
+(def- modules-by-short
   (let [full @{}]
     (each name (config :modules)
       (def short (last (string/split "/" name)))
       (unless (= short name) (put full short (array/push (get full short @[]) name))))
     (eachp [short name] (config :import-aliases)
       (put full short (array/push (get full short @[]) name)))
-    (tabseq [[short names] :pairs full]
-      short (string/join (map |(string "(import " $ " :as " short ")") (sorted names)) " or "))))
+    (tabseq [[short names] :pairs full] short (sorted names))))
+
+(defn- import-lines [short names]
+  (string/join (map |(string "(import " $ " :as " short ")") names) " or "))
+
+(def- tasks-pointer "`chirp --help read tasks` lists the bundled modules by goal")
+
+(defn- exports? [module name]
+  (def binding (get-in bundled [module (symbol name)]))
+  (and binding (not (binding :private))))
+
+# The compiler asks this handler of the environment (root-env, which every
+# environment inherits) for a symbol it cannot resolve, so one hook covers
+# scripts, -e and the REPL. Declining with nil keeps Janet's own error, which
+# is right for a name the bundled module does not export: an import would not
+# fix it.
+(defn- missing-symbol-hint [sym]
+  (def [prefix name] (string/split "/" sym 0 2))
+  (when (and (not (empty? prefix)) name (not (empty? name)))
+    (def providers (filter |(exports? $ name) (get modules-by-short prefix [])))
+    (unless (empty? providers)
+      (errorf "unknown symbol %s; chirp bundles %s: %s\n%s"
+              sym prefix (import-lines prefix providers) tasks-pointer))))
 
 # Last in module/paths, so a module of that name on disk or in the project
 # still wins; only an import that would fail anyway gets the hint.
 (defn- add-import-hints []
   (put module/loaders :chirp-hint
        (fn [name &]
-         (errorf "could not find module %s; chirp bundles it: %s\n`chirp --help read tasks` lists the bundled modules by goal"
-                 name (import-hints name))))
-  (array/push module/paths [(fn [name] (when (import-hints name) name)) :chirp-hint]))
+         (errorf "could not find module %s; chirp bundles it: %s\n%s"
+                 name (import-lines name (modules-by-short name)) tasks-pointer)))
+  (array/push module/paths [(fn [name] (when (modules-by-short name) name)) :chirp-hint])
+  (put root-env :missing-symbol missing-symbol-hint))
 
 (defn main [& argv]
   (def ca-file (ca/setup (config :ca-paths)))

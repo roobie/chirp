@@ -4,6 +4,10 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ## Unreleased
 
+### Changed
+
+- Using a bundled module's function without importing it, such as `crypto/digest` or `json/encode`, now fails with the import that works, `(import jsec/crypto :as crypto)`, and points at `chirp --help read tasks`, instead of only `unknown symbol`. It applies to scripts, `chirp -e` and the REPL, and only to names the bundled module really exports; any other unknown symbol, such as a typo like `math/flor`, keeps Janet's error.
+
 ## 0.13.0
 
 Released 2026-11-20.
