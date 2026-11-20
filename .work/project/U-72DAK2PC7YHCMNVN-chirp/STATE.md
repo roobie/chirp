@@ -165,3 +165,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-15 dev-proc-vendored: guard refuses any link at the skill dir (second review)
 - 2026-11-20 backlog B-6J3NWA2BAPI47KRS (windows trusts only roots Windows has fetched, seen on real windows with 0.12.0 and 0.13.0-dev) and B-4M5X7UXLRSECYKVJ (smoke dev-proc-install needs forward slashes)
 - 2026-11-20 changelog: windows root-fetch known issue for 0.13.0
+- 2026-11-20 cutting 0.13.0: jsec 0.2.0 (:ca trusts only that CA), dev-proc status --detail, installer refuses links, leaf-only cursor; windows root-fetch shipped as a known issue
