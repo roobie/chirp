@@ -45,4 +45,8 @@
   # With no width to draw in, the line is read plainly rather than failing.
   (def [ncode nout] (session 0 ["(+ 20 22)\r" "\x04"]))
   (assert (and (= 0 ncode) (string/find "\n42" nout)) (string "unsized terminal: exit " ncode ": " (describe nout)))
+  # A bundled module's function used unimported names the import (#22).
+  (def [hcode hout] (session 100 ["(crypto/digest :sha256 \"x\")\r" "\x04"]))
+  (assert (and (= 0 hcode) (string/find "(import jsec/crypto :as crypto)" hout))
+          (string "symbol hint: exit " hcode ": " (describe hout)))
   (print "ok repl"))

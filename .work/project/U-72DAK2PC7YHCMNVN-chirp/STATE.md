@@ -161,3 +161,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-20 Now and Next folded away per the leaf-only cursor change; the owner's filing to-dos live in their backlog items (B-4XR7XIFFSIWKFM2Z, B-DJQCZSQATWOHTVWU, B-5AUA2Q7IH5DP2ZME, B-RFIP6MFEVGQNJ46S)
 - 2026-11-20 0.13.0 published (tag pushed by claude at BR's request, deployment approved by BR); release run 44749283441 green on rerun of a runner-starved macOS smoke; main moves to 0.13.1-dev
 - 2026-11-20 task smoke-backslash-path (U-677JJHLNJ7TOTJNU) closed: dev-proc-install smoke splits its path on either separator, for 0.13.1
+- 2026-11-20 merged task symbol-hint (U-UCKHQHZ37KFUEWBE) for 0.13.1: an unknown symbol a bundled module exports names the import that works (#22, D-H7CGKNTIHVUM66TC)
