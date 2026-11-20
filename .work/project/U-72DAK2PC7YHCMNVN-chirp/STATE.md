@@ -163,3 +163,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-12 0.12.0 published by BR's tag; release run 43130401158 green, pages 43136013915 green, self-update from 0.11.0 checked; main moves to 0.13.0-dev
 - 2026-11-15 dev-proc-vendored: dev-proc is now a vendored copy of the owner's private upstream; installer refuses links out of the install dir
 - 2026-11-15 dev-proc-vendored: guard refuses any link at the skill dir (second review)
+- 2026-11-20 backlog B-6J3NWA2BAPI47KRS (windows trusts only roots Windows has fetched, seen on real windows with 0.12.0 and 0.13.0-dev) and B-4M5X7UXLRSECYKVJ (smoke dev-proc-install needs forward slashes)
