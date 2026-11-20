@@ -52,8 +52,9 @@
   (string skill-dir "/" rel))
 
 (defn main [&]
+  # On windows the path may be spelled with either separator.
   (def here (let [f (dyn *current-file*)]
-              (string/slice f 0 (+ 1 (last (string/find-all "/" f))))))
+              (string/slice f 0 (+ 1 (max -1 ;(string/find-all "/" f) ;(string/find-all "\\" f))))))
   (def source (string here "../../.agents/skills/" skill))
   (def shipped (filter |(not (string/has-suffix? ".test.janet" $)) (walk source)))
   (assert (not (empty? shipped)) "no skill files found in the repo")
