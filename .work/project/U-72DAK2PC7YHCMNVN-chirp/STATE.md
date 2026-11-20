@@ -56,6 +56,7 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - Release 0.10.0: https://github.com/roobie/chirp/releases/tag/v0.10.0 (run 42551719483, 22443b2): not a draft, 10 assets, Latest, notes from the changelog section; milestone 0.10.0 closed with #4 #6 #8 #9 each commented 'Shipped in chirp 0.10.0'; 0.9.0 linux-x64 --self-update -> 0.10.0, which gives the json import hint and lists 54 modules; pages run 42552919062 green, help/tasks.html serves 200.
 - Release 0.11.0: https://github.com/roobie/chirp/releases/tag/v0.11.0 (run 42887783417, 85f41e0): 10 assets, Latest, notes carry the 0.11.0 section; owner approved the release deployment; 0.10.0 linux-x64 --self-update -> 0.11.0 with sha256 equal to SHA256SUMS; pages run 42892097763 green with no main-build tree, as designed; dry run 42850689842 before the tag.
 - Release 0.12.0: https://github.com/roobie/chirp/releases/tag/v0.12.0 (run 43130401158, 14ed03b): 10 assets, not a draft, Latest, notes carry the 0.12.0 changelog section; 0.11.0 linux-x64 --self-update went to 0.12.0; pages run 43136013915 green; no rerun
+- Release 0.13.0: https://github.com/roobie/chirp/releases/tag/v0.13.0 (run 44749283441 attempt 2, cd7e4f6): 10 assets, Latest, notes carry the changelog section; milestone 0.13.0 closed (no issues); self-update 0.12.0 -> 0.13.0 on linux-x64; pages run 44762843545 green. Attempt 1 cancelled: smoke macos-arm64 never got a macos-15 runner and hit its 15-minute timeout
 
 ## Harvest
 
@@ -158,3 +159,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-20 changelog: windows root-fetch known issue for 0.13.0
 - 2026-11-20 cutting 0.13.0: jsec 0.2.0 (:ca trusts only that CA), dev-proc status --detail, installer refuses links, leaf-only cursor; windows root-fetch shipped as a known issue
 - 2026-11-20 Now and Next folded away per the leaf-only cursor change; the owner's filing to-dos live in their backlog items (B-4XR7XIFFSIWKFM2Z, B-DJQCZSQATWOHTVWU, B-5AUA2Q7IH5DP2ZME, B-RFIP6MFEVGQNJ46S)
+- 2026-11-20 0.13.0 published (tag pushed by claude at BR's request, deployment approved by BR); release run 44749283441 green on rerun of a runner-starved macOS smoke; main moves to 0.13.1-dev
