@@ -109,9 +109,7 @@ Record each result; these are the release's evidence.
 chirp tools/release/cut.janet --next     # X.(Y+1).0-dev and an empty ## Unreleased; or --next X.Y.Z
 ```
 
-In the same commit, update the project unit's `STATE.md` with `$DP note <project> <section> "…"`, not by scripting the file. `now` and `next` replace their section; `evidence` and `log` append one line, and `log` adds today's date.
-- **now:** `X.Y.Z is published (<date>) and main carries <next>-dev`, with what it held and what close-milestone closed.
-- **next:** the current list without the items the release settled.
+In the same commit, update the project unit's `STATE.md` with `$DP note <project> <section> "…"`, not by scripting the file. `evidence` and `log` append one line, and `log` adds today's date.
 - **evidence:** `Release X.Y.Z: <url> (run <id>, <sha>) …` with the checks from step 5 and any rerun.
 - **log:** `X.Y.Z published by BR's tag; release run <id> green, …; main moves to <next>-dev`.
 

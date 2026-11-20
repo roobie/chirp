@@ -25,15 +25,6 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 ## Context & constraints
 - Decisions: run `$DP find` before acting. The founding set is D-ZBIADZDYXYPWLX5L, D-MNNDC6PNBUNZXT7O, D-GNHGVHYBQ7SLBAIU, D-2SHG5CGZYE2DZCQG, D-BPDFOMM2OH7HMPZB, D-DGT7DONSVJESO5FV (superseding D-B2RTYH6CNDO6SRF5), D-URDDGCK3H3MPSCTM, D-Q23RA2EVVN5LYCX7, D-J2C4TCJIQLJGENAG. D-ZBOSG3RYRJVCOMXZ (hash key) is still only proposed.
 
-## Now
-0.12.0 is published (2026-11-12) and main carries 0.13.0-dev. It held omap marshal and omap/equal?, the per-thread omap print guard, dev-proc exit codes 3 and 4, unknown-flag rejection and refusal of links and oversize documents. No milestone: no issue was fixed in it.
-
-## Next
-- BR files the upstream janet issue (B-4XR7XIFFSIWKFM2Z) and the spork/getline one (B-DJQCZSQATWOHTVWU); noted, not yet filed
-- BR files the jsec LICENSE + IOCP accept-state issue; the draft is in B-5AUA2Q7IH5DP2ZME
-- BR files the spork tarray/new docs and view-offset issue; the draft is in B-RFIP6MFEVGQNJ46S
-- Candidate for 0.13: bundle a CSV reader and writer (B-3U2LXKLBUDLJGUOO)
-
 ## Evidence
 - Os-trust-stores (U-OWEKBTPLIF7KEK7U): run 41942352002 builds all four targets twice with matching sha256; every smoke passes, macOS https-get example.com from 153 keychain roots and windows from 417 store roots with no SSL_CERT_FILE; a start without TLS takes 14 ms on both.
 - Windows-tls-connect (U-W5VAIQLMMBMTPTQ2): run 41898980038 (dcf6c0f) builds all four targets twice with matching sha256; windows smoke passes, tls-connect-wait included, which fails with #10's WSA error 10057 on the unpatched build (real windows A/B).
@@ -166,3 +157,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-20 backlog B-6J3NWA2BAPI47KRS (windows trusts only roots Windows has fetched, seen on real windows with 0.12.0 and 0.13.0-dev) and B-4M5X7UXLRSECYKVJ (smoke dev-proc-install needs forward slashes)
 - 2026-11-20 changelog: windows root-fetch known issue for 0.13.0
 - 2026-11-20 cutting 0.13.0: jsec 0.2.0 (:ca trusts only that CA), dev-proc status --detail, installer refuses links, leaf-only cursor; windows root-fetch shipped as a known issue
+- 2026-11-20 Now and Next folded away per the leaf-only cursor change; the owner's filing to-dos live in their backlog items (B-4XR7XIFFSIWKFM2Z, B-DJQCZSQATWOHTVWU, B-5AUA2Q7IH5DP2ZME, B-RFIP6MFEVGQNJ46S)

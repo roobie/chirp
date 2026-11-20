@@ -34,9 +34,6 @@ On windows, `ev/cancel` of a fiber blocked in a jsec TLS read, with its zero-byt
 - Repro shape: test/smoke/tls-connect-wait.janet with the client cancelled instead of reset. Wine may hide it, as it hid #10; it needs real windows, which means a pushed CI run.
 
 
-## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
-
 ## Next
 - TODO
 

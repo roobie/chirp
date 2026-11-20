@@ -34,9 +34,6 @@ Verification itself is on: a self-signed certificate is rejected with `certifica
 - 2026-11-05: windows chirp now exports the ROOT store and real windows CI passes https-get without a hand-set bundle. The likely extra source is still OpenSSL's `--openssldir=/etc/ssl` hash dir, which Wine maps to the container's store (L-OO7ZGOBI22DEUO5R); unconfirmed on real windows.
 
 
-## Now
-TODO: what is in flight right now. Rewrite this freely; it is a cursor, not a history.
-
 ## Next
 - TODO
 
