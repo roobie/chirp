@@ -1,3 +1,4 @@
 /build/
+/out/
 # Per-machine mise settings (tokens, local env).
 /mise.local.toml

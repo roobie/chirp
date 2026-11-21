@@ -165,3 +165,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-20 merged task symbol-hint (U-UCKHQHZ37KFUEWBE) for 0.13.1: an unknown symbol a bundled module exports names the import that works (#22, D-H7CGKNTIHVUM66TC)
 - 2026-11-20 cutting 0.13.1: the unknown-symbol import hint (#22)
 - 2026-11-20 0.13.1 published from tag v0.13.1; release run 44779178595 green first try; main moves to 0.13.2-dev
+- 2026-11-21 2026-11-21 out/ (the build's work tree) is ignored
