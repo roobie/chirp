@@ -9,7 +9,7 @@ needs: owner
 chirp exports the OS store's roots and lets OpenSSL verify against them (D-DGT7DONSVJESO5FV). That loses what the OS verifier knows beyond a root list: partial distrusts (Apple and Microsoft distrust some roots only for certificates issued after a date), constrained or EKU-limited roots, intermediates the OS fetches, and revocation. A user on macOS or windows can get a different answer from chirp than from their browser.
 
 ## Notes
-- Hand the chain to SecTrustEvaluateWithError (macOS, via dlopen as osroots does) or CertGetCertificateChain plus CertVerifyCertificateChainPolicy (windows) from a jsec verify callback. That is a jsec patch or upstream change, since jsec owns the SSL_CTX.
+- Hand the chain to SecTrustEvaluateWithError (macOS, via dlopen as osroots does) or CertGetCertificateChain plus CertVerifyCertificateChainPolicy (windows) from a jsec verify callback. That is a jsec patch or upstream change, since jsec owns the SSL_CTX. No jsec ticket asks for it (checked 2026-11-15); an upstream ask would be a ticket on its fossil repo (https://code.amlegion.org/jsec/).
 - The root export would then only serve OpenSSL users outside jsec, or could go.
 - On windows, jsec's native TLS backend (SChannel) might replace static OpenSSL outright, which would give OS verification there and a smaller, faster build. Check whether it is complete enough. This was its own item before windows chirp began exporting the ROOT store, which removed the need to set SSL_CERT_FILE.
-- Related: U-QARLWBBV3ZM6QQU7 (an unknown extra source of roots on windows today).
+- Related: U-QARLWBBV3ZM6QQU7 (an unknown extra source of roots on windows today). B-6J3NWA2BAPI47KRS (windows refuses sites whose root Windows has not fetched) prefers this same windows verifier as its fix, so the windows half may land there first.
