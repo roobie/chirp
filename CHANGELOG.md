@@ -6,6 +6,8 @@ What changed for people who use chirp, newest first; the binary carries this fil
 
 ### Changed
 
+- jsec moves from the untagged 0.2.0 commit `9b57288` to `v0.2.0-interim1`, bringing upstream Windows IOCP/ConnectEx fixes, BSD/macOS connection-reset reporting, DTLS MTU fixes and security hardening. Its own ISC license now ships instead of the reconstructed notice; chirp's two Windows patches are no longer needed.
+
 - `chirp --dev-proc --install` also refuses when a directory above the skill, `.agents` or `.agents/skills`, is a link, with or without `--force`, and writes nothing. Before, it followed such a link, and a forced install rewrote a checkout of the skill that the link led to. With `--copy` the same holds for the directories above each agent's copy. If you keep `.agents` in a dotfiles store through a link, put the skill into the store from its own source, or make `.agents` a real directory ([#20](https://github.com/roobie/chirp/issues/20)).
 
 ## 0.13.1

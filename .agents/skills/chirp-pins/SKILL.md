@@ -24,7 +24,7 @@ Nothing here contacts an upstream project. Reading tags, feeds and sources is al
 A bump is a unit of work: a task for a quiet library, a slice when patches, mirrors or behaviour are in play (Janet, spork, jsec, OpenSSL). One pin per unit, so that a red build has one cause.
 
 1. **See what there is.** `chirp tools/pins/watch.janet` prints, for every pin, the tags after the pinned one or whether its branch moved, and the recent items of the feeds in `tools/pins/watch.jdn`. It only reads.
-2. **Read upstream's notes** between the old and the new version: its changelog or release notes, and for a branch pin the commits (`git log <old>..<new>` in `out/<dir>/src/<pin>` after a fetch). You are looking for changed behaviour of something chirp documents, removed functions, new source files, and a changed license. **By hand.**
+2. **Read upstream's notes** between the old and the new version: its changelog or release notes, and for a branch pin the commits (`git log <old>..<new>` in `out/<dir>/src/<pin>` after a fetch). Build checkouts are shallow: explicitly fetch both commits before comparing (`git fetch origin <old> <new>`); fetch the tag too if using its name. A tag merged onto another branch can include unrelated history: use `git diff <old> <new>` to establish the actual source changes. You are looking for changed behaviour of something chirp documents, removed functions, new source files, and a changed license. **By hand.**
 3. **Edit `pins.jdn`**: the pin's `:tag` and `:commit`. The commit is what is fetched and the tag is what the version is read from, and nothing checks that they agree, so take both from one place (**by hand**):
    ```sh
    git ls-remote <url> 'refs/tags/<tag>*'
@@ -34,14 +34,14 @@ A bump is a unit of work: a task for a quiet library, a slice when patches, mirr
    ```sh
    sh tools/build/container.sh linux-x64 out/bump
    ```
-   - *"patch … fits neither the pinned nor the patched …"*: a patch under `:patches` in `tools/build/config.jdn` no longer applies. Read its `:until` backlog item. If upstream has the change, delete the patch file, its entry and the item. If not, redo the patch against the new source (`git diff` in the checkout under `out/bump/src/<pin>`) and keep the entry.
+   - *"patch … fits neither the pinned nor the patched …"*: a patch under `:patches` in `tools/build/config.jdn` no longer applies. Read its `:until` backlog item. If upstream has the change, delete the patch file, its entry and the item (only once all work in a shared item is settled). Run `$DP check` and update durable `refs` to surviving code or tests when deleting a patch; retain their historical reasoning. If not, redo the patch against the new source (`git diff` in the checkout under `out/bump/src/<pin>`) and keep the entry.
    - *"… is not the text that … was last compared with"*: upstream changed code that a file here carries a changed copy of (`:mirrors` in `config.jdn`). Diff the old and new upstream text, bring the named chirp file in step where the change matters, then record the hash the message gives. Recording the hash without reading the diff defeats the check.
    - *"… has N top-level forms starting with …"*: upstream renamed or moved a mirrored form. Find where it went and correct the entry's `:form`.
    - *"… carries the … pin, but :notices … has no entry"*, or *"notices: …"*: the license file moved or is new. Correct the entry's `:path` under `:notices`.
    - *"… asks for the version of the … pin, but pins.jdn gives it no :tag"*: a define in `tools/build/natives.jdn` reads the version from the tag; a pin that feeds one must keep a tag.
    - *"missing source …"*, or a compile or link error in a pin's file: upstream added, removed or renamed sources. Correct `:sources`, `:skip`, `:includes` or `:defines` for that native in `natives.jdn`.
    - A warning-as-error in a file under `src/`: chirp's own binding no longer matches the library's API. Fix the binding.
-5. **Read the license** even when the build is quiet: `git diff <old> <new> -- LICENSE*` in the checkout. A changed license is the owner's decision before anything ships. **By hand.**
+5. **Read the license** even when the build is quiet: `git diff <old> <new> -- 'LICENSE*'` in the checkout (quote the glob so the shell does not expand only existing files). A changed license is the owner's decision before anything ships. When upstream adds its own text for the existing license, replace any reconstructed repo notice: set both `:root` and `:path` to the pin's license and remove the obsolete local file and comment. An existing local notice passes the guard, so this migration is **by hand**.
 6. **Smoke locally:** `out/bump/bin/chirp test/smoke/run.janet`. Then `chirp tools/test.janet src tools`.
 7. **Look for what no check sees** (**by hand**):
    - A chirp help topic or docstring that describes behaviour upstream changed (`rg <function> src/chirp/help`).
@@ -50,7 +50,7 @@ A bump is a unit of work: a task for a quiet library, a slice when patches, mirr
    - For OpenSSL, zig or the `:image`: these change every byte. Nothing but the double build and smoke on every target tells you it works.
 8. **Changelog:** a user-facing line under `## Unreleased` naming the library and both versions, and anything a user would notice. The README's table names no version.
 9. **Push the branch and let CI judge.** Five targets are built twice and compared, and smoke runs on the four native runners; a bump is not done on a local linux build. Windows and macOS failures show only here.
-10. **Close the unit** with the run's id as evidence, and remove any `tkt=` feed in `watch.jdn` and any backlog item the bump has settled.
+10. **Record the CI run id and result** in Evidence, and remove any `tkt=` feed in `watch.jdn` and any backlog item the bump has settled. Close the unit through dev-proc only when its criteria and the owner's handoff instructions permit; a branch-only proof may stay in execute for owner review.
 
 Changing `:image` or `tools/build/packages.txt` also needs the `build-image` workflow run by hand and its digest put into `pins.jdn` as `:build-image`; the workflow file says how.
 

@@ -6,7 +6,6 @@ read_if:
   - bumping the jsec pin
   - a windows HTTPS request fails with a WSA error
 refs:
-  - tools/build/patches/jsec-windows-connectex.patch
   - tools/build/build.janet
   - test/smoke/tls-connect-wait.janet
 ---
@@ -28,3 +27,4 @@ chirp carries a build patch to jsec that connects with ConnectEx and waits for i
 - A second jsec patch has to apply at every pin bump until upstream takes it; the build fails loudly when it stops applying.
 - The connect state now starts with the OVERLAPPED and the slot Janet writes (L-ZDKYOLHCJKJJIE3R), the same as the accept states.
 - tls-connect-wait guards the behaviour on the windows CI runner only; Wine skips it.
+- At the v0.2.0-interim1 bump, upstream implements ConnectEx completion waiting; the carried patch and its offer backlog item are retired. The test remains the regression guard.

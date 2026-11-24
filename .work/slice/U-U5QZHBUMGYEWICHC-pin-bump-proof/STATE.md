@@ -41,11 +41,14 @@ chirp pins jsec at a commit on its unreleased 0.2.0 branch (9b57288e) because on
 
 
 ## Next
-<!-- The cursor of the unit being worked: what is about to happen, and for a held unit the reason first.
-     Rewrite it freely. A unit with open children keeps none: its present is its children. -->
+Finish local linux build (downloading zig), run smoke and tests, then push branch CI; address any target failures.
 
 ## Evidence
-<!-- Proof against success_criteria: test runs, commits, measurements. -->
+- `git ls-remote` resolves `v0.2.0-interim1` to mirror commit `63ce6b85c88f0448cd9be415fcb0f7ad538d432b`. Read old-to-tag log, diff stat, NEWS and license: Windows IOCP/ConnectEx, BSD/macOS reset parity, DTLS MTU, security fixes and ISC LICENSE added.
+- Build patch guard caught retired accept patch. Source inspection confirms both fixes are upstream; removed both patches and settled B-5AUA2Q7IH5DP2ZME without filing anything. Repaired durable refs; `dev-proc check` passes.
+- New upstream LICENSE is the same ISC grant/disclaimer as the reconstructed notice, with copyright year added. Switched notice to pin LICENSE and removed the reconstruction. Windows compatibility flags remain justified by source.
+- Four skill corrections so far, enumerated in Log and applied in `.agents/skills/chirp-pins/SKILL.md`.
+- Scope remains branch-only: the main integration criterion is for the owner after handoff; no merge, tag or release in this run.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -58,3 +61,8 @@ chirp pins jsec at a commit on its unreleased 0.2.0 branch (9b57288e) because on
 ## Log
 - 2026-11-24 initialized
 - 2026-11-24 phase initialize → execute
+- 2026-11-24 skill correction (Moving step 2): build checkouts are shallow; `git diff 9b57288 HEAD` in the new checkout fails with bad revision. Documented explicitly fetching both comparison commits and using endpoint diffs for a tag merged from another branch.
+- 2026-11-24 skill correction (Moving step 4, patch retirement): deleting patches leaves durable refs dangling, and both jsec patches share one backlog item. Added ref repair/`$DP check` and shared-item settlement instructions.
+- 2026-11-24 skill correction (Moving step 5): an existing reconstructed notice passes the guard even when upstream adds LICENSE; documented migration of root/path, local file and comments. Also quoted `LICENSE*` to avoid shell expansion hiding deleted license files.
+- 2026-11-24 skill correction (Moving step 10): unconditional close conflicts with branch-only proof/handoff. Require evidence first and close only when criteria and owner instructions permit.
+- 2026-11-24 first linux build stopped at accept-padding patch as expected. Inspected new accept states (both reserve `iocp_bytes`) and ConnectEx callback (waits for IOCP completion and updates connect context): upstream implements both fixes, so retire both patches. Existing `__declspec(thread)` and clock_gettime remain: keep windows flags. No upstream contact.

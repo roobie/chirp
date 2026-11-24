@@ -92,19 +92,7 @@
            # counter, which makes the image differ between otherwise identical
            # builds.
            {:pin :spork :file "spork-deterministic-native-prefixes.patch"
-            :until "B-G44JIOOJKJENQRMG"}
-           # On windows, Janet writes a byte count just past the OVERLAPPED in
-           # jsec's accept state, wiping the accepted socket, so every TLS
-           # server dies on its first connection.
-           {:pin :jsec :file "jsec-iocp-accept-state-padding.patch"
-            :until "B-5AUA2Q7IH5DP2ZME"}
-           # On windows, jsec's tls/connect started the handshake before its
-           # non-blocking connect finished, so the first send failed with
-           # WSAENOTCONN (10057) whenever the server was more than a few
-           # milliseconds away. It now uses ConnectEx and waits for the
-           # completion, like Janet's net/connect.
-           {:pin :jsec :file "jsec-windows-connectex.patch"
-            :until "B-5AUA2Q7IH5DP2ZME"}]
+            :until "B-G44JIOOJKJENQRMG"}]
  # Upstream code that a file in this repo carries a changed copy of, because
  # upstream keeps it private or because chirp needs it to differ. :sha256 is
  # the upstream text at the last comparison: the whole :file, or with :form the
@@ -142,8 +130,7 @@
  # component to the targets that link it; :openssl true, as in natives.jdn, to
  # the targets that link OpenSSL. :comments, instead of :path, lists source
  # files whose first comment is the license, for code that has no license file.
- # jsec's checkout has no LICENSE file, so it ships ours; SQLite has none
- # either, only the public-domain blessing from its source.
+ # SQLite has no LICENSE file, only the public-domain blessing from its source.
  :notices [{:title "chirp" :root :repo :path "LICENSE"}
            {:title "Janet" :root :janet :path "LICENSE"}
            {:title "spork" :root :spork :path "LICENSE"}
@@ -151,7 +138,7 @@
             :url "https://github.com/richgel999/miniz"}
            # Not :openssl true: jsec's Janet modules are in the image on every
            # target, the ones that link none of its natives included.
-           {:title "jsec" :root :repo :path "tools/build/notices/jsec-LICENSE.txt" :pin :jsec}
+           {:title "jsec" :root :jsec :path "LICENSE"}
            {:title "spork-https" :root :spork-https :path "LICENSE"}
            {:title "janet-lang/sqlite3 (the sqlite3 binding)" :root :sqlite3 :path "LICENSE"}
            {:title "SQLite (in sqlite3), public domain" :root :repo
