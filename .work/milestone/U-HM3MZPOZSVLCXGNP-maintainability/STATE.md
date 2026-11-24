@@ -53,6 +53,7 @@ Out:
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - pin-reader (U-CIOASS53XGJOLRCU) delivered: tools/build/pin.sh is the only shell reader of pins.jdn, held to Janet's parse by pin.test.janet (40 values); ci run 45371721511 green.
 - repo-tests (U-BTEXJZKNTIOO6G4L) delivered: chirp tools/test.janet runs every *.test.janet (13 files; chirp's own 10 in about 1 s with an installed chirp), and CI's checks job runs them on the :chirp pin in 35 s without waiting for a build (run 45371721511, D-235CO5X6BG3S743P).
+- build-guards (U-YT7LBKVS4KWB6D6O) delivered: the build refuses a carried pin with no notice (it found jsec's missing from chirp.wasm, L-JHSEB5OVK5G34PN6), smoke runs every check beside its driver, patches are :patches data, the stub C source is a file; linux-x64 binary unchanged by the change, run 45371721511 green with released targets' NOTICES equal to 0.13.1's.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:

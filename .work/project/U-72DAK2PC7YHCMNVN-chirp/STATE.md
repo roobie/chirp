@@ -143,3 +143,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-20 0.13.1 published from tag v0.13.1; release run 44779178595 green first try; main moves to 0.13.2-dev
 - 2026-11-21 2026-11-21 out/ (the build's work tree) is ignored
 - 2026-11-24 milestone maintainability (U-HM3MZPOZSVLCXGNP) opened from the 2026-11-24 review; in initialize until the owner answers its open questions
+- 2026-11-24 milestone maintainability wave A: pin-reader, repo-tests and build-guards delivered (ci run 45371721511); CI's checks run on a pinned released chirp (D-235CO5X6BG3S743P); merged branches deleted from origin; issue 21 is B-IRCVVXCJX6GVYOES
