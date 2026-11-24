@@ -113,8 +113,8 @@ chirp tools/test.janet                    # the new pin must still parse and eve
 
 `pin-chirp.janet` reads the release's `SHA256SUMS`, checks its signature against `src/chirp/release-key.pem` and rewrites the `:chirp` line of `pins.jdn`. It needs the release to be published, so it cannot run before step 5.
 
-In the same commit, update the project unit's `STATE.md` with `$DP note <project> <section> "…"`, not by scripting the file. `evidence` and `log` append one line, and `log` adds today's date.
-- **evidence:** `Release X.Y.Z: <url> (run <id>, <sha>) …` with the checks from step 5 and any rerun.
-- **log:** `X.Y.Z published by BR's tag; release run <id> green, …; main moves to <next>-dev`.
+In the same commit, update the project unit's `STATE.md`.
+- **evidence:** edit the one `Release …` line, the last under `## Evidence`, so it reads `Release X.Y.Z: <url> (run <id>, <sha>) …` with the checks from step 5 and any rerun. It replaces the previous release's line: Evidence holds one line per success criterion plus the latest release, and earlier releases are in the changelog, the releases page and this file's history. Update a criterion's line too when this release is newer proof of it.
+- **log:** with `$DP note <project> log "…"`, which adds today's date: `X.Y.Z published by BR's tag; release run <id> green, …; main moves to <next>-dev`.
 
 Commit `main moves to <next>-dev after the X.Y.Z release` with its `Work:` trailer, run `$DP check`, push. Create the next milestone on GitHub when the first issue is aimed at it.
