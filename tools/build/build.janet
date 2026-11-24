@@ -421,7 +421,7 @@
       (let [stubs-c (string tgt-root "/stubs.c")
             stubs-o (string tgt-root "/stubs.o")]
         (spit stubs-c (stubs-source))
-        (zig ;tgt-cflags "-c" stubs-c "-o" stubs-o)
+        (zig ;tgt-cflags ;repo-cflags "-c" stubs-c "-o" stubs-o)
         (array/push extra-objs stubs-o)
         (stub-main image-c))
       image-c))

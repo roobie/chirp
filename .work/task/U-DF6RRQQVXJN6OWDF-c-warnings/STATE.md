@@ -30,6 +30,7 @@ CI on the wave branch: five targets twice with matching hashes. Then finalize.
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - All five targets build locally with -Wall -Wextra -Werror on the repo's C and no warning from a file under src/; linux-x64 passes all smoke checks. An unused static added to src/omap/omap.c stops the build with 'error: unused function … [-Werror,-Wunused-function]'. Nothing changed behaviour (dead check_start removed from pcre2.c, whose three callers already make the same check inline), so no changelog entry.
+- The generated stubs (wasm32-wasi, from tools/build/stub-prelude.c) compile under the same flags; the wasm smoke passes.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
