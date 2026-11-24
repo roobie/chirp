@@ -16,7 +16,7 @@ Units inside a wave touch different files and can run in parallel worktrees. A l
   Done when: removing a `:notices` entry fails a local build with the pin's name; a new smoke file runs unlisted; all five targets build twice with matching hashes; NOTICES files are byte-identical to the previous main build's.
 - **task `pin-reader`** (delivered 2026-11-24) (finding 6). `tools/build/pin.sh` and its test; the four callers use it.
   Done when: `rg "sed -n" tools test .github` finds only `pin.sh`; the test passes in `checks`; a local container build and a manual `build-image` dry read still resolve the same image digest.
-- **task `hygiene`** (open: step 5 waits for the owner) (finding 8, status loose ends). In order:
+- **task `hygiene`** (delivered 2026-11-24) (finding 8, status loose ends). In order:
   1. Push main.
   2. Delete the merged branches on origin: `dev-proc-no-work-dir-exit`, `dev-proc-refuse-links`, `dev-proc-status-json`, `release-env`, and `main-builds` once its one extra commit is confirmed to be the merge of pull request 13, already in main.
   3. Drop B-6XHZ4VAU236R34IH after confirming no unit carries a `## Now`.
