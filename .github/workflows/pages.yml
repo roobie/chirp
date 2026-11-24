@@ -7,7 +7,8 @@ name: pages
 #    newer deploy already carries the release;
 #  - CI succeeded for a push to main that is still its tip: the site again, and
 #    with it a signed "latest" tree of that build, so a build of main can be
-#    downloaded and installed with chirp --self-update --channel main --force;
+#    downloaded and installed with chirp --self-update --channel main --force.
+#    A push that changed only .work/ built nothing, so it publishes nothing;
 #  - a manual run on main: the same for its tip. Pages only deploys main, so a
 #    manual run on any other ref publishes nothing.
 # The CI of a feature branch or pull request, and a dry run of the release
@@ -78,6 +79,15 @@ jobs:
             elif [ "$UPSTREAM_NAME" = ci ]; then
               main_build=true
               [ "$UPSTREAM_BRANCH" = main ] || publish=false
+              # A push that changed only .work/ has a green CI run that built
+              # nothing (the changes job in ci.yml). There is nothing to
+              # publish: the site keeps serving the last built commit, whose
+              # binaries are what this commit's would be.
+              if [ "$publish" = true ] &&
+                 [ "$(gh api "repos/$GH_REPO/actions/runs/$run_id/artifacts" --jq .total_count)" = 0 ]; then
+                echo "::notice::CI run $run_id built nothing, so nothing is published"
+                publish=false
+              fi
             fi
           fi
           # Runs finish out of order. An older push whose CI finished after a

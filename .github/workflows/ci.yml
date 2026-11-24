@@ -12,11 +12,49 @@ permissions:
   contents: read
 
 jobs:
+  # Whether this run builds. A push that changes nothing outside .work/ (the
+  # work-tracking documents, which never reach the image) builds nothing: the
+  # jobs below are skipped and the run is green, with only the checks job
+  # having run. Everything else builds: a new branch, a forced push, a pull
+  # request, and a call from the release or pages workflow, where the event is
+  # the caller's. See D-SBFT5Y7OGHMOVIY6.
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          BEFORE: ${{ github.event.before }}
+          FORCED: ${{ github.event.forced }}
+          SHA: ${{ github.sha }}
+        run: |
+          build=true
+          if [ "$EVENT" = push ] && [ "$REF_TYPE" = branch ] && [ "$FORCED" = false ] &&
+             git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            # Any doubt builds: the list has to be read, non-empty, and all .work/.
+            if files=$(git diff --name-only "$BEFORE" "$SHA") && [ -n "$files" ] &&
+               ! printf '%s\n' "$files" | grep -qv '^\.work/'; then
+              build=false
+              echo "::notice::only .work/ changed between $BEFORE and $SHA, so nothing is built"
+            fi
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+
   # Every target is built twice, cold, in different directories on different
   # runners. The container mounts the output directory at its own host path, so
   # different directories also prove the path does not leak into the binary.
   build:
     name: build ${{ matrix.target }} (${{ matrix.copy }})
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:

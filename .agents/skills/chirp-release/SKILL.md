@@ -29,7 +29,7 @@ All of these must hold before the cut. Report each one; don't stop at the first 
 2. **Version:** `src/chirp/chirp.jdn` holds `:version "X.Y.Z-dev"`, and no `vX.Y.Z` tag or release exists yet (`git ls-remote --tags origin vX.Y.Z`, `gh release list`).
 3. **Changelog:** `## Unreleased` in `CHANGELOG.md` is non-empty, user-facing, and covers everything merged since the last tag (`git log vPREV..HEAD --oneline`). Merge duplicate or overlapping entries now, in their own commit.
 4. **Open work:** `$DP status` shows no slice or task that should be in this release still open. A finalized unit has its closing commit on main.
-5. **CI:** the latest `ci` run on HEAD is green (`gh run list -L 5`).
+5. **CI:** the latest `ci` run on HEAD is green (`gh run list -L 5`). A push that changed only `.work/` has a green run that built nothing (its build jobs are skipped); then the newest run that did build must be green too.
 6. **Milestone:** the GitHub milestone is titled exactly `X.Y.Z` (no `v`) and holds **every** issue this release fixes. close-milestone closes only issues *in* the milestone, so a fixed issue left outside stays open (`gh issue edit N --milestone X.Y.Z`). Without a milestone the job closes nothing and still passes.
 7. **Release notes boilerplate:** if this release bundles a new library or module, `.github/release-notes.md` names it ("It bundles …").
 8. **Users who cannot self-update:** if a fix is to self-update itself (for example #10, windows HTTPS), the changelog entry says those users must download by hand. Repeat it on the issue if useful.

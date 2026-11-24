@@ -48,7 +48,6 @@ Out:
 - Design and the child units are in DESIGN.md and PLAN.md.
 
 ## Next
-Wave B: spawn slice pin-guards, task path-helpers and task ci-work-only from PLAN.md on one branch; ci-work-only merges only after the owner confirms a run with skipped jobs satisfies main's branch rules.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
