@@ -104,7 +104,50 @@
     (def [ok out] (install base :force))
     (check "a linked skill dir is refused" [ok (truthy? (string/find "refused" out))] [false true])
     (check "the checkout is untouched" (read checkout "/SKILL.md") "the checkout's own\n")
-    (check "nothing was added to the checkout" (os/stat (string checkout "/scripts")) nil)))
+    (check "nothing was added to the checkout" (os/stat (string checkout "/scripts")) nil))
+
+  # A link above the skill dir leads out of the base as well (issue 20): refused
+  # at either level, forced or not, before anything is written or linked.
+  (each [above made] [[".agents" nil] [".agents/skills" ".agents"]]
+    (let [base (fresh)
+          store (fresh)]
+      (sh/create-dirs (string store "/demo"))
+      (spit (string store "/demo/SKILL.md") "the store's own\n")
+      (spit (string store "/skills-marker") "")
+      (when made (sh/create-dirs (string base "/" made)))
+      # .agents -> a store that holds skills/demo; .agents/skills -> one that holds demo.
+      (if made
+        (os/symlink store (string base "/" above))
+        (do (sh/create-dirs (string store "/skills/demo"))
+          (spit (string store "/skills/demo/SKILL.md") "the store's own\n")
+          (os/symlink store (string base "/" above))))
+      (each flags [[] [:force]]
+        (def [ok out] (install base ;flags))
+        (check (string "a linked " above " is refused " (if (empty? flags) "" "with --force"))
+               [ok (truthy? (string/find (string "refused: " above ", which") out))] [false true]))
+      (check (string "nothing is written through a linked " above)
+             (read store (if made "/demo/SKILL.md" "/skills/demo/SKILL.md")) "the store's own\n")
+      (check (string "no agent dir is made beside a refused " above)
+             (os/lstat (string base "/.claude")) nil)))
+
+  # --copy writes into the agent dirs, so a link above one of those is refused too.
+  (let [base (fresh)
+        store (fresh)]
+    (os/symlink store (string base "/.claude"))
+    (def [ok out] (install base :copy :force))
+    (check "--copy refuses a linked agent parent"
+           [ok (truthy? (string/find "refused: .claude, which" out))] [false true])
+    (check "and writes nothing through it" (os/stat (string store "/skills")) nil))
+
+  # The agent dir's parent may be a link to the canonical parent: a layout this
+  # repo uses. Nothing is written through it, so it is accepted.
+  (let [base (fresh)]
+    (sh/create-dirs (string base "/.agents/skills"))
+    (sh/create-dirs (string base "/.claude"))
+    (os/symlink "../.agents/skills" (string base "/.claude/skills"))
+    (def [ok out] (install base))
+    (check "agent parent linked to the canonical parent" ok true)
+    (check "and the canonical copy is real" (os/lstat (string base "/.agents/skills/demo") :mode) :directory)))
 
 (when (pos? failures)
   (eprintf "skills tests: %d failed" failures)

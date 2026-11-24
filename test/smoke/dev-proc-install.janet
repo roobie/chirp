@@ -151,15 +151,22 @@
       (def gone (exits "dangling link" 1 (run dangling no-env "--dev-proc" "--install" "--force")))
       (assert (and (string/find "does not exist" gone) (string/find "remove the link" gone)) gone)
       (assert (not (os/stat (string dangling "/gone"))) "a dangling link was written through")
-      # A link above the skill dir (a dotfiles manager's) is the user's choice and works.
+      # A link above the skill dir leads out of the install directory too, and a
+      # forced install would rewrite a skill kept where it ends: refused, forced
+      # or not, with nothing written (issue 20).
       (def dotfiles (string tmp "/dotfiles"))
       (def store (string dotfiles "/store"))
-      (sh/create-dirs (string store "/skills"))
+      (sh/create-dirs (string store "/skills/" skill))
+      (spit (string store "/skills/" skill "/SKILL.md") "the store's own")
       (def user (string dotfiles "/user"))
       (sh/create-dirs user)
       (os/symlink store (string user "/.agents"))
-      (exits "linked parent dir" 0 (run user no-env "--dev-proc" "--install"))
-      (assert (same-as-source? (string store "/skills/" skill)) "a linked parent dir was not installed through"))
+      (each force [[] ["--force"]]
+        (def above (exits "linked parent dir" 1 (run user no-env "--dev-proc" "--install" ;force)))
+        (assert (and (string/find "refused: .agents, which" above) (string/find "is a link to" above)) above)
+        (assert (deep= ["SKILL.md"] (tuple ;(walk (string store "/skills/" skill)))) "a linked parent was written through")
+        (assert (= "the store's own" (string (slurp (string store "/skills/" skill "/SKILL.md")))) "a linked parent was written through")
+        (assert (not (os/stat (string user "/.claude"))) "an agent dir was made beside a refused link")))
 
     # --copy: real directory, no canonical dir.
     (def copy (string tmp "/copy"))

@@ -148,6 +148,27 @@
         (eprint "  There is nothing to update there; remove the link and install again.")))
     true))
 
+# A link above the skill dir (.agents, or .agents/skills) leads out of the
+# install base just the same, and with --force the shipped files would be
+# rewritten wherever it ends, which may be a checkout (issue 20). Everything
+# above the base is the user's own spelling of where to install and is not
+# looked at.
+(defn- linked-above?
+  "Whether a directory between base and the skill dir at base/shown is a link;
+  if so, says why the install stops."
+  [base shown]
+  (def parts (string/split "/" shown))
+  (var found false)
+  (for i 1 (length parts)
+    (def rel (string/join (slice parts 0 i) "/"))
+    (def path (string base "/" rel))
+    (when (and (not found) (= :link (os/lstat path :mode)))
+      (set found true)
+      (eprint "refused: " rel ", which " shown " lies in, is a link to " (or (real path) (os/readlink path))
+              ", so installing would not write here but into it")
+      (eprint "  Put the skill there from its own source, or make " rel " a real directory to install here.")))
+  found)
+
 (defn install-skill
   "Install files as skill `name` under (opts :base): the canonical copy and a
   link from each agent directory, or with (opts :copy) a real copy in each.
@@ -162,10 +183,12 @@
     (each dir (conf :links)
       (def shown (string dir "/" name))
       (def path (string base "/" shown))
-      (note (if (= :link (os/lstat path :mode))
-              (skip shown path :link)
+      (note (cond
+              (linked-above? base shown) false
+              (= :link (os/lstat path :mode)) (skip shown path :link)
               (put-copy path shown files (opts :force)))))
-    (if (and (not (linked? canon (string base "/" canon)))
+    (if (and (not (linked-above? base canon))
+             (not (linked? canon (string base "/" canon)))
              (put-copy (string base "/" canon) canon files (opts :force)))
       (let [canon-real (real (string base "/" canon))]
         (each dir (conf :links)
