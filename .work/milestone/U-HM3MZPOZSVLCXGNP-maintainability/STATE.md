@@ -52,6 +52,7 @@ Out:
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - pin-reader (U-CIOASS53XGJOLRCU) delivered: tools/build/pin.sh is the only shell reader of pins.jdn, held to Janet's parse by pin.test.janet (40 values); ci run 45371721511 green.
+- repo-tests (U-BTEXJZKNTIOO6G4L) delivered: chirp tools/test.janet runs every *.test.janet (13 files; chirp's own 10 in about 1 s with an installed chirp), and CI's checks job runs them on the :chirp pin in 35 s without waiting for a build (run 45371721511, D-235CO5X6BG3S743P).
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
