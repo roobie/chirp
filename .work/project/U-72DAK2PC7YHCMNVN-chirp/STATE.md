@@ -147,3 +147,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-24 milestone maintainability wave B: pin-guards, path-helpers and ci-work-only delivered; a .work/-only push no longer builds (D-SBFT5Y7OGHMOVIY6)
 - 2026-11-24 milestone maintainability wave C: c-warnings, skill-install-parent-links (issue 20), upstream-watch and the chirp-pins skill delivered
 - 2026-11-24 milestone maintainability wave D: jsec at v0.2.0-interim1 by the chirp-pins skill, both jsec windows patches retired; the milestone waits only for the release that closes issue 20
+- 2026-11-24 cutting 0.13.2: the skill install refuses a link above the skill dir (issue 20) and jsec moves to v0.2.0-interim1
