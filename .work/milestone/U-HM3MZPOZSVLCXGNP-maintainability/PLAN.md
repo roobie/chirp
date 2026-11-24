@@ -1,7 +1,7 @@
 # Plan
 
 ## Steps
-- [ ] Owner answers the open questions in DESIGN.md; move to execute
+- [x] Owner answers the open questions in DESIGN.md (2026-11-24); move to execute
 - [ ] Wave A, then B, then C, then D; each child is spawned with `new … --parent milestone/maintainability` when its wave starts
 - [ ] After each wave: `ci` green on main, Evidence gets one line per closed child
 - [ ] Finalize: check each criterion against Evidence, harvest, close
@@ -10,7 +10,7 @@
 Units inside a wave touch different files and can run in parallel worktrees. A later wave needs the earlier one merged.
 
 ### Wave A: foundations
-- **task `repo-tests`** (finding 4). `tools/test.janet` finds and runs every `*.test.janet`. First tests beside `src/chirp/update.janet`, `help.janet`, `skills.janet` and `source.janet`. The CI job `leakcheck` becomes `checks` and calls the driver in place of its hand list. The README's Building section says how to run them.
+- **task `repo-tests`** (finding 4). `tools/test.janet` finds and runs every `*.test.janet`. First tests beside `src/chirp/update.janet`, `help.janet`, `skills.janet` and `source.janet`. The CI job `leakcheck` becomes `checks`, no longer waits for the build, fetches the `:chirp` pin (a released linux-x64 chirp, sha256 checked) and calls the driver in place of its hand list. `cut.janet` and the `chirp-release` skill move that pin after a release. The README's Building section says how to run them.
   Done when: the driver passes from a checkout with an installed chirp in under 30 seconds; CI runs it; the dev-proc tests run in it; a deliberately broken version comparison fails it.
 - **task `build-guards`** (findings 3, 8). The notices assert in `build.janet`. `test/smoke/run.janet` lists its directory. The three patches move to `:patches` in `config.jdn`. The stub C source moves to a file.
   Done when: removing a `:notices` entry fails a local build with the pin's name; a new smoke file runs unlisted; all five targets build twice with matching hashes; NOTICES files are byte-identical to the previous main build's.
@@ -32,7 +32,7 @@ Units inside a wave touch different files and can run in parallel worktrees. A l
   Done when: `rg` for each pinned version literal finds only `pins.jdn`, the changelog and fixtures; a build with a mirror's recorded hash altered fails naming the chirp file; five targets, matching hashes, smoke green.
 - **task `path-helpers`** (finding 7; needs `repo-tests`). `src/chirp/paths.janet` with tests; six callers moved.
   Done when: `src/chirp` has one OS test and one directory-of-path helper; smoke green on all four native runners, windows above all.
-- **task `ci-work-only`** (finding 4; needs `repo-tests`; may close unbuilt by decision). The changes job in `ci.yml`; `pages.yml`'s plan publishes nothing for a run that built nothing.
+- **task `ci-work-only`** (finding 4; needs `repo-tests`). The changes job in `ci.yml`; `pages.yml`'s plan publishes nothing for a run that built nothing.
   Done when: a `.work/`-only push to a branch shows `checks` run and the builds skipped; the same on main leaves `pages` green with nothing deployed; a code push and a release dry run still build everything; a decision records the trade.
 
 ### Wave C: needs B
@@ -40,13 +40,13 @@ Units inside a wave touch different files and can run in parallel worktrees. A l
   Done when: five targets build twice with matching hashes under `-Wall -Wextra -Werror` on repo sources; every exemption is data with a reason; any behaviour fix has a changelog entry.
 - **task `skill-install-parent-links`** (issue #20; needs `path-helpers`). Refuse a link anywhere between the base and the skill dir; unit test and smoke case; D-TKUKHE7T3TSZWWSD superseded or extended; changelog entry; issue on the next release's GitHub milestone.
   Done when: the smoke case passes on linux and macOS (windows keeps its known exception, B-GJ36TPGEOECQYDFU).
-- **task `upstream-watch`** (finding 2; `--from B-DE4OCJCKANMSZ75T`; drops if reading upstream is out). `tools/pins/watch.janet`, its feeds data, a test of the tag ordering, and a line in the `chirp-release` preflight.
+- **task `upstream-watch`** (finding 2; `--from B-DE4OCJCKANMSZ75T`). `tools/pins/watch.janet`, its feeds data, a test of the tag ordering, and a line in the `chirp-release` preflight.
   Done when: one command prints newer tags or "current" for every pin and the feeds' new items, and exits 0 with nothing written.
 - **task `pins-skill`** (findings 1, 2, 3; needs every guard above). `.agents/skills/chirp-pins/SKILL.md` with the `.claude/skills` link; both procedures; each step names its guard. `skillcheck` passes.
   Done when: a reader can bump a pin from the skill alone, which wave D tests.
 
 ### Wave D: proof
-- **slice `pin-bump-proof`** (`--from B-6UDB6YVY3NJFAAMU` if jsec is chosen). One real bump by the skill, start to finish, by an agent that did not write it. Every place the skill was wrong or silent is fixed in the skill in the same slice.
+- **slice `pin-bump-proof`** (`--from B-6UDB6YVY3NJFAAMU`; jsec to `v0.2.0-interim1`, a quiet pin if it stalls). One real bump by the skill, start to finish, by an agent that did not write it. Every place the skill was wrong or silent is fixed in the skill in the same slice.
   Done when: the bump is on main with CI green on all targets, and the slice's Evidence lists the skill corrections it caused (none is an acceptable count).
 
 ## Verification

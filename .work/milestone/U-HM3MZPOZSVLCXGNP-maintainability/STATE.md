@@ -1,5 +1,5 @@
 ---
-phase: initialize
+phase: execute
 parent: U-72DAK2PC7YHCMNVN
 owner:
   - BR
@@ -10,8 +10,8 @@ success_criteria:
   - 'Each bundled library''s version is written once, in pins.jdn: searching the tree for a pinned version literal finds it nowhere else outside CHANGELOG.md and test fixtures.'
   - With a pin moved to a commit where upstream code that chirp mirrors (cli-main's REPL branch, run-main, spork's JSON decoder) differs, the build fails and names the chirp file to compare.
   - The build fails for a linked pin that has no :notices entry, and a new file in test/smoke runs without being added to a list.
-  - Unit tests of chirp's own Janet logic run from a checkout with an installed chirp, no Docker, in under 30 seconds, and CI runs them.
-  - A push that changes only .work/ completes CI green without building a target, and pages stays green and deploys nothing for it; or a decision records why that trade was not taken.
+  - Unit tests of chirp's own Janet logic run from a checkout with an installed chirp, no Docker, in under 30 seconds, and CI runs them on a released chirp pinned in pins.jdn without waiting for the build.
+  - A push that changes only .work/ completes CI green without building a target, and pages stays green and deploys nothing for it; a decision records the trade.
   - Every chirp-owned C file compiles with -Wall -Wextra as errors on all five targets, with CI green.
   - Shell reads pins.jdn through one helper whose test compares it with Janet's parse of the same file, and src/chirp has one definition each of the OS test and the directory-of-path helper.
   - A smoke check shows chirp --dev-proc --install --force refusing to write through a linked parent of the skill dir, and issue 20 is closed by the release that carries it.
@@ -48,7 +48,6 @@ Out:
 - Design and the child units are in DESIGN.md and PLAN.md.
 
 ## Next
-- Owner reads DESIGN.md and PLAN.md, answers the open questions in DESIGN.md (the reading of "upstream", the CI trigger change, which pin proves the procedure), then `phase` to execute and spawn wave A.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
@@ -63,3 +62,5 @@ Out:
 
 ## Log
 - 2026-11-24 initialized
+- 2026-11-24 phase initialize → execute
+- 2026-11-24 BR answered the open questions: upstream excludes contact only; the .work-only CI skip is wanted; jsec v0.2.0-interim1 proves the procedure; CI checks run on a pinned released chirp; watch runs by hand

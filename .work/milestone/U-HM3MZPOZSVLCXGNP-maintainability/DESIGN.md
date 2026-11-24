@@ -28,7 +28,7 @@ One rule decides each case: where the build or a test can hold an obligation, it
 
 **Finding 4: tests that need no build, and a CI that builds only when it must.**
 - *Tests.* Follow the convention the tools already use: `x.test.janet` beside `x.janet`. Tests for the pure logic of `update.janet` (version order, sums parsing, trust resolution), `help.janet` (section split, query grammar), `skills.janet` (relative paths, differences) and `source.janet`. A driver, `tools/test.janet`, finds every `*.test.janet` in the repo, the vendored dev-proc tests too, and runs each with the chirp that runs it. A test reaches a private function only through the module's public ones; a function is made public when it is a real seam, as `resolve-trust` already is.
-- *CI checks.* The `leakcheck` job becomes `checks` and runs leakcheck, skillcheck and the driver, so a new test file needs no workflow edit. Whether it runs on the built binary (as now, after 20 minutes) or on a released chirp pinned by version and sha256 (at once, in parallel with the build) is the first open question below.
+- *CI checks.* The `leakcheck` job becomes `checks` and runs leakcheck, skillcheck and the driver, so a new test file needs no workflow edit. It runs on a released chirp, a new `:chirp` entry in `pins.jdn` with the linux-x64 asset's URL and sha256, fetched and verified by the job, so it starts at once and in parallel with the build (BR, 2026-11-24). The built binary is still exercised by smoke on every target. The pin moves at each release's step to the next -dev, which `tools/release/cut.janet` and the `chirp-release` skill take on.
 - *`.work/`-only pushes.* A first job in `ci.yml` decides whether anything outside `.work/` changed in the push. If not, the build, compare, smoke and wasm jobs are skipped and the run is green. A tag, a `workflow_call`, a new branch and a forced push always build. `pages.yml`'s plan job then has to tell a green run that built nothing from one that did, and publish nothing for the first: the site and the `latest` tree keep serving the last built commit, whose binary is byte-identical because nothing under `.work/` reaches the image.
 
 **Finding 5: warnings as data.** A `:repo-cflags` list in `config.jdn` (`-Wall -Wextra -Werror`) is added in the cross build to every source that lives in this repo: the natives' `:repo-sources`, a target's `:repo-sources` and the generated stubs. Both compilers are pinned, so `-Werror` cannot break on a compiler update nobody chose. The host build compiles per native, not per file, and nothing it builds ships, so it stays as it is. A shim that only includes an upstream file (`src/pcre2/chartables.c`) is exempt by data, with the reason.
@@ -50,14 +50,15 @@ One rule decides each case: where the build or a test can hold an obligation, it
 - **Unit tests in `test/smoke/`.** Smoke checks are black-box and run on every target by the binary under test; these are white-box and need the source tree, not a target.
 - **Warnings on the pinned libraries too.** Their warnings are upstream's to fix, and this milestone asks nothing of upstream.
 - **Rewrite the shell `sed` in Janet.** `container.sh` runs on a host with only Docker, and `container-inner.sh` runs before janet is built.
-- **A scheduled workflow for `watch` that opens an issue.** Left as an open question; the script comes first and is useful by hand.
+- **A scheduled workflow for `watch` that opens an issue.** Not wanted (BR, 2026-11-24): it runs by hand.
+- **CI checks on the binary the run built.** Dogfood, but every check waited about 20 minutes for the build; smoke already runs the built binary on every target.
 
 ## Risks & open questions
-- **Open: what "upstream" excludes.** Read here as "no contact": reading tags, feeds and sources is in, filing or offering anything is out. If reading is out too, `upstream-watch` drops and the last success criterion with it.
-- **Open: which chirp runs the CI checks.** Built binary (dogfood, late) or a pinned released chirp (early, one more pin and a bootstrap dependency on our own releases). Default if unanswered: keep the built binary and add the driver; move later if the wait hurts.
-- **Open: is the `.work/`-only skip wanted.** It changes what a green `ci` run means, and the site's footer would lag behind main's tip for such commits. If not, record the decision and close that child unbuilt; the criterion allows it.
-- **Open: which pin proves the procedure.** jsec to `v0.2.0-interim1` (B-6UDB6YVY3NJFAAMU) is wanted anyway and exercises both patches, but its windows behaviour may stall the milestone. A quiet tagged pin (md4c, lexbor) proves less and cannot stall. Default: jsec, falling back to a quiet pin if jsec is not green within its slice.
-- **Open: schedule `watch` in CI or run it by hand.**
+- **Answered (BR, 2026-11-24): "upstream" excludes contact only.** Reading tags, feeds and sources is in, so `upstream-watch` stays.
+- **Answered: the CI checks run on a pinned released chirp.** One more pin, and a bootstrap dependency on our own releases; a release that breaks the checks' own needs is caught when the pin moves, not before.
+- **Answered: the `.work/`-only skip is wanted.** A green `ci` run no longer always means "built", and the site's footer lags main's tip for such commits; the child unit records that as a decision.
+- **Answered: jsec to `v0.2.0-interim1` (B-6UDB6YVY3NJFAAMU) proves the procedure**, falling back to a quiet tagged pin (md4c, lexbor) if jsec is not green within its slice.
+- **Answered: `watch` runs by hand**, from the skill and the release preflight; no scheduled workflow.
 - **Risk: `-Werror` finds real bugs.** Then the fixes are user-visible and need changelog entries; a fix that changes behaviour gets its own task.
 - **Risk: the notices guard is wrong for a pin whose license ships from this repo** (jsec, SQLite). It must match on `:pin` as well as `:root`; the current data is the test.
 - **Risk: mirror forms move or are renamed upstream.** The check then fails as "form not found", which is the right outcome, with a message that says so.
