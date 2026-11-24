@@ -46,7 +46,7 @@ Units inside a wave touch different files and can run in parallel worktrees. A l
   Done when: a reader can bump a pin from the skill alone, which wave D tests.
 
 ### Wave D: proof
-- **slice `pin-bump-proof`** (`--from B-6UDB6YVY3NJFAAMU`; jsec to `v0.2.0-interim1`, a quiet pin if it stalls). One real bump by the skill, start to finish, by an agent that did not write it. Every place the skill was wrong or silent is fixed in the skill in the same slice.
+- **slice `pin-bump-proof`** (delivered 2026-11-24) (`--from B-6UDB6YVY3NJFAAMU`; jsec to `v0.2.0-interim1`, a quiet pin if it stalls). One real bump by the skill, start to finish, by an agent that did not write it. Every place the skill was wrong or silent is fixed in the skill in the same slice.
   Done when: the bump is on main with CI green on all targets, and the slice's Evidence lists the skill corrections it caused (none is an acceptable count).
 
 ## Verification

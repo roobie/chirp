@@ -48,6 +48,7 @@ Out:
 - Design and the child units are in DESIGN.md and PLAN.md.
 
 ## Next
+Every child is delivered. One criterion is open: issue 20 closes with the release that carries its fix, and cutting a release is outside this milestone. Finalize after the next release (chirp-release skill), or once BR rewords that criterion.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
@@ -62,6 +63,7 @@ Out:
 - skill-install-parent-links (U-X67ZX3RLNIKYEGJB) delivered: a link between the install base and the skill dir is refused, forced or not, with unit and smoke cases (D-Z6BXK3LRIQKGMJBN, issue 20 on GitHub milestone 0.13.2); run 45425777802 green on linux and macOS.
 - upstream-watch (U-RSCO6736MTAJIN76) delivered: chirp tools/pins/watch.janet lists newer tags, moved branches, zig releases and the feeds' recent items, reading only; its ordering is tested; the release preflight runs it.
 - pins-skill (U-3TUKHKIY6OR6IOHO) delivered: .agents/skills/chirp-pins/SKILL.md holds both procedures, each step with its guard or marked by hand. Wave C is complete.
+- pin-bump-proof (U-U5QZHBUMGYEWICHC) delivered: jsec moved from 9b57288 to v0.2.0-interim1 (commit 195deb4) by a separate agent following the chirp-pins skill; the patch guard stopped the first build, both windows patches and the reconstructed license were retired, and five corrections went into the skill; ci run 45449392321 on main green on all targets. Wave D is complete.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
