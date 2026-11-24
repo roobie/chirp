@@ -138,10 +138,10 @@ Each component is pinned to an exact upstream commit in [`pins.jdn`](pins.jdn). 
 | [spork-https](https://github.com/llmII/spork-https) | an HTTPS client and server on top of `spork/http` | ISC |
 | [janet-lang/sqlite3](https://github.com/janet-lang/sqlite3) | `sqlite3`, Janet bindings to an embedded [SQLite](https://sqlite.org) (the amalgamation, so no system library is needed), with FTS5 full-text search enabled; from 0.2.0 | MIT (binding), public domain (SQLite) |
 | [tomlin](https://github.com/pyrmont/tomlin) | `tomlin`, a TOML parser written in Janet; from 0.2.0 | MIT |
-| [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml 0.2.5, with Core schema scalars, anchors, aliases and merge keys; from 0.3.0 | MIT |
-| [PCRE2](https://github.com/PCRE2Project/pcre2) | `pcre2`, Perl-style regular expressions: chirp's own small binding over PCRE2 10.49 (interpreter only, no JIT), with named groups, replacement with group references and split; from 0.4.0 | BSD-3-Clause with the PCRE2 exception |
-| [md4c](https://github.com/mity/md4c) | `md4c`, Markdown to HTML: chirp's own small binding over md4c 0.6.0's renderer, CommonMark by default with GitHub's extensions on request; from 0.4.0 | MIT |
-| [lexbor](https://github.com/lexbor/lexbor) | `lexbor`, HTML parsing and CSS selectors: chirp's own small binding over lexbor 3.0.1's HTML, DOM and selectors modules; from 0.4.0 | Apache-2.0 |
+| [libyaml](https://github.com/yaml/libyaml) | `yaml`, YAML parsing and emitting: chirp's own small binding over libyaml, with Core schema scalars, anchors, aliases and merge keys; from 0.3.0 | MIT |
+| [PCRE2](https://github.com/PCRE2Project/pcre2) | `pcre2`, Perl-style regular expressions: chirp's own small binding over PCRE2 (interpreter only, no JIT), with named groups, replacement with group references and split; from 0.4.0 | BSD-3-Clause with the PCRE2 exception |
+| [md4c](https://github.com/mity/md4c) | `md4c`, Markdown to HTML: chirp's own small binding over md4c's renderer, CommonMark by default with GitHub's extensions on request; from 0.4.0 | MIT |
+| [lexbor](https://github.com/lexbor/lexbor) | `lexbor`, HTML parsing and CSS selectors: chirp's own small binding over lexbor's HTML, DOM and selectors modules; from 0.4.0 | Apache-2.0 |
 | chirp itself | `gzip`, gzip framing over spork's miniz, whole or in pieces, and `tar`, tar archives in Janet, extracted safely; from 0.7.0 | MIT |
 | chirp itself | `omap`, an insertion-ordered map that `yaml` and `json` can decode to and encode from; written in C for chirp, with `json-omap`, a copy of spork's JSON decoder that builds it; from 0.3.0 | MIT |
 | [OpenSSL 3](https://github.com/openssl/openssl) | statically linked under jsec | Apache-2.0 |

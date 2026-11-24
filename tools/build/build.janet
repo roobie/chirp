@@ -11,7 +11,32 @@
 (defn- load-data [path] (parse (slurp (string repo "/" path))))
 (def pins (load-data "pins.jdn"))
 (def config (load-data "tools/build/config.jdn"))
-(def natives (load-data "tools/build/natives.jdn"))
+
+# A library's version is written once, in its pin's :tag. A define in
+# natives.jdn names it with a keyword instead of spelling it: :pin-version is
+# the dotted number in the tag as a C string literal, and :pin-version-major,
+# -minor and -patch are its parts.
+(defn- pin-version [pin]
+  (def tag (get-in pins [pin :tag]))
+  (def parts (and tag (peg/match '(* (any (if-not :d 1)) (<- :d+) (some (* "." (<- :d+)))) tag)))
+  (unless parts
+    (errorf "a define in tools/build/natives.jdn asks for the version of the %s pin, but pins.jdn gives it no :tag with a dotted number in it" pin))
+  parts)
+
+(defn- resolve-define [n value]
+  (def part {:pin-version-major 0 :pin-version-minor 1 :pin-version-patch 2})
+  (cond
+    (= value :pin-version) (string `"` (string/join (pin-version (n :pin)) ".") `"`)
+    (part value) (or (get (pin-version (n :pin)) (part value))
+                     (errorf "%s asks for %s, but the %s pin's tag has no such part" (n :name) value (n :pin)))
+    (keyword? value) (errorf "%s has a define with the unknown value %s" (n :name) value)
+    value))
+
+(def natives
+  (seq [n :in (load-data "tools/build/natives.jdn")]
+    (if (n :defines)
+      (merge n {:defines (tabseq [[k v] :pairs (n :defines)] k (resolve-define n v))})
+      n)))
 
 (def target-name (keyword (os/getenv "CHIRP_TARGET" "")))
 (def target
@@ -104,6 +129,39 @@
     (applies? "-R") (print "already applied " file)
     (errorf "patch %s fits neither the pinned nor the patched %s" file name)))
 (each {:pin pin :file file} (config :patches) (patch pin file))
+
+# Upstream code that chirp carries a changed copy of (:mirrors in config.jdn).
+# The copy cannot follow upstream by itself, so the build stops when the
+# upstream text is no longer the one the copy was last compared with.
+(defn- sha256-of [text]
+  (def p (os/spawn ["sha256sum"] :px {:in :pipe :out :pipe}))
+  (ev/write (p :in) text)
+  (ev/close (p :in))
+  (def o (ev/read (p :out) :all))
+  (os/proc-wait p)
+  (string/slice o 0 64))
+
+# The text of the one top-level form of source that starts a line with start.
+(defn- top-level-form [source start where]
+  (def found (string/find-all (string "\n" start) source))
+  (unless (= 1 (length found))
+    (errorf "%s has %d top-level forms starting with %s, and :mirrors in tools/build/config.jdn expects one; upstream renamed or moved it"
+            where (length found) start))
+  (def from (inc (found 0)))
+  (def p (parser/new))
+  (var i from)
+  (while (and (< i (length source)) (not (parser/has-more p)))
+    (parser/byte p (source i))
+    (++ i))
+  (string/slice source from i))
+
+(each {:pin pin :file file :form form :mirror mirror :sha256 want} (config :mirrors)
+  (def where (string "the " pin " pin's " file))
+  (def source (slurp (string "src/" pin "/" file)))
+  (def got (sha256-of (if form (top-level-form source form where) source)))
+  (unless (= got want)
+    (errorf "%s%s is not the text that %s was last compared with. Compare the two, bring %s in step, then record :sha256 \"%s\" for it under :mirrors in tools/build/config.jdn"
+            where (if form (string ", form " form ",") "") mirror mirror got)))
 
 # Everything the image build loads is built for the build machine; everything
 # linked into the executable is built again by zig for the target.

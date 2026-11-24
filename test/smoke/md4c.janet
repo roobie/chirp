@@ -9,7 +9,8 @@
 
 (def- table-md "| a | b |\n|---|---|\n| 1 | 2 |\n")
 
-(assert (= "0.6.0" (md4c/version)) "version")
+# The number is the pin's (pins.jdn); only its shape is checked here.
+(assert (peg/match '(* :d+ (some (* "." :d+)) -1) (md4c/version)) "version")
 (assert (= "<h1>Hi</h1>\n<p><em>a</em> <code>b</code></p>\n" (md4c/to-html "# Hi\n\n*a* `b`\n")) "commonmark")
 (assert (= "<p>x</p>\n" (md4c/to-html @"x")) "a buffer")
 (assert (= "" (md4c/to-html "")) "empty input")

@@ -105,6 +105,25 @@
            # completion, like Janet's net/connect.
            {:pin :jsec :file "jsec-windows-connectex.patch"
             :until "B-5AUA2Q7IH5DP2ZME"}]
+ # Upstream code that a file in this repo carries a changed copy of, because
+ # upstream keeps it private or because chirp needs it to differ. :sha256 is
+ # the upstream text at the last comparison: the whole :file, or with :form the
+ # one top-level form that starts a line with that text. The build stops when
+ # it differs, and says what to compare and the hash to record afterwards.
+ :mirrors [# The REPL branch of cli-main, with spork/getline as the line reader.
+           {:pin :janet :file "src/boot/boot.janet" :form "(defn cli-main"
+            :mirror "src/chirp/repl.janet"
+            :sha256 "e2b7183cdd8b40800ba13b5cf220102724de32ee7ccae6d9d78c4039e3dfc7be"}
+           # run-main is private, and chirp needs it for a script read from stdin.
+           {:pin :janet :file "src/boot/boot.janet" :form "(defn- run-main"
+            :mirror "src/chirp/main.janet"
+            :sha256 "9f822bf2d18264a786cc160ee34950087aab2aaad6805663d6c2a4a3cc3287c1"}
+           # spork/json's decoder with the object case building an omap. The
+           # json overlay's parity test holds the behaviour (D-ZXXSPKUCZ4IOIQPN);
+           # this says when to look at the source.
+           {:pin :spork :file "src/json.c"
+            :mirror "src/omap/json.c"
+            :sha256 "4ff10b9e408fc901c11b5698c72171367f5175caf863c33fb3382841bf48a347"}]
  # Pinned checkouts whose root holds importable Janet modules.
  :janet-sources [:spork :jsec :spork-https]
  # Single modules the :all: templates cannot find: a pinned checkout whose entry

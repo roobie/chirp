@@ -1,8 +1,9 @@
 /* chirp's ordered JSON decoder, for the json overlay. It is spork/json's
  * decoder (src/json.c, MIT, Calvin Rose) with the object case building an omap
  * instead of a table, so that on any input it gives the same values, the same
- * errors at the same positions. The overlay's parity test holds it to that;
- * keep the two in step when the pin moves. */
+ * errors at the same positions. The overlay's parity test holds it to that,
+ * and the build stops when spork's file changes (:mirrors in
+ * tools/build/config.jdn), which is when to bring the two in step. */
 
 #include "omap.h"
 

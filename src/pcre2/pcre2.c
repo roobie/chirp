@@ -459,7 +459,7 @@ JANET_FN(chirp_pcre2_fn_split, "(pcre2/split re subject &opt opts)",
     return janet_wrap_array(out);
 }
 
-JANET_FN(chirp_pcre2_fn_version, "(pcre2/version)", "Returns the version of the bundled PCRE2, such as \"10.49\".") {
+JANET_FN(chirp_pcre2_fn_version, "(pcre2/version)", "Returns the version of the bundled PCRE2 as a string of dotted numbers.") {
     janet_fixarity(argc, 0);
     (void)argv;
     return janet_cstringv(STR(PCRE2_MAJOR) "." STR(PCRE2_MINOR));

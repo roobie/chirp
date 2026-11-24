@@ -2,8 +2,9 @@
 ###
 ### Stock janet edits lines with a getter from its shell, which a custom
 ### executable does not link, so cli-main's REPL reads bare lines. This mirrors
-### the REPL branch of cli-main (boot.janet) with spork/getline as the getter;
-### compare the two when the janet pin moves.
+### the REPL branch of cli-main (boot.janet) with spork/getline as the getter.
+### The build stops when cli-main changes upstream (:mirrors in
+### tools/build/config.jdn), which is when to compare the two.
 
 (import spork/getline)
 (import spork/rawterm)

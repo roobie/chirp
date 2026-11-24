@@ -5,6 +5,10 @@
 # library; without them such a binding would have to be copied into the pin.
 # :repo-includes are include directories in this repo, for headers that stand in
 # for files the library's own build system would generate.
+# A :defines value is a string, true for a bare -DNAME, or a keyword that names
+# the pin's version so that no number is repeated here: :pin-version is the
+# dotted number in the pin's :tag as a C string literal, :pin-version-major,
+# -minor and -patch its parts.
 [
  {:name "spork/json" :pin :spork :sources ["src/json.c"]}
  {:name "spork/rawterm" :pin :spork :sources ["src/rawterm.c"]}
@@ -24,8 +28,9 @@
  # _POSIX_C_SOURCE exposes strdup under -std=c99.
  {:name "yaml" :pin :libyaml :sources ["src"] :includes ["include"]
   :repo-sources ["src/yaml/yaml.c"]
-  :defines {"YAML_VERSION_MAJOR" "0" "YAML_VERSION_MINOR" "2" "YAML_VERSION_PATCH" "5"
-            "YAML_VERSION_STRING" "\"0.2.5\"" "YAML_DECLARE_STATIC" true
+  :defines {"YAML_VERSION_MAJOR" :pin-version-major "YAML_VERSION_MINOR" :pin-version-minor
+            "YAML_VERSION_PATCH" :pin-version-patch
+            "YAML_VERSION_STRING" :pin-version "YAML_DECLARE_STATIC" true
             "_POSIX_C_SOURCE" "200809L"}}
 
  # PCRE2 without its JIT, built from the pin's sources. Its generated files are
@@ -49,7 +54,7 @@
  {:name "md4c" :pin :md4c :includes ["src"]
   :sources ["src/md4c.c" "src/md4c-html.c" "src/entity.c"]
   :repo-sources ["src/md4c/md4c.c"]
-  :defines {"CHIRP_MD4C_VERSION" "\"0.6.0\"" "md_parse" "chirp_md4c_md_parse"
+  :defines {"CHIRP_MD4C_VERSION" :pin-version "md_parse" "chirp_md4c_md_parse"
             "md_html" "chirp_md4c_md_html" "entity_lookup" "chirp_md4c_entity_lookup"}}
 
  # lexbor's HTML parser, DOM and CSS selectors, without its other modules
@@ -61,7 +66,7 @@
             "source/lexbor/dom" "source/lexbor/html" "source/lexbor/css"
             "source/lexbor/selectors" "source/lexbor/ports/posix/lexbor/core/memory.c"]
   :repo-sources ["src/lexbor/lexbor.c"]
-  :defines {"CHIRP_LEXBOR_VERSION" "\"3.0.1\"" "LEXBOR_STATIC" true}}
+  :defines {"CHIRP_LEXBOR_VERSION" :pin-version "LEXBOR_STATIC" true}}
 
  # gzip framing over the pin's miniz, compiled into the binding with every miniz
  # function static, so it cannot clash with spork/zip's copy.

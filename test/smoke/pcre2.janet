@@ -8,7 +8,7 @@
   (assert (string/find needle (string err)) (string "error " err " lacks " needle)))
 
 (defn- matching []
-  (assert (string/has-prefix? "10." (pcre2/version)) "version")
+  (assert (peg/match '(* :d+ (some (* "." :d+)) -1) (pcre2/version)) "version")
   (assert (deep= (pcre2/match "(\\d+)-(\\d+)" "tel 12-345 x") {0 "12-345" 1 "12" 2 "345"}) "groups")
   (assert (deep= (pcre2/match "(?<year>\\d{4})" "in 2026") {0 "2026" 1 "2026" :year "2026"}) "named group")
   (assert (deep= (pcre2/match "(a)|(b)" "b") {0 "b" 2 "b"}) "an unset group has no key")

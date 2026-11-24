@@ -106,7 +106,8 @@
   (print (config :homepage)))
 
 # Janet's own run-main is private, so this mirrors it: main runs in a fiber that
-# reports errors through the debugger hook, as it does for a script file.
+# reports errors through the debugger hook, as it does for a script file. The
+# build stops when run-main changes upstream (:mirrors in tools/build/config.jdn).
 (defn- run-stdin [subargs]
   (def env (make-env))
   (put env *args* subargs)

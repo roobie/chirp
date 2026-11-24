@@ -127,7 +127,7 @@ JANET_FN(chirp_md4c_fn_to_html, "(md4c/to-html markdown &opt opts)",
 }
 
 JANET_FN(chirp_md4c_fn_version, "(md4c/version)",
-         "Returns the version of the bundled md4c, such as \"0.6.0\".") {
+         "Returns the version of the bundled md4c as a string of dotted numbers.") {
     janet_fixarity(argc, 0);
     (void)argv;
     return janet_cstringv(CHIRP_MD4C_VERSION);

@@ -323,7 +323,7 @@ JANET_FN(chirp_lexbor_fn_inner_html, "(lexbor/inner-html node)",
 }
 
 JANET_FN(chirp_lexbor_fn_version, "(lexbor/version)",
-         "Returns the version of the bundled lexbor, such as \"3.0.1\".") {
+         "Returns the version of the bundled lexbor as a string of dotted numbers.") {
     janet_fixarity(argc, 0);
     (void)argv;
     return janet_cstringv(CHIRP_LEXBOR_VERSION);

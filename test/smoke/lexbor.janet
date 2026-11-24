@@ -17,7 +17,8 @@
   <input disabled data-X="1">
   </main>``)
 
-(assert (= "3.0.1" (lexbor/version)) "version")
+# The number is the pin's (pins.jdn); only its shape is checked here.
+(assert (peg/match '(* :d+ (some (* "." :d+)) -1) (lexbor/version)) "version")
 (def d (lexbor/parse page))
 (assert (= :lexbor/document (type d)) "a document")
 (assert (= :lexbor/document (type (lexbor/parse @""))) "a buffer, and empty input")
