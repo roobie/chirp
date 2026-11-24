@@ -41,12 +41,16 @@ chirp pins jsec at a commit on its unreleased 0.2.0 branch (9b57288e) because on
 
 
 ## Next
-Finish local linux build (downloading zig), run smoke and tests, then push branch CI; address any target failures.
+Push `pin-bump-proof` and watch its CI; address target failures, then record final evidence and leave execute for owner integration.
 
 ## Evidence
 - `git ls-remote` resolves `v0.2.0-interim1` to mirror commit `63ce6b85c88f0448cd9be415fcb0f7ad538d432b`. Read old-to-tag log, diff stat, NEWS and license: Windows IOCP/ConnectEx, BSD/macOS reset parity, DTLS MTU, security fixes and ISC LICENSE added.
 - Build patch guard caught retired accept patch. Source inspection confirms both fixes are upstream; removed both patches and settled B-5AUA2Q7IH5DP2ZME without filing anything. Repaired durable refs; `dev-proc check` passes.
 - New upstream LICENSE is the same ISC grant/disclaimer as the reconstructed notice, with copyright year added. Switched notice to pin LICENSE and removed the reconstruction. Windows compatibility flags remain justified by source.
+- Local `sh tools/build/container.sh linux-x64 out/bump` completed; `out/bump/bin/chirp test/smoke/run.janet` passed all checks, including exclusive `https-ca` trust. Windows-only connect race check skipped locally as designed.
+- `chirp tools/test.janet src tools`: all 12 test files passed.
+- Source review: DTLS `mtu.c` is picked up by directory sources; API diff adds optional MTU and does not change documented chirp trust behavior. TLSState now reserves the IOCP slot too. Removed the settled bump's f33e7b7d7e feed and obsolete untagged jsec branch hint. Kept thread-local feed/flag: upstream still uses `__declspec(thread)` in compat.h.
+- B-OM3ZCJZZN7XPUD3D (Windows cancellation exit/stdout regression) remains a separate, unproved backlog item; no cancellation regression test added by this pin bump.
 - Four skill corrections so far, enumerated in Log and applied in `.agents/skills/chirp-pins/SKILL.md`.
 - Scope remains branch-only: the main integration criterion is for the owner after handoff; no merge, tag or release in this run.
 
@@ -65,4 +69,5 @@ Finish local linux build (downloading zig), run smoke and tests, then push branc
 - 2026-11-24 skill correction (Moving step 4, patch retirement): deleting patches leaves durable refs dangling, and both jsec patches share one backlog item. Added ref repair/`$DP check` and shared-item settlement instructions.
 - 2026-11-24 skill correction (Moving step 5): an existing reconstructed notice passes the guard even when upstream adds LICENSE; documented migration of root/path, local file and comments. Also quoted `LICENSE*` to avoid shell expansion hiding deleted license files.
 - 2026-11-24 skill correction (Moving step 10): unconditional close conflicts with branch-only proof/handoff. Require evidence first and close only when criteria and owner instructions permit.
+- 2026-11-24 local linux build, smoke and all 12 tool/source test files passed; ready for all-target branch CI.
 - 2026-11-24 first linux build stopped at accept-padding patch as expected. Inspected new accept states (both reserve `iocp_bytes`) and ConnectEx callback (waits for IOCP completion and updates connect context): upstream implements both fixes, so retire both patches. Existing `__declspec(thread)` and clock_gettime remain: keep windows flags. No upstream contact.
