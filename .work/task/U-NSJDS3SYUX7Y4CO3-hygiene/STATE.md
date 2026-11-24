@@ -26,7 +26,7 @@ Steps 5 and 6 are the owner's decisions; step 6 was decided on 2026-11-24 (delet
 
 
 ## Next
-Step 1: fast-forward main to the wave branch once its CI is green, push, delete the branch. Step 5 waits for the owner: scope the two windows tasks or return them to the backlog. Step 8 is a note for whoever works on a machine whose installed chirp is older than the last release. Then finalize.
+Step 5 waits for the owner: give windows-cancel-tls-read and windows-ca-root-source a real Scope and Next, or return them to the backlog with their notes. Step 8 is a note for whoever works on a machine whose installed chirp is older than the last release (this one runs 0.13.0-dev). Then finalize.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
@@ -35,6 +35,7 @@ Step 1: fast-forward main to the wave branch once its CI is green, push, delete 
 - Step 4: B-IRCVVXCJX6GVYOES records issue 21, and the issue links it (comment 7128332466). Issue 20 is wave C's task.
 - Step 6: the untracked voice skill dir was deleted at the owner's request (2026-11-24).
 - Step 7: the project unit's Evidence is 6 criterion lines plus the 0.13.1 release line (was 30 lines); the provenance line was re-checked with gh attestation verify. The chirp-release skill now replaces the release line instead of appending.
+- Step 1: main fast-forwarded to the wave's branch at c29ef43 and pushed; the branch is deleted, so origin has only main.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
