@@ -36,6 +36,7 @@ Step 5 waits for the owner: give windows-cancel-tls-read and windows-ca-root-sou
 - Step 6: the untracked voice skill dir was deleted at the owner's request (2026-11-24).
 - Step 7: the project unit's Evidence is 6 criterion lines plus the 0.13.1 release line (was 30 lines); the provenance line was re-checked with gh attestation verify. The chirp-release skill now replaces the release line instead of appending.
 - Step 1: main fast-forwarded to the wave's branch at c29ef43 and pushed; the branch is deleted, so origin has only main.
+- Step 5: the owner deferred both windows tasks (2026-11-24); each is a backlog item again with its notes and criteria, and the units are closed under D-OYMZ5GI46ZE4M5QR.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
