@@ -51,6 +51,7 @@ Out:
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- pin-reader (U-CIOASS53XGJOLRCU) delivered: tools/build/pin.sh is the only shell reader of pins.jdn, held to Janet's parse by pin.test.janet (40 values); ci run 45371721511 green.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
