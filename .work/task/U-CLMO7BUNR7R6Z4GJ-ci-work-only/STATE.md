@@ -31,6 +31,7 @@ Push the wave branch (new branch: must build everything), then a .work/-only com
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - Branch rules: gh api repos/roobie/chirp/rules/branches/main lists deletion and non_fast_forward only, and the branch's required_status_checks are empty with enforcement off, so no rule waits for a skipped job. The trade is D-SBFT5Y7OGHMOVIY6.
+- New branch: run 45380990270 on the first push of maintainability-wave-b (ed8e419) has changes green and all ten build jobs started.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
