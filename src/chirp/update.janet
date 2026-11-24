@@ -72,7 +72,7 @@
 (def- sums-line-peg
   ~(* (<- (repeat 64 (range "09" "af"))) (+ "  " " *") (<- (some 1)) -1))
 
-(defn- parse-sums
+(defn parse-sums
   "Table of file name to lowercase hex sha256, from sha256sum-format text.
   Lines that do not parse are left out."
   [text]
@@ -88,7 +88,7 @@
   (string "chirp-" version "-" target (if (string/has-prefix? "windows-" target) ".exe" "")))
 
 # The version is read from the signed names, never from anywhere unsigned.
-(defn- latest-release
+(defn latest-release
   "[version name sha256] for target from the signed sums, or an error."
   [sums target]
   (def suffix (string "-" target (if (string/has-prefix? "windows-" target) ".exe" "")))

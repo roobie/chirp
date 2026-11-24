@@ -149,7 +149,12 @@
         (eprint "  There is nothing to update there; remove the link and install again.")))
     true))
 
-(defn- install-skill [opts name files conf]
+(defn install-skill
+  "Install files as skill `name` under (opts :base): the canonical copy and a
+  link from each agent directory, or with (opts :copy) a real copy in each.
+  conf has :canonical and :links. Returns false when anything was skipped or
+  refused."
+  [opts name files conf]
   (def base (opts :base))
   (def canon (string (conf :canonical) "/" name))
   (var ok true)

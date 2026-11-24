@@ -1,4 +1,4 @@
-# Run: janet tools/skillcheck/test.janet
+# Run: chirp tools/skillcheck/skillcheck.test.janet
 
 (import ./skillcheck :as sc)
 

@@ -107,7 +107,11 @@ Record each result; these are the release's evidence.
 
 ```sh
 chirp tools/release/cut.janet --next     # X.(Y+1).0-dev and an empty ## Unreleased; or --next X.Y.Z
+chirp tools/release/pin-chirp.janet X.Y.Z # the chirp that runs CI's checks becomes the release just published
+chirp tools/test.janet                    # the new pin must still parse and every test pass
 ```
+
+`pin-chirp.janet` reads the release's `SHA256SUMS`, checks its signature against `src/chirp/release-key.pem` and rewrites the `:chirp` line of `pins.jdn`. It needs the release to be published, so it cannot run before step 5.
 
 In the same commit, update the project unit's `STATE.md` with `$DP note <project> <section> "…"`, not by scripting the file. `evidence` and `log` append one line, and `log` adds today's date.
 - **evidence:** `Release X.Y.Z: <url> (run <id>, <sha>) …` with the checks from step 5 and any rerun.

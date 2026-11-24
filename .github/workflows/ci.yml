@@ -162,27 +162,28 @@ jobs:
           dist/chirp site/check.janet out/site
           node test/wasm/page.mjs out/site
 
-  # Dogfood: chirp, not a separate janet install, runs the repo checks. The
+  # The repo checks and every *.test.janet, run by a released chirp pinned in
+  # pins.jdn, so they need no build and report in seconds while the targets
+  # build. The binaries this run builds are exercised by the smoke job. The
   # environment is cleared so only the generic rules apply; leakcheck would
   # otherwise add the CI runner's own user, home and hostname as host values.
-  leakcheck:
-    needs: build
+  checks:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: chirp-linux-x64-a
-          path: dist
-      - name: Leakcheck
+      - name: Fetch the pinned chirp
         run: |
-          chmod +x dist/chirp
-          env -i PATH="$PATH" ./dist/chirp tools/leakcheck/leakcheck.janet all
-          env -i PATH="$PATH" ./dist/chirp tools/leakcheck/test.janet
-          env -i PATH="$PATH" ./dist/chirp tools/skillcheck/skillcheck.janet
-          env -i PATH="$PATH" ./dist/chirp tools/skillcheck/test.janet
-          env -i PATH="$PATH" ./dist/chirp tools/release/cut.test.janet
-          env -i PATH="$PATH" ./dist/chirp tools/release/layout.test.janet
-          env -i PATH="$PATH" ./dist/chirp tools/build/pin.test.janet
+          curl -fsSL -o "$RUNNER_TEMP/chirp" "$(sh tools/build/pin.sh chirp url)"
+          echo "$(sh tools/build/pin.sh chirp sha256)  $RUNNER_TEMP/chirp" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/chirp"
+          "$RUNNER_TEMP/chirp" --version
+      - name: Checks
+        run: |
+          env -i PATH="$PATH" "$RUNNER_TEMP/chirp" tools/leakcheck/leakcheck.janet all
+          env -i PATH="$PATH" "$RUNNER_TEMP/chirp" tools/skillcheck/skillcheck.janet
+      # A new test needs no line here: the driver finds every *.test.janet.
+      - name: Tests
+        run: env -i PATH="$PATH" "$RUNNER_TEMP/chirp" tools/test.janet

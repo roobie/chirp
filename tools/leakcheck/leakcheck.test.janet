@@ -1,4 +1,4 @@
-# Run: janet tools/leakcheck/test.janet
+# Run: chirp tools/leakcheck/leakcheck.test.janet
 
 (import ./leakcheck :as lc)
 

@@ -1,8 +1,8 @@
 # Exemptions. An entry may set :path (exact, or a prefix ending in "/"),
 # :rule and :text; every key it sets must match the finding.
 # Never exempt a real value of this host: that commits the very leak.
-[{:path "tools/leakcheck/test.janet" :rule "home-path"}
- {:path "tools/leakcheck/test.janet" :rule "tilde-path"}
- {:path "tools/leakcheck/test.janet" :rule "windows-home"}
+[{:path "tools/leakcheck/leakcheck.test.janet" :rule "home-path"}
+ {:path "tools/leakcheck/leakcheck.test.janet" :rule "tilde-path"}
+ {:path "tools/leakcheck/leakcheck.test.janet" :rule "windows-home"}
  # dev-proc.root ~ expansion test, under a throwaway HOME.
  {:path ".agents/skills/dev-proc/scripts/dev-proc.test.janet" :text "~/notes"}]
