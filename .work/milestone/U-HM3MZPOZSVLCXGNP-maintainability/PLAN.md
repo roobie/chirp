@@ -36,13 +36,13 @@ Units inside a wave touch different files and can run in parallel worktrees. A l
   Done when: a `.work/`-only push to a branch shows `checks` run and the builds skipped; the same on main leaves `pages` green with nothing deployed; a code push and a release dry run still build everything; a decision records the trade.
 
 ### Wave C: needs B
-- **task `c-warnings`** (finding 5; needs `pin-guards` merged, same files). `:repo-cflags` and the fixes it asks for.
+- **task `c-warnings`** (delivered 2026-11-24) (finding 5; needs `pin-guards` merged, same files). `:repo-cflags` and the fixes it asks for.
   Done when: five targets build twice with matching hashes under `-Wall -Wextra -Werror` on repo sources; every exemption is data with a reason; any behaviour fix has a changelog entry.
-- **task `skill-install-parent-links`** (issue #20; needs `path-helpers`). Refuse a link anywhere between the base and the skill dir; unit test and smoke case; D-TKUKHE7T3TSZWWSD superseded or extended; changelog entry; issue on the next release's GitHub milestone.
+- **task `skill-install-parent-links`** (delivered 2026-11-24) (issue #20; needs `path-helpers`). Refuse a link anywhere between the base and the skill dir; unit test and smoke case; D-TKUKHE7T3TSZWWSD superseded or extended; changelog entry; issue on the next release's GitHub milestone.
   Done when: the smoke case passes on linux and macOS (windows keeps its known exception, B-GJ36TPGEOECQYDFU).
-- **task `upstream-watch`** (finding 2; `--from B-DE4OCJCKANMSZ75T`). `tools/pins/watch.janet`, its feeds data, a test of the tag ordering, and a line in the `chirp-release` preflight.
+- **task `upstream-watch`** (delivered 2026-11-24) (finding 2; `--from B-DE4OCJCKANMSZ75T`). `tools/pins/watch.janet`, its feeds data, a test of the tag ordering, and a line in the `chirp-release` preflight.
   Done when: one command prints newer tags or "current" for every pin and the feeds' new items, and exits 0 with nothing written.
-- **task `pins-skill`** (findings 1, 2, 3; needs every guard above). `.agents/skills/chirp-pins/SKILL.md` with the `.claude/skills` link; both procedures; each step names its guard. `skillcheck` passes.
+- **task `pins-skill`** (delivered 2026-11-24) (findings 1, 2, 3; needs every guard above). `.agents/skills/chirp-pins/SKILL.md` with the `.claude/skills` link; both procedures; each step names its guard. `skillcheck` passes.
   Done when: a reader can bump a pin from the skill alone, which wave D tests.
 
 ### Wave D: proof

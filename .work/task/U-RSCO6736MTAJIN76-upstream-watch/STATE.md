@@ -43,6 +43,7 @@ CI checks job must pass the new test on the pinned chirp. Then finalize.
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - chirp tools/pins/watch.janet (2026-11-24, 13 s, exit 0, git status unchanged): janet v1.43.0 newer v1.43.1; libyaml newer 0.2.6-rc.1 0.2.6 0.2.7; openssl newer 4.0.0 … 4.1.0-beta2; zig newer 0.16.0 0.17.0 0.17.1; lexbor, md4c, pcre2, spork-https, sqlite3, tomlin current; jsec's branch 0.2.0 and spork's default branch moved; the three image and chirp pins say why they are not watched; eight feeds, the jsec ones showing the v0.2.0-interim1 tag of 2026-11-19.
 - watch.test.janet holds the ordering (numbers as numbers, the pin's spelling only, suffixed tags, pcre2-10.49 not read as version 2) and the feed parsing; the first run caught that last case as a real bug. Preflight step 8 of the chirp-release skill names the command.
+- ci run 45422435654 (98cd9d6): the checks job runs tools/pins/watch.test.janet on the pinned 0.13.1 ('test: all 15 passed').
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:

@@ -29,6 +29,7 @@ Merge with wave C. The second criterion is judged by wave D; finalize after the 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
 - The skill has 'Moving a pin' (10 steps) and 'Adding a bundled component' (9 steps); each build message it quotes is one build.janet raises; skillcheck passes with the link in place.
+- ci run 45422435654 (98cd9d6): the checks job's skillcheck passes with the new skill and link. Whether a reader can bump from it alone is left to slice pin-bump-proof, which fixes the skill where it was wrong.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -37,7 +38,7 @@ Merge with wave C. The second criterion is judged by wave D; finalize after the 
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
-- [ ] backlog: the build does not check that a pin's :tag and :commit name the same upstream commit; the skill covers it by hand
+- [x] backlog (B-26BRL3WAR4BVJUZS): the build does not check that a pin's :tag and :commit name the same upstream commit; the skill covers it by hand
 
 ## Log
 - 2026-11-24 initialized
