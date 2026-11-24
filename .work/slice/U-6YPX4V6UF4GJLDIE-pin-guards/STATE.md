@@ -33,6 +33,7 @@ Push with the rest of wave B; CI must build five targets twice with matching has
 - Versions once: with only the defines changed to :pin-version keywords, linux-x64 rebuilt its objects and gave the same chirp as before (sha256 1152542d…cdac0); md4c, lexbor and pcre2 report 0.6.0, 3.0.1 and 10.49. rg for 0.2.5, 0.6.0, 3.0.1, 10.49, 1.43.0, 3.6.5 and 0.15.2 outside the changelog and .work finds only pins.jdn and cut.test.janet's fixture.
 - Mirrors: with each recorded hash wrong in turn, the build stopped before compiling, e.g. 'the janet pin's src/boot/boot.janet, form (defn cli-main, is not the text that src/chirp/repl.janet was last compared with. Compare the two, bring src/chirp/repl.janet in step, then record :sha256 "e2b7183c…" …'. The three hashes equal sha256sum of boot.janet lines 5045-5250 and 4976-4989 and of spork's src/json.c at the pins. The REPL branch and run-main were read against the chirp copies at this pin; run-main's only difference is the :debug guard, which a script from stdin has no flag for.
 - With the docstrings and smoke asserts changed, linux-x64 builds (sha256 571153b5…dfaf7) and all 26 smoke checks pass locally, the three version checks by shape.
+- ci run 45380990270 (ed8e419): five targets built twice, every file identical in both copies; smoke green on the four native runners, the three version checks by shape; wasm job green.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
