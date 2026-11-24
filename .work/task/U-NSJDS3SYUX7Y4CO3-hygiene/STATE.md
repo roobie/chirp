@@ -42,3 +42,4 @@ TODO: what is already true, what must stay true, resources available.
 
 ## Log
 - 2026-11-24 initialized
+- 2026-11-24 the untracked voice skill dir (SKILL.md and scripts/astra-review.sh) deleted at BR's request; step 6 of the plan is done
