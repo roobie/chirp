@@ -41,7 +41,7 @@ chirp pins jsec at a commit on its unreleased 0.2.0 branch (9b57288e) because on
 
 
 ## Next
-Push `pin-bump-proof` and watch its CI; address target failures, then record final evidence and leave execute for owner integration.
+Owner review/integration only: branch all-target CI is green. Leave this slice in execute; main integration criterion remains for the owner. No merge, tag or release performed.
 
 ## Evidence
 - `git ls-remote` resolves `v0.2.0-interim1` to mirror commit `63ce6b85c88f0448cd9be415fcb0f7ad538d432b`. Read old-to-tag log, diff stat, NEWS and license: Windows IOCP/ConnectEx, BSD/macOS reset parity, DTLS MTU, security fixes and ISC LICENSE added.
@@ -51,7 +51,11 @@ Push `pin-bump-proof` and watch its CI; address target failures, then record fin
 - `chirp tools/test.janet src tools`: all 12 test files passed.
 - Source review: DTLS `mtu.c` is picked up by directory sources; API diff adds optional MTU and does not change documented chirp trust behavior. TLSState now reserves the IOCP slot too. Removed the settled bump's f33e7b7d7e feed and obsolete untagged jsec branch hint. Kept thread-local feed/flag: upstream still uses `__declspec(thread)` in compat.h.
 - B-OM3ZCJZZN7XPUD3D (Windows cancellation exit/stdout regression) remains a separate, unproved backlog item; no cancellation regression test added by this pin bump.
-- Four skill corrections so far, enumerated in Log and applied in `.agents/skills/chirp-pins/SKILL.md`.
+- CI run `45435023130`, attempt 1: all ten builds, five-target reproducibility comparison, checks, WASM and Linux/Windows smoke passed. macOS smoke job `138598492029` was cancelled before any steps, with no runner or logs. Check-run annotations report hosted macOS ARM capacity / job not acquired. Retrying failed job, not changing pin code.
+- CI run `45435023130`, attempt 2, **success**, head `62d5e39fa99b14dbbc18c7d6104d172e9f9bfecc`: all ten builds, reproducibility comparison on all five targets, four native smoke jobs, WASM smoke/try page, checks. macOS acquired a runner on retry and passed all smoke checks. Windows log explicitly reports `ok tls-connect-wait: the handshake started after the TCP connect`; macOS and Windows both report exclusive `https-ca` success.
+- No upstream project contacted: only read-only watch/fetch/ls-remote/source inspection. Git writes/pushes and CI retries were confined to chirp's `pin-bump-proof`; no main push/merge, tags or releases.
+- `dev-proc check` passes; branch remains execute for owner handoff.
+- Five skill corrections total, enumerated in Log and applied in `.agents/skills/chirp-pins/SKILL.md`.
 - Scope remains branch-only: the main integration criterion is for the owner after handoff; no merge, tag or release in this run.
 
 ## Harvest
@@ -69,5 +73,7 @@ Push `pin-bump-proof` and watch its CI; address target failures, then record fin
 - 2026-11-24 skill correction (Moving step 4, patch retirement): deleting patches leaves durable refs dangling, and both jsec patches share one backlog item. Added ref repair/`$DP check` and shared-item settlement instructions.
 - 2026-11-24 skill correction (Moving step 5): an existing reconstructed notice passes the guard even when upstream adds LICENSE; documented migration of root/path, local file and comments. Also quoted `LICENSE*` to avoid shell expansion hiding deleted license files.
 - 2026-11-24 skill correction (Moving step 10): unconditional close conflicts with branch-only proof/handoff. Require evidence first and close only when criteria and owner instructions permit.
+- 2026-11-24 run 45435023130 attempt 2 green on all targets after retrying the unacquired macOS job. No source fix needed after CI; Windows ConnectEx regression and exclusive CA smoke pass. Evidence complete; leaving execute and main integration to owner.
+- 2026-11-24 skill correction (Moving step 9): silent on a cancelled CI job without logs or steps. Run 45435023130 had no macOS runner due to hosted ARM capacity. Added watch commands, check-run annotations diagnosis and failed-job infrastructure retry guidance.
 - 2026-11-24 local linux build, smoke and all 12 tool/source test files passed; ready for all-target branch CI.
 - 2026-11-24 first linux build stopped at accept-padding patch as expected. Inspected new accept states (both reserve `iocp_bytes`) and ConnectEx callback (waits for IOCP completion and updates connect context): upstream implements both fixes, so retire both patches. Existing `__declspec(thread)` and clock_gettime remain: keep windows flags. No upstream contact.
