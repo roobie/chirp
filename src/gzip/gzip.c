@@ -27,7 +27,13 @@
 #define MINIZ_NO_TIME
 #define MINIZ_NO_ZLIB_COMPATIBLE_NAMES
 #define extern
+/* miniz is the pin's, and static here, so the functions gzip does not call are
+ * unused by design; chirp's own code below keeps the warning. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-W#pragma-messages"
 #include <miniz.c>
+#pragma GCC diagnostic pop
 #undef extern
 
 /* Output grows by at least this much, so each miniz call has room to work. */
@@ -372,6 +378,7 @@ JANET_FN(chirp_gzip_fn_decompressor,
          "A decompressor for gzip data that arrives in pieces: give each piece to "
          "`gzip/update`, then call `gzip/finish` once to check the data ended "
          "where a member ends.") {
+    (void)argv;
     janet_fixarity(argc, 0);
     Decompressor *d = janet_abstract(&decompressor_type, sizeof(Decompressor));
     decompressor_init(d);

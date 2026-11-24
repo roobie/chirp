@@ -280,6 +280,11 @@
    ;(map |(string "-I" repo "/" $) (get n :repo-includes []))
    ;(if (or (n :repo-sources) (n :repo-includes)) [(string "-ffile-prefix-map=" repo "=.")] [])])
 
+# Warning flags for the C this repo owns, in the shipped build only: a pin's
+# sources are upstream's to keep clean, and the build machine's compiler is not
+# the one that ships.
+(def- repo-cflags (get config :repo-cflags []))
+
 (defn- build-native [n]
   (def {:name name} n)
   (def root (string abs-out "/obj/" (string/replace-all "/" "_" name)))
@@ -386,6 +391,7 @@
         (def o (string dir "/" (flat s) ".o"))
         (zig ;tgt-cflags ;(if (n :openssl) [(string "-I" tgt-ossl-root "/include")] [])
              ;(native-cflags n) ;(get-in target [:pin-cflags (get n :pin :janet)] [])
+             ;(if (string/has-prefix? (string repo "/") s) repo-cflags [])
              ;defs "-c" s "-o" o)
         o)))
   (def lib (string dir "/" (flat name) ".a"))
@@ -408,7 +414,7 @@
   (def extra-objs @[])
   (each s (get target :repo-sources [])
     (def o (string tgt-root "/repo___" (flat s) ".o"))
-    (zig ;tgt-cflags (string "-ffile-prefix-map=" repo "=.") "-c" (string repo "/" s) "-o" o)
+    (zig ;tgt-cflags ;repo-cflags (string "-ffile-prefix-map=" repo "=.") "-c" (string repo "/" s) "-o" o)
     (array/push extra-objs o))
   (def image-c
     (if (target :stub-missing)

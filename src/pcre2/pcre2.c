@@ -291,10 +291,6 @@ static int iter_next(Iter *it) {
     }
 }
 
-static void check_start(const Opts *o, size_t len) {
-    if ((size_t)o->start > len) janet_panic("pcre2: :start is past the end of the subject");
-}
-
 /* Functions */
 
 JANET_FN(chirp_pcre2_fn_compile, "(pcre2/compile pattern &opt opts)",

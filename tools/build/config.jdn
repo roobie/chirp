@@ -124,6 +124,10 @@
            {:pin :spork :file "src/json.c"
             :mirror "src/omap/json.c"
             :sha256 "4ff10b9e408fc901c11b5698c72171367f5175caf863c33fb3382841bf48a347"}]
+ # Warning flags for the C sources this repo owns (:repo-sources), in the
+ # shipped build. No file is exempt; a pin's file that one of them includes
+ # is excused at the #include, with the reason there (src/gzip/gzip.c).
+ :repo-cflags ["-Wall" "-Wextra" "-Werror"]
  # Pinned checkouts whose root holds importable Janet modules.
  :janet-sources [:spork :jsec :spork-https]
  # Single modules the :all: templates cannot find: a pinned checkout whose entry
