@@ -145,3 +145,4 @@ Out: forks of janet or spork; jsys (D-HCB4FUBWJ2TJFZGI); janet-pm, until B-DZXWH
 - 2026-11-24 milestone maintainability (U-HM3MZPOZSVLCXGNP) opened from the 2026-11-24 review; in initialize until the owner answers its open questions
 - 2026-11-24 milestone maintainability wave A: pin-reader, repo-tests and build-guards delivered (ci run 45371721511); CI's checks run on a pinned released chirp (D-235CO5X6BG3S743P); merged branches deleted from origin; issue 21 is B-IRCVVXCJX6GVYOES
 - 2026-11-24 milestone maintainability wave B: pin-guards, path-helpers and ci-work-only delivered; a .work/-only push no longer builds (D-SBFT5Y7OGHMOVIY6)
+- 2026-11-24 milestone maintainability wave C: c-warnings, skill-install-parent-links (issue 20), upstream-watch and the chirp-pins skill delivered
