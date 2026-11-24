@@ -32,7 +32,8 @@ All of these must hold before the cut. Report each one; don't stop at the first 
 5. **CI:** the latest `ci` run on HEAD is green (`gh run list -L 5`). A push that changed only `.work/` has a green run that built nothing (its build jobs are skipped); then the newest run that did build must be green too.
 6. **Milestone:** the GitHub milestone is titled exactly `X.Y.Z` (no `v`) and holds **every** issue this release fixes. close-milestone closes only issues *in* the milestone, so a fixed issue left outside stays open (`gh issue edit N --milestone X.Y.Z`). Without a milestone the job closes nothing and still passes.
 7. **Release notes boilerplate:** if this release bundles a new library or module, `.github/release-notes.md` names it ("It bundles …").
-8. **Users who cannot self-update:** if a fix is to self-update itself (for example #10, windows HTTPS), the changelog entry says those users must download by hand. Repeat it on the issue if useful.
+8. **Upstream:** `chirp tools/pins/watch.janet` shows nothing that this release should have carried: a security release of a pinned library, or a reply on a ticket a workaround waits for. It only reads. A newer tag is not a reason to hold a release; a fix for something chirp ships broken is.
+9. **Users who cannot self-update:** if a fix is to self-update itself (for example #10, windows HTTPS), the changelog entry says those users must download by hand. Repeat it on the issue if useful.
 
 Optional: a manual run of `release` (`gh workflow run release.yml --ref main`) does everything except create the release: it builds, packages, signs and attests, with the Unreleased section standing in for the notes. It signs with a throwaway key made for the run, so it never proves the stored secret.
 

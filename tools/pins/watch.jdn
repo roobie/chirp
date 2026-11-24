@@ -1,0 +1,18 @@
+# What tools/pins/watch.janet reads beside pins.jdn. Data only.
+{# The branch an untagged pin follows, when it is not the repository's default.
+ :branches {:jsec "0.2.0"}
+ # RSS feeds whose recent items are printed. llmII's repos live on fossil, and
+ # replies, tickets and tags appear only there (L-3HL3LQ37XDKWQ6HI); the GitHub
+ # mirrors that pins.jdn fetches from carry the code alone. A ticket that a
+ # backlog item waits on gets its own tkt= feed, added in the commit that
+ # starts the waiting and removed with the item.
+ :feeds [{:name "jsec tags and branches" :url "https://code.amlegion.org/jsec/timeline.rss?y=g&n=20"}
+         {:name "jsec check-ins on 0.2.0" :url "https://code.amlegion.org/jsec/timeline.rss?y=ci&tag=0.2.0&n=20"}
+         {:name "jsec tickets" :url "https://code.amlegion.org/jsec/timeline.rss?y=t&n=20"}
+         # B-UKQL6LDUCA2DABBT
+         {:name "jsec ticket 4e62dc7283 (thread-local storage)" :url "https://code.amlegion.org/jsec/timeline.rss?tkt=4e62dc7283&n=20"}
+         # B-6UDB6YVY3NJFAAMU
+         {:name "jsec ticket f33e7b7d7e (TLSState initialisation)" :url "https://code.amlegion.org/jsec/timeline.rss?tkt=f33e7b7d7e&n=20"}
+         {:name "spork-https tags and branches" :url "https://code.amlegion.org/spork-https/timeline.rss?y=g&n=20"}
+         {:name "spork-https check-ins" :url "https://code.amlegion.org/spork-https/timeline.rss?y=ci&n=20"}
+         {:name "spork-https tickets" :url "https://code.amlegion.org/spork-https/timeline.rss?y=t&n=20"}]}
