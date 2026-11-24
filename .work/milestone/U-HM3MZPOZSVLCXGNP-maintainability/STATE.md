@@ -57,6 +57,7 @@ Out:
 - hygiene (U-NSJDS3SYUX7Y4CO3) delivered: main pushed and origin has only main; stale backlog item gone; issue 21 is B-IRCVVXCJX6GVYOES; the two stalled windows tasks are back in the backlog (D-OYMZ5GI46ZE4M5QR); project Evidence is one line per criterion plus the latest release. Wave A is complete.
 - pin-guards (U-6YPX4V6UF4GJLDIE) delivered: version defines resolve from the pin's :tag (binary identical with only that change) and no pinned version literal is left outside pins.jdn; :mirrors stops the build when cli-main, run-main or spork's json.c changes upstream, naming the chirp file and the hash to record; run 45384710519 green.
 - path-helpers (U-P5BSKWOVDJYIQFHD) delivered: src/chirp/paths.janet holds the one OS test and the one directory-of-path helper under src/chirp, with tests; smoke green on the four native runners in run 45384710519.
+- ci-work-only (U-CLMO7BUNR7R6Z4GJ) delivered: a .work/-only push gets a green ci run in about a minute with the builds skipped (run 45389524689 on main) and pages publishes nothing for it (run 45389639071); code pushes, new branches and the release dry run build everything (D-SBFT5Y7OGHMOVIY6). Wave B is complete.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
