@@ -55,6 +55,8 @@ Out:
 - repo-tests (U-BTEXJZKNTIOO6G4L) delivered: chirp tools/test.janet runs every *.test.janet (13 files; chirp's own 10 in about 1 s with an installed chirp), and CI's checks job runs them on the :chirp pin in 35 s without waiting for a build (run 45371721511, D-235CO5X6BG3S743P).
 - build-guards (U-YT7LBKVS4KWB6D6O) delivered: the build refuses a carried pin with no notice (it found jsec's missing from chirp.wasm, L-JHSEB5OVK5G34PN6), smoke runs every check beside its driver, patches are :patches data, the stub C source is a file; linux-x64 binary unchanged by the change, run 45371721511 green with released targets' NOTICES equal to 0.13.1's.
 - hygiene (U-NSJDS3SYUX7Y4CO3) delivered: main pushed and origin has only main; stale backlog item gone; issue 21 is B-IRCVVXCJX6GVYOES; the two stalled windows tasks are back in the backlog (D-OYMZ5GI46ZE4M5QR); project Evidence is one line per criterion plus the latest release. Wave A is complete.
+- pin-guards (U-6YPX4V6UF4GJLDIE) delivered: version defines resolve from the pin's :tag (binary identical with only that change) and no pinned version literal is left outside pins.jdn; :mirrors stops the build when cli-main, run-main or spork's json.c changes upstream, naming the chirp file and the hash to record; run 45384710519 green.
+- path-helpers (U-P5BSKWOVDJYIQFHD) delivered: src/chirp/paths.janet holds the one OS test and the one directory-of-path helper under src/chirp, with tests; smoke green on the four native runners in run 45384710519.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:

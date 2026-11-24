@@ -28,9 +28,9 @@ Units inside a wave touch different files and can run in parallel worktrees. A l
   Done when: the milestone's hygiene criterion reads true from `git branch -r`, `status` and the issue.
 
 ### Wave B: needs A
-- **slice `pin-guards`** (findings 1, 2; needs `build-guards`). Versions resolved from `:tag`; `:mirrors` with the check; smoke asserts by shape; version numbers out of the README table and the docstrings.
+- **slice `pin-guards`** (delivered 2026-11-24) (findings 1, 2; needs `build-guards`). Versions resolved from `:tag`; `:mirrors` with the check; smoke asserts by shape; version numbers out of the README table and the docstrings.
   Done when: `rg` for each pinned version literal finds only `pins.jdn`, the changelog and fixtures; a build with a mirror's recorded hash altered fails naming the chirp file; five targets, matching hashes, smoke green.
-- **task `path-helpers`** (finding 7; needs `repo-tests`). `src/chirp/paths.janet` with tests; six callers moved.
+- **task `path-helpers`** (delivered 2026-11-24) (finding 7; needs `repo-tests`). `src/chirp/paths.janet` with tests; six callers moved.
   Done when: `src/chirp` has one OS test and one directory-of-path helper; smoke green on all four native runners, windows above all.
 - **task `ci-work-only`** (finding 4; needs `repo-tests`). The changes job in `ci.yml`; `pages.yml`'s plan publishes nothing for a run that built nothing.
   Done when: a `.work/`-only push to a branch shows `checks` run and the builds skipped; the same on main leaves `pages` green with nothing deployed; a code push and a release dry run still build everything; a decision records the trade.
