@@ -24,7 +24,7 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           ACTOR: ${{ github.actor }}
         run: |
-          base=$(sed -n 's/^{\{0,1\} *:image "\([^"]*\)".*/\1/p' pins.jdn)
+          base=$(sh tools/build/pin.sh image)
           name=ghcr.io/$(echo "$OWNER" | tr A-Z a-z)/chirp-build
           echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
           # The dated tag is never moved or deleted: the pin in pins.jdn is a

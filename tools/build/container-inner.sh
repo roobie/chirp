@@ -16,7 +16,7 @@ export HOME="$CHIRP_OUT/home" TZ=UTC LC_ALL=C CHIRP_JOBS="$(nproc)"
 mkdir -p "$HOME" "$CHIRP_OUT/src"
 
 # Bootstrap janet from its pin; build.janet fetches everything else.
-pin() { sed -n "s/.*:janet {.*:$1 \"\\([^\"]*\\)\".*/\\1/p" "$src/pins.jdn"; }
+pin() { sh "$src/tools/build/pin.sh" janet "$1"; }
 jd="$CHIRP_OUT/src/janet"
 if [ ! -d "$jd/.git" ]; then
   git init -q "$jd"

@@ -27,7 +27,7 @@ echo "build one: $a"
 echo "build two: $b"
 [ "$a" = "$b" ] || { echo "FAIL: binaries differ" >&2; exit 1; }
 
-base=$(sed -n 's/^{\{0,1\} *:image "\([^"]*\)".*/\1/p' "$root/pins.jdn")
+base=$(sh "$root/tools/build/pin.sh" image)
 docker build -q --build-arg "BASE=$base" -t chirp-wine:smoke "$here/wine" >/dev/null
 docker run --rm chirp-wine:smoke apk info -v wine ca-certificates
 
