@@ -1,7 +1,6 @@
 # Smoke driver: runs the checks with the very binary that runs this script, so
 # the same code path works on every OS (Windows runners have no usable sh).
 # Usage: chirp test/smoke/run.janet
-(def- checks ["zip" "gzip" "tar" "sqlite" "toml" "yaml" "pcre2" "md4c" "lexbor" "omap" "ca-roots" "https-get" "https-server" "tls-connect-wait" "help" "help-serve" "changelog" "cli-help" "stdin" "repl" "spawn-cd" "script-names" "self-update" "dev-proc-install" "help-examples" "import-hint"])
 # A check that hangs (as https-server did on windows) fails on its own line in
 # seconds, instead of the CI job timing out with no hint of which check hung.
 (def- timeout-seconds 60)
@@ -42,6 +41,13 @@
   # The https-server check makes its server log the rejected untrusted client
   # on stderr, so stderr is shown only when a check fails.
   (def here (dir-of (dyn *current-file*)))
+  # Every check beside this driver runs: a new file needs no list, so none can
+  # be left out of one. A check that does not apply to a platform says so
+  # itself and exits 0.
+  (def checks
+    (sorted (seq [f :in (os/dir (if (empty? here) "." here))
+                  :when (and (string/has-suffix? ".janet" f) (not= f "run.janet"))]
+              (string/slice f 0 -7))))
   (each name checks
     (def [code out err] (run (string here name ".janet")))
     (def ok (= 0 code))

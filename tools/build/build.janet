@@ -20,6 +20,39 @@
               (os/getenv "CHIRP_TARGET" "")
               (string/join (map string (sorted (keys (config :targets)))) ", "))))
 
+# A target with :openssl false links no OpenSSL and none of the natives that need it.
+(def- tgt-openssl? (not= false (target :openssl)))
+
+# The natives this target links.
+(def tgt-natives
+  (filter |(not (or (and ($ :openssl) (not tgt-openssl?))
+                    (index-of ($ :name) (get target :skip-natives []))))
+          natives))
+
+# The :notices entries this target ships.
+(defn- notice-applies? [n]
+  (and (or (not (n :targets)) (index-of target-name (n :targets)))
+       (or (not (n :openssl)) tgt-openssl?)))
+
+# Everything linked into the executable has to ship its license text, and
+# nothing else would notice a pin that has none. The pins a target carries are
+# Janet's, OpenSSL's when it links it, those its natives build from, and those
+# whose Janet source is in the image, which is the same image on every target.
+# A notice covers the pin its text is read from (:root) or the one it names (:pin).
+(let [carried @{:janet true}
+      noticed (tabseq [n :in (config :notices) :when (notice-applies? n)]
+                (or (n :pin) (n :root)) true)]
+  (when tgt-openssl? (put carried :openssl true))
+  (each n tgt-natives (when (n :pin) (put carried (n :pin) true)))
+  (each name (config :janet-sources) (put carried name true))
+  (each m (get config :janet-modules []) (unless (= :repo (m :pin)) (put carried (m :pin) true)))
+  (def missing (sorted (filter |(not (noticed $)) (keys carried))))
+  (unless (empty? missing)
+    (errorf "%s carries %s, but :notices in tools/build/config.jdn has no entry for %s on this target; its license text would not ship"
+            target-name
+            (string/join (map |(string "the " $ " pin") missing) " and ")
+            (if (= 1 (length missing)) "it" "them"))))
+
 (defn- mkdirs [path]
   (var acc (if (string/has-prefix? "/" path) "/" ""))
   (each seg (string/split "/" path)
@@ -57,8 +90,8 @@
   (def p (pins name))
   (when (and (dictionary? p) (p :commit)) (fetch name)))
 
-# Patches to a pinned checkout, applied once and failing loudly if they do not
-# apply.
+# Patches to a pinned checkout (:patches in config.jdn), applied once and
+# failing loudly if they do not apply.
 (defn- patch [name file]
   (def dir (string "src/" name))
   (def path (string repo "/tools/build/patches/" file))
@@ -70,18 +103,7 @@
     (applies?) (do (run "git" "-C" dir "apply" path) (print "applied " file))
     (applies? "-R") (print "already applied " file)
     (errorf "patch %s fits neither the pinned nor the patched %s" file name)))
-# spork numbers each native's image prefix from a process-global counter, which
-# makes the image differ between otherwise identical builds.
-(patch :spork "spork-deterministic-native-prefixes.patch")
-# On windows, Janet writes a byte count just past the OVERLAPPED in jsec's
-# accept state, wiping the accepted socket, so every TLS server dies on its
-# first connection.
-(patch :jsec "jsec-iocp-accept-state-padding.patch")
-# On windows, jsec's tls/connect started the handshake before its non-blocking
-# connect finished, so the first send failed with WSAENOTCONN (10057) whenever
-# the server was more than a few milliseconds away. It now uses ConnectEx and
-# waits for the completion, like Janet's net/connect.
-(patch :jsec "jsec-windows-connectex.patch")
+(each {:pin pin :file file} (config :patches) (patch pin file))
 
 # Everything the image build loads is built for the build machine; everything
 # linked into the executable is built again by zig for the target.
@@ -112,8 +134,6 @@
 
 (def zig-cc ["zig" "cc" "-target" (target :triple)])
 (def zig-dir (setup-zig))
-# A target with :openssl false links no OpenSSL and none of the natives that need it.
-(def- tgt-openssl? (not= false (target :openssl)))
 # OpenSSL builds in its source tree, so each target gets its own copy.
 (def- openssl-copy (string "src/openssl-" target-name))
 (when tgt-openssl?
@@ -246,12 +266,6 @@
    ;(mapcat |["-include" (string repo "/" $)] (get target :force-includes []))
    (string "-I" janet-prefix "/include")])
 
-# The natives this target links.
-(def tgt-natives
-  (filter |(not (or (and ($ :openssl) (not tgt-openssl?))
-                    (index-of ($ :name) (get target :skip-natives []))))
-          natives))
-
 # For a target whose janet compiles features out (:stub-missing), C source that
 # registers one raising cfunction under every name the image may refer to and
 # the target lacks: each core cfunction of this build's janet that the target's
@@ -265,7 +279,7 @@
     (sorted (seq [[k v] :pairs env
                   :when (and (symbol? k) (cfunction? (if (table? v) (v :value) v)))]
               (string k))))
-  (def out @"#include <janet.h>\n\nstatic Janet chirp_unavailable(int32_t argc, Janet *argv) {\n    (void) argc; (void) argv;\n    janet_panic(\"not available in this build of chirp\");\n}\n\nstatic void stub(JanetTable *env, const char *name) {\n    Janet stub = janet_wrap_cfunction(chirp_unavailable);\n    Janet entry = janet_table_get(env, janet_csymbolv(name));\n    if (!janet_checktype(entry, JANET_TABLE)) {\n        janet_def(env, name, stub, NULL);\n        return;\n    }\n    /* Keep the entry, and so its docstring; fill in only a missing value. */\n    JanetTable *t = janet_unwrap_table(entry);\n    if (janet_checktype(janet_table_get(t, janet_ckeywordv(\"value\")), JANET_NIL))\n        janet_table_put(t, janet_ckeywordv(\"value\"), stub);\n}\n\n")
+  (def out (buffer (slurp (string repo "/tools/build/stub-prelude.c"))))
   (buffer/push out "void chirp_stub_core(JanetTable *env) {\n")
   (each k (c-names (env-lookup root-env)) (buffer/push out (string/format "    stub(env, %j);\n" k)))
   (buffer/push out "}\n")
@@ -431,7 +445,6 @@
 (spit "bin/NOTICES.txt"
       (string/join
         (seq [n :in (config :notices)
-              :when (and (or (not (n :targets)) (index-of target-name (n :targets)))
-                         (or (not (n :openssl)) tgt-openssl?))]
+              :when (notice-applies? n)]
           (notice-section n))
         ""))
