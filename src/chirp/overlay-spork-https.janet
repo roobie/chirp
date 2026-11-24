@@ -3,10 +3,9 @@
 # is wrapped because upstream get/post/... reach request through compiled
 # references, so replacing one binding alone would change nothing.
 (import spork-https :as up)
+(import ./paths)
 
-(def- here
-  (let [f (dyn *current-file*)]
-    (string/slice f 0 (+ 1 (last (string/find-all "/" f))))))
+(def- here (paths/source-dir))
 # One source for the version: the same file main.janet reads.
 (def- user-agent (string "chirp/" ((parse (slurp (string here "chirp.jdn"))) :version)))
 

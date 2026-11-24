@@ -1,5 +1,5 @@
 ---
-phase: initialize
+phase: execute
 parent: U-HM3MZPOZSVLCXGNP
 owner:
   - BR
@@ -17,19 +17,20 @@ success_criteria:
 src/chirp has one OS test and one directory-of-path helper, so the next caller cannot pick the variant that forgets a backslash (review finding 7).
 
 ## Scope
-In: TODO
-Out: TODO
+In: `src/chirp/paths.janet` with its test; `ca`, `update`, `skills`, `repl`, `main` and the https overlay moved to it.
+Out: `src/tar/tar.janet`, a public module that takes nothing from chirp's internals; the smoke scripts, which each stand alone (D-DPSCZ2KCZA4UB7YM); the link check of issue 20 (task skill-install-parent-links, wave C).
 
 ## Context & constraints
-TODO: what is already true, what must stay true, resources available.
+The OS test stays a function, because the image is built on linux for every target (L-J2G76CUIQU4OWGMK). `update.janet`'s `dir-of` is the one that already splits on either separator on windows, so it is the one kept. Design in the milestone's DESIGN.md (U-HM3MZPOZSVLCXGNP), finding 7.
 
 
 ## Next
-<!-- The cursor of the unit being worked: what is about to happen, and for a held unit the reason first.
-     Rewrite it freely. A unit with open children keeps none: its present is its children. -->
+Push with the rest of wave B; smoke must be green on the four native runners, windows above all. Then finalize.
 
 ## Evidence
 <!-- Proof against success_criteria: test runs, commits, measurements. -->
+- rg 'defn-? (windows\?|dir-of|dirname)' src/chirp finds only paths.janet's two; main and the overlay take 'here' from paths/source-dir. paths.test.janet passes (11 dir-of cases, either separator on windows).
+- linux-x64 built locally passes all 26 smoke checks. windows-x64 built locally and run under Wine with the checkout mounted passes 25 of 26: ca-roots writes its bundle through paths/dir-of under AppData, self-update and the skill install pass; dev-proc-install then fails at 'git init' because the Wine image has no git.exe, which the old code would also do.
 
 ## Harvest
 <!-- Candidates found along the way. Finalize promotes or drops every unchecked item:
@@ -38,6 +39,8 @@ TODO: what is already true, what must stay true, resources available.
      - [ ] backlog: …    → record backlog
      - [ ] process: …    → retrospective (change the process, or drop it)
 -->
+- [ ] backlog: test/smoke/run-windows.sh cannot go green under Wine: dev-proc-install runs git, which the Wine image lacks; it also mounted only test/smoke, so two checks could not find the source tree (the mount is fixed here)
 
 ## Log
 - 2026-11-24 initialized
+- 2026-11-24 phase initialize → execute

@@ -8,6 +8,7 @@
 
 (import spork/getline)
 (import spork/rawterm)
+(import ./paths)
 
 (defn- env-var [name]
   (def v (os/getenv name))
@@ -35,7 +36,7 @@
   "Run the REPL until end of input."
   []
   (when-let [jp (env-var "JANET_PATH")]
-    (def paths (string/split (if (index-of (os/which) [:windows :mingw]) ";" ":") jp))
+    (def paths (string/split (if (paths/windows?) ";" ":") jp))
     (loop [i :down-to [(dec (length paths)) 1]]
       (module/add-syspath (in paths i)))
     (setdyn *syspath* (first paths)))

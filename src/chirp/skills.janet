@@ -2,6 +2,7 @@
 # result is baked in; install lays the files out the way the npm `skills`
 # package does: one canonical copy, and each agent directory links to it.
 (import spork/sh)
+(import ./paths)
 
 (defn- walk
   "Sorted paths of the files under dir, relative to it, with `/` separators."
@@ -62,12 +63,10 @@
       (not= (string have) content) (array/push changed (string rel " (changed)"))))
   [changed (filter |(not (shipped $)) (walk dest))])
 
-(defn- dirname [path] (string/slice path 0 (last (string/find-all "/" path))))
-
 (defn- write-files [dest files]
   (each [rel content] files
     (def path (string dest "/" rel))
-    (sh/create-dirs (dirname path))
+    (sh/create-dirs (paths/dir-of path))
     (spit path content)))
 
 # A shipped file the user may have edited is overwritten only with --force.
@@ -123,7 +122,7 @@
     mode (skip shown path mode)
 
     (do
-      (def parent (dirname path))
+      (def parent (paths/dir-of path))
       (sh/create-dirs parent)
       (def target (relative (or (real parent) parent) canon-real))
       (def [ok err] (protect (os/symlink target path)))

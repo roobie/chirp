@@ -3,10 +3,10 @@
 # what is trusted, and any mirror can serve the tree.
 (import spork-https :as https)
 (import jsec/crypto)
+(import ./paths)
 
 (defn- die [& msg] (error (string ;msg)))
 
-(defn- windows? [] (truthy? (index-of (os/which) [:windows :mingw])))
 
 (defn- hex [bytes]
   (string/format (string/repeat "%02x" (length bytes)) ;(string/bytes bytes)))
@@ -111,8 +111,8 @@
       (die "no release exists for " (os/which) " on " (os/arch))))
 
 (defn- search-path [name]
-  (def sep (if (windows?) ";" ":"))
-  (def names (if (and (windows?) (not (string/has-suffix? ".exe" name)))
+  (def sep (if (paths/windows?) ";" ":"))
+  (def names (if (and (paths/windows?) (not (string/has-suffix? ".exe" name)))
                [(string name ".exe") name]
                [name]))
   (var found nil)
@@ -125,7 +125,7 @@
 
 (defn- running-binary []
   (def self (dyn *executable*))
-  (def has-sep? (or (string/find "/" self) (and (windows?) (string/find "\\" self))))
+  (def has-sep? (or (string/find "/" self) (and (paths/windows?) (string/find "\\" self))))
   (defn real [path] (when path (let [[ok p] (protect (os/realpath path))] (when ok p))))
   (or (when (= :linux (os/which)) (real "/proc/self/exe"))
       (real (if has-sep? self (search-path self)))
@@ -162,21 +162,13 @@
     (os/rm path)
     true))
 
-(defn- dir-of [path]
-  (def cut (last (seq [i :range [0 (length path)]
-                       :when (or (= (chr "/") (path i))
-                                 (and (windows?) (= (chr "\\") (path i))))]
-                   i)))
-  (cond (nil? cut) "."
-        (zero? cut) "/"
-        (string/slice path 0 cut)))
 
 (defn- save
   "Write bytes to path as an executable file."
   [path bytes]
   (try (spit path bytes)
     ([e] (die "cannot write " path ": " e)))
-  (unless (windows?) (os/chmod path 8r755)))
+  (unless (paths/windows?) (os/chmod path 8r755)))
 
 (defn- output-path
   "Where --output puts the binary: the path itself, or name inside it when it
@@ -189,14 +181,14 @@
   on an existing name, so nobody else can have prepared it."
   []
   (def root (or (os/getenv "TMPDIR") (os/getenv "TEMP") (os/getenv "TMP")
-                (if (windows?) "." "/tmp")))
+                (if (paths/windows?) "." "/tmp")))
   (def dir (string root "/chirp-update-" (hex (os/cryptorand 8))))
   (unless (os/mkdir dir) (die "cannot create " dir))
   dir)
 
 (defn- quote-arg [s]
   (cond
-    (windows?) (string `"` s `"`)
+    (paths/windows?) (string `"` s `"`)
     (peg/match ~(* (some (+ (range "az" "AZ" "09") (set "/._-+:@%"))) -1) s) s
     (string "'" (string/replace-all "'" `'\''` s) "'")))
 
@@ -221,8 +213,8 @@
   (defer (when (os/stat tmp) (os/rm tmp))
     (try (spit tmp bytes)
       ([e] (die "cannot write " tmp ": " e)))
-    (unless (windows?) (os/chmod tmp 8r755))
-    (if (windows?)
+    (unless (paths/windows?) (os/chmod tmp 8r755))
+    (if (paths/windows?)
       # A running exe cannot be overwritten but can be renamed away.
       (do
         (try (do (when (os/stat old) (os/rm old))
@@ -317,9 +309,9 @@
           (save path (download))
           (print "saved chirp " latest " at " path))
         (let [exe (running-binary)
-              dir (dir-of exe)]
+              dir (paths/dir-of exe)]
           # A leftover from an earlier Windows update; it may still be locked.
-          (when (windows?) (protect (when (os/stat (string exe ".old")) (os/rm (string exe ".old")))))
+          (when (paths/windows?) (protect (when (os/stat (string exe ".old")) (os/rm (string exe ".old")))))
           (if (can-create? (string exe ".new"))
             (do
               (install exe (download))

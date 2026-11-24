@@ -1,9 +1,9 @@
 # chirp: the stock Janet runner with bundled modules, marked as unofficial.
 
+(import ./paths)
+
 # Evaluated while the image is built; the results are baked into it.
-(def- here
-  (let [f (dyn *current-file*)]
-    (string/slice f 0 (+ 1 (last (string/find-all "/" f))))))
+(def- here (paths/source-dir))
 (def- config (parse (slurp (string here "chirp.jdn"))))
 
 # Bindings only: path-bearing keys such as :native and :current-file stay out

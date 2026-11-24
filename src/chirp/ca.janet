@@ -4,16 +4,16 @@
 # their trust in stores of their own, so chirp exports the roots those trust to
 # a file in the user's cache directory and names that.
 (import osroots)
+(import ./paths)
 
-(defn- windows? [] (truthy? (index-of (os/which) [:windows :mingw])))
 
-(defn- store-name [] (if (windows?) "windows store" "keychain"))
+(defn- store-name [] (if (paths/windows?) "windows store" "keychain"))
 
 (defn- cache-root
   "The per-user cache directory of this OS, or nil without one."
   []
   (cond
-    (windows?) (os/getenv "LOCALAPPDATA")
+    (paths/windows?) (os/getenv "LOCALAPPDATA")
     (= :macos (os/which)) (when-let [h (os/getenv "HOME")] (string h "/Library/Caches"))
     (or (os/getenv "XDG_CACHE_HOME")
         (when-let [h (os/getenv "HOME")] (string h "/.cache")))))
@@ -28,14 +28,14 @@
   half of it. Windows will not rename over a file, so a stale one goes first;
   another chirp may win the race, which is fine if the file ends up right."
   [path pem]
-  (def dir (string/slice path 0 (last (string/find-all "/" path))))
-  (each d [(string/slice dir 0 (last (string/find-all "/" dir))) dir]
+  (def dir (paths/dir-of path))
+  (each d [(paths/dir-of dir) dir]
     (try (os/mkdir d) ([_] nil)))
   (def tmp (string path "." (os/getpid) ".tmp"))
   (try
     (do
       (spit tmp pem)
-      (when (and (windows?) (os/stat path)) (os/rm path))
+      (when (and (paths/windows?) (os/stat path)) (os/rm path))
       (os/rename tmp path))
     ([_] (try (os/rm tmp) ([_] nil))))
   (holds? path pem))

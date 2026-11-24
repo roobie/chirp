@@ -31,8 +31,9 @@ base=$(sh "$root/tools/build/pin.sh" image)
 docker build -q --build-arg "BASE=$base" -t chirp-wine:smoke "$here/wine" >/dev/null
 docker run --rm chirp-wine:smoke apk info -v wine ca-certificates
 
+# The whole checkout is mounted: some checks read the source tree beside them.
 # No SSL_CERT_FILE: chirp.exe exports the ROOT store, which Wine fills from
 # the container's CA bundle.
 docker run --rm \
-  -v "$one/bin:/exe:ro" -v "$here:/checks:ro" \
-  chirp-wine:smoke wine64 /exe/chirp.exe /checks/run.janet
+  -v "$one/bin:/exe:ro" -v "$root:/repo:ro" \
+  chirp-wine:smoke wine64 /exe/chirp.exe /repo/test/smoke/run.janet
